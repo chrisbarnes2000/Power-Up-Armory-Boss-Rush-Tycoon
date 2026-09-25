@@ -4,6 +4,20 @@
 
 ---
 
+## [v1.2.1-dev.3] — 2026-09-25
+
+### Engineering Actions
+- **Global Scrollbar Hiding (`src/index.css`)**:
+  - Added CSS rule reset to hide vertical and horizontal scrollbars across WebKit (Chrome, Safari, Opera), Firefox (`scrollbar-width: none`), and IE/Edge (`-ms-overflow-style: none`).
+  - Added `.no-scrollbar` utility class for specific scrollable elements while maintaining standard scroll touch and wheel functionality.
+
+- **App Background Canvas Synchronization (`index.html`, `src/index.css`)**:
+  - **Files**: `/index.html`, `/src/index.css`
+  - **Changes**: Configured `#0a0e1a` dark cosmic background color across `html`, `body`, `#root`, `<meta name="theme-color">`, `<meta name="background-color">`, and `<meta name="apple-mobile-web-app-status-bar-style">`.
+  - **Fix**: Added `viewport-fit=cover` and `overscroll-behavior: none` to prevent white background canvas bleed when pinching/zooming out, holding mobile devices sideways in landscape orientation, or overscrolling/rubber-banding.
+
+---
+
 ## [v1.2.1-dev.2] — 2026-09-25
 
 ### Engineering Actions

@@ -6,6 +6,33 @@
 
 html, body, #root {
   font-family: "Helvetica", "Arial", sans-serif;
+  background-color: #0a0e1a;
+  color: #d0e0ff;
+  min-height: 100vh;
+  min-height: 100dvh;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  overscroll-behavior: none;
+}
+
+/* --- HIDE ALL SCROLLBARS GLOBALLY --- */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @keyframes tourPulse {

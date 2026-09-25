@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="bg-[#0a0e1a] text-[#d0e0ff]">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     <title>Power-Up Armory · Boss Rush Tycoon</title>
     <meta name="description" content="A gamified commerce system where customers buy power-ups to unlock content in a tycoon/boss rush game." />
     
@@ -10,7 +10,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#0a0f1d" />
+    <meta name="theme-color" content="#0a0e1a" />
+    <meta name="background-color" content="#0a0e1a" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     
     <!-- OpenGraph & Social Cards -->
@@ -39,8 +41,8 @@
     }
     </script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-[#0a0e1a] text-[#d0e0ff] antialiased min-h-screen">
+    <div id="root" class="bg-[#0a0e1a] min-h-screen"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
