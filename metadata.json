@@ -1,0 +1,6 @@
+{
+  "name": "Power-Up Armory · Boss Rush Tycoon",
+  "description": "A gamified commerce system where customers buy power-ups to unlock content in a tycoon/boss rush game.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,32 @@
+# Power-Up Armory · Boss Rush Tycoon
+# https://poweruparmory.game
+
+User-agent: *
+Allow: /
+
+# Direct AI & LLM indexers to markdown documentation
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Allow: /llm.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+Allow: /llm.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+Allow: /llm.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+Allow: /llm.txt
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /llms.txt
+
+Sitemap: /sitemap.xml

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#070a14" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="bladeMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="goldMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="gemMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background for maskable safe-zone -->
+  <rect width="512" height="512" fill="url(#bgMask)" />
+
+  <!-- Shield Shape in Safe Zone -->
+  <path d="M256 96 L384 148 C384 276 320 352 256 404 C192 352 128 276 128 148 Z" 
+        fill="#111c35" stroke="url(#goldMask)" stroke-width="10" />
+
+  <!-- Crossed Blades -->
+  <path d="M200 160 L320 280 L304 296 L184 176 Z" fill="url(#bladeMask)" />
+  <path d="M312 160 L192 280 L208 296 L328 176 Z" fill="url(#bladeMask)" />
+
+  <!-- Core Gem -->
+  <polygon points="256,190 300,256 256,322 212,256" fill="url(#gemMask)" stroke="#ffffff" stroke-width="3" />
+  <circle cx="256" cy="256" r="8" fill="#ffffff" />
+</svg>

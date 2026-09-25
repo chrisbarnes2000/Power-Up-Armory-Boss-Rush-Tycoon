@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Base account information, player credentials, chosen character titles, and persistent hero status.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth UID of the player.",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address associated with the account.",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player's display name or hero moniker.",
+          "maxLength": 64
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Selected avatar emoji or crest symbol.",
+          "maxLength": 16
+        },
+        "title": {
+          "type": "string",
+          "description": "Heroic title earned through progression.",
+          "maxLength": 64
+        },
+        "powerScore": {
+          "type": "number",
+          "description": "Calculated power score from armory and stats."
+        },
+        "totalBossesDefeated": {
+          "type": "number",
+          "description": "Total number of bosses slain."
+        },
+        "coins": {
+          "type": "number",
+          "description": "Current gold coin balance."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Whether the player has administrator access privileges."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last updated timestamp."
+        }
+      },
+      "required": ["userId", "displayName"]
+    },
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "Global Hall of Champions ranking record.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the ranked player.",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Public player display name.",
+          "maxLength": 64
+        },
+        "score": {
+          "type": "number",
+          "description": "Power score ranking value."
+        },
+        "bosses": {
+          "type": "number",
+          "description": "Total boss defeats."
+        },
+        "coins": {
+          "type": "number",
+          "description": "Current or total gold accumulated."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Player crest or avatar emoji.",
+          "maxLength": 16
+        },
+        "title": {
+          "type": "string",
+          "description": "Hero title.",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last submission timestamp."
+        }
+      },
+      "required": ["userId", "name", "score", "bosses", "coins"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user account profile records accessible by the account owner."
+    },
+    "/leaderboard/{userId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Global Hall of Champions records viewable by everyone and updatable by the authenticated player."
+    }
+  }
+}

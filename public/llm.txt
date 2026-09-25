@@ -1,0 +1,6 @@
+# Power-Up Armory · Boss Rush Tycoon
+
+> A gamified commerce system where customers buy power-ups to unlock content in a tycoon/boss rush game.
+
+For detailed LLM documentation, schema, and API structure, please refer to:
+/llms.txt

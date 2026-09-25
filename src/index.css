@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Helvetica", "Arial", sans-serif;
+}
+
+html, body, #root {
+  font-family: "Helvetica", "Arial", sans-serif;
+}
+
+@keyframes tourPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.9), 0 0 25px rgba(249, 115, 22, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.9), 0 0 35px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.tour-spotlight-active {
+  animation: tourPulse 1.8s infinite ease-in-out !important;
+  border-color: rgba(249, 115, 22, 0.8) !important;
+  position: relative;
+  z-index: 40 !important;
+  transition: all 0.3s ease;
+}
+
+/* --- COLOR CODED COMBAT & NARRATIVE LOGS --- */
+/* Green for Good */
+.log-victory, .log-reward, .log-heal, .log-buff, .log-good {
+  color: #4ade80 !important;
+  font-weight: 700;
+}
+
+/* Yellow for Info */
+.log-info, .log-special, .log-status, .log-yellow {
+  color: #fde047 !important;
+  font-weight: 700;
+}
+
+/* Red for Bad */
+.log-defeat, .log-damage, .log-error, .log-bad {
+  color: #f87171 !important;
+  font-weight: 700;
+}
+
+/* White for Narrative or Purchases */
+.log-purchase, .log-narrative, .log-white {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+

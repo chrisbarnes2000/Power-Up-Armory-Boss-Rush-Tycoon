@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#070a14" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="gemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Shield Canvas -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="url(#bladeGrad)" stroke-width="8" stroke-opacity="0.5" />
+
+  <!-- Shield Shape -->
+  <path d="M256 64 L416 128 C416 288 336 384 256 448 C176 384 96 288 96 128 Z" 
+        fill="#111c35" stroke="url(#goldGrad)" stroke-width="12" filter="url(#glow)" />
+
+  <!-- Crossed Cyber Blades -->
+  <!-- Blade 1 -->
+  <path d="M190 140 L340 290 L320 310 L170 160 Z" fill="url(#bladeGrad)" />
+  <circle cx="160" cy="150" r="14" fill="#38bdf8" />
+  
+  <!-- Blade 2 -->
+  <path d="M322 140 L172 290 L192 310 L342 160 Z" fill="url(#bladeGrad)" />
+  <circle cx="352" cy="150" r="14" fill="#38bdf8" />
+
+  <!-- Central Power Crystal / Diamond -->
+  <polygon points="256,180 310,256 256,332 202,256" fill="url(#gemGrad)" stroke="#ffffff" stroke-width="4" filter="url(#glow)" />
+  
+  <!-- Diamond Inner Highlights -->
+  <polygon points="256,180 256,332 202,256" fill="#ffffff" fill-opacity="0.25" />
+  <polygon points="256,200 290,256 256,312 222,256" fill="url(#gemGrad)" />
+
+  <!-- Core Light Sparkle -->
+  <circle cx="256" cy="256" r="10" fill="#ffffff" filter="url(#glow)" />
+</svg>

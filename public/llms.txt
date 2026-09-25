@@ -1,0 +1,27 @@
+# Power-Up Armory · Boss Rush Tycoon
+
+> A gamified commerce application where customers purchase equipment, weapons, and tactical power-ups to unlock progression in an arcade boss-rush tycoon RPG.
+
+## Overview
+Power-Up Armory bridges dynamic e-commerce with real-time browser combat. Players purchase or earn tactical buffs, weapons, relics, and consumables with volume-discount pack pricing, then redeem receipt keys to empower heroes in battle against epic multi-phase bosses.
+
+## Key Modules
+- **Storefront & Armory**: 5 distinct gear categories (Weapons, Defense, Agility, Consumables, Specials) with bulk pack discount milestones and receipt generation.
+- **Boss Rush Gauntlet**: Battle legendary bosses (Neon Serpent, Obsidian Titan, Chrono Lich, Void Emperor) with active skills, attack timers, particle effects, and phase mechanics.
+- **Receipt Key Redemption**: Cryptographic verification bridge that credits items and bonus gems directly into player armory accounts.
+- **Tycoon Mining Engine**: Auto-mining crystal generators, passive gem generation, and armory upgrades.
+- **Global Leaderboards**: Cloud-synchronized high scores, boss clear times, and player stat tracking with Firebase Firestore.
+
+## Endpoints & Key Files
+- `/` - Main interactive application interface
+- `/robots.txt` - Search and crawler rules
+- `/llms.txt` - LLM context and architectural overview
+- `/llm.txt` - LLM specification alias
+- `/sitemap.xml` - XML site map
+- `/site.webmanifest` - Web application manifest
+
+## Technical Stack
+- **Framework**: React 18, Vite, TypeScript, Tailwind CSS
+- **Database / Auth**: Firebase Firestore & Firebase Authentication
+- **Icons**: Lucide Icons
+- **Animation**: CSS animations, Canvas VFX, Web Audio Synthesizer
