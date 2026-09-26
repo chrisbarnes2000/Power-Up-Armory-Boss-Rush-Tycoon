@@ -3,6 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { POWERUPS } from '../data';
 import { GameState, PurchaseItem, PurchaseRecord } from '../types';
+import { CoinIcon } from './CoinIcon';
 
 interface ShopViewProps {
   gameState: GameState;
@@ -596,8 +597,9 @@ export default function ShopView({
                               </span>
                             )}
                           </span>
-                          <span className="text-[#f5e56b] bg-[#141c30] px-3 py-1 rounded-full text-sm sm:text-base font-black border border-[#f5e56b]/30">
-                            ${pack.price}
+                          <span className="text-[#f5e56b] bg-[#141c30] px-3 py-1 rounded-full text-sm sm:text-base font-black border border-[#f5e56b]/30 flex items-center gap-1.5 shadow-inner">
+                            <CoinIcon className="w-4 h-4 drop-shadow" />
+                            <span>${pack.price}</span>
                           </span>
                           {packQty > 0 && (
                             <span className="text-white bg-orange-600 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-extrabold animate-pulse">
@@ -616,8 +618,9 @@ export default function ShopView({
                 <div className="flex items-center justify-between bg-black/50 border border-[#1a2540] rounded-full p-2 mt-2">
                   <div className="flex flex-col ml-4">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-base font-black text-[#f5e56b]">
-                        ${subtotalCost}
+                      <span className="font-mono text-base font-black text-[#f5e56b] flex items-center gap-1">
+                        <CoinIcon className="w-4 h-4 drop-shadow" />
+                        <span>${subtotalCost}</span>
                       </span>
                       {savings > 0 && (
                         <span className="font-mono text-xs text-slate-500 line-through">
@@ -698,7 +701,10 @@ export default function ShopView({
 
           <div className="flex flex-col">
             <span className="text-xs text-white/40 uppercase font-bold tracking-[0.2em] mb-1">Subtotal Value</span>
-            <p className="text-xl font-bold text-orange-500">${cartTotal}.00</p>
+            <p className="text-xl font-bold text-orange-500 flex items-center gap-1.5 font-mono">
+              <CoinIcon className="w-5 h-5 drop-shadow" />
+              <span>${cartTotal}.00</span>
+            </p>
           </div>
         </div>
 

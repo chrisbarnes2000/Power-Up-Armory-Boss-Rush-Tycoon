@@ -5,6 +5,8 @@ import { BOSSES, POWERUPS } from '../data';
 import { GameState, PurchaseRecord, LeaderboardEntry, UserProfile } from '../types';
 import { User as FirebaseUser } from 'firebase/auth';
 import { getPackUnits } from './ShopView';
+import { CoinIcon } from './CoinIcon';
+import { LightningIcon } from './LightningIcon';
 
 interface GameViewProps {
   gameState: GameState;
@@ -77,6 +79,38 @@ export default function GameView({
   const [isFighting, setIsFighting] = useState(false);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
+
+  // Dynamic clearance for the tycoon-bankroll-card to stay fixed at viewport bottom
+  // and smoothly float upward above the footer when the footer scrolls into view
+  const [statbarBottomOffset, setStatbarBottomOffset] = useState<number>(0);
+
+  useEffect(() => {
+    const handleScrollOrResize = () => {
+      const footer = document.getElementById('app-global-footer');
+      if (!footer) {
+        setStatbarBottomOffset(0);
+        return;
+      }
+      const footerRect = footer.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      // If the top of the footer has entered the viewport:
+      if (footerRect.top < viewportHeight) {
+        const overlap = viewportHeight - footerRect.top;
+        setStatbarBottomOffset(Math.max(0, overlap));
+      } else {
+        setStatbarBottomOffset(0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+    handleScrollOrResize();
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, []);
 
   // Live HP states for health bar rendering
   const [livePlayerHP, setLivePlayerHP] = useState<number>(100);
@@ -651,7 +685,7 @@ export default function GameView({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col select-none py-2 md:py-4 relative pb-32 px-2 sm:px-4 md:px-6 box-border">
+    <div className="w-full flex-1 flex flex-col select-none py-2 md:py-4 relative pb-28 sm:pb-32 px-2 sm:px-4 md:px-6 box-border">
 
       {/* ACTIVE VIEW TAB */}
       <div className="flex-1 w-full max-w-full">
@@ -713,7 +747,7 @@ export default function GameView({
                   onClick={handleMineGoldCore}
                   className="relative px-6 py-3.5 bg-linear-to-b from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-mono font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.35)] active:scale-95 transition cursor-pointer flex items-center gap-2 border border-yellow-300/60"
                 >
-                  <span className="text-lg">✨</span>
+                  <CoinIcon className="w-5 h-5 drop-shadow" />
                   <span>Mine Gold Core</span>
                   {recentMineGain !== null && (
                     <span className="absolute -top-3 right-2 text-xs font-black text-green-300 bg-black/80 px-2 py-0.5 rounded-full border border-green-500/40 animate-ping">
@@ -802,8 +836,11 @@ export default function GameView({
                             <div className="flex justify-between"><span>⚔️ ATK:</span> <span className="text-[#f5e56b] font-bold">{data.attack}</span></div>
                             <div className="flex justify-between"><span>🛡️ DEF:</span> <span className="text-[#f5e56b] font-bold">{data.defense}</span></div>
                             <div className="flex justify-between"><span>💨 SPD:</span> <span className="text-[#f5e56b] font-bold">{data.speed}</span></div>
-                            <div className="flex justify-between border-t border-white/5 pt-1.5 mt-1.5 font-mono text-xs">
-                              <span>💰 Rate:</span>
+                            <div className="flex justify-between border-t border-white/5 pt-1.5 mt-1.5 font-mono text-xs items-center">
+                              <span className="flex items-center gap-1">
+                                <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
+                                <span>Rate:</span>
+                              </span>
                               <span className="text-green-400">+{currentRate.toFixed(1)}/s</span>
                             </div>
                           </div>
@@ -815,9 +852,17 @@ export default function GameView({
                               <button 
                                 disabled={ps.level >= data.maxLevel}
                                 onClick={() => upgradePowerupLevel(ps.id)}
-                                className="w-full text-xs py-2 rounded-lg border border-[#2a4060] bg-black/40 text-[#aac0e0] font-bold hover:bg-[#2a4060] hover:text-white transition disabled:opacity-30 cursor-pointer"
+                                className="w-full text-xs py-2 rounded-lg border border-[#2a4060] bg-black/40 text-[#aac0e0] font-bold hover:bg-[#2a4060] hover:text-white transition disabled:opacity-30 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                               >
-                                {ps.level >= data.maxLevel ? 'MAX LEVEL' : `Lv. Up (${nextUpgradeCost} 🪙)`}
+                                {ps.level >= data.maxLevel ? (
+                                  <span>MAX LEVEL</span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <span>Lv. Up ({nextUpgradeCost}</span>
+                                    <CoinIcon className="w-3.5 h-3.5 inline-block drop-shadow" />
+                                    <span>)</span>
+                                  </span>
+                                )}
                               </button>
                               <button 
                                 onClick={() => buyPowerupInGame(ps.id)}
@@ -849,6 +894,50 @@ export default function GameView({
         {activeTab === 'bosses' && (
           <div id="boss-battle-arena" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
+            {/* Global Champion Fallen Alert Banner */}
+            {gameState.isDead && (
+              <div className="col-span-1 lg:col-span-12 bg-linear-to-r from-red-950/90 via-red-900/80 to-amber-950/90 border-2 border-red-500 rounded-2xl p-4 sm:p-5 shadow-[0_0_30px_rgba(239,68,68,0.4)] flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
+                <div className="flex items-center gap-3 text-center md:text-left">
+                  <span className="text-3xl sm:text-4xl">💀</span>
+                  <div>
+                    <h3 className="font-mono text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2 justify-center md:justify-start">
+                      <span>CHAMPION FALLEN IN BATTLE</span>
+                      <span className="bg-red-950 text-red-300 border border-red-400/50 text-[10px] px-2 py-0.5 rounded-full font-bold">0 HP</span>
+                    </h3>
+                    <p className="text-xs text-red-200 mt-0.5">
+                      Combat abilities are locked. Revive your hero below using Gold Coins or a Revive Pack to resume arena battles.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto shrink-0 justify-center">
+                  <button
+                    type="button"
+                    onClick={handleReviveWithCoins}
+                    className="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 active:scale-95"
+                  >
+                    <span>⚡ Revive Now</span>
+                    <span className="font-mono bg-slate-950/20 px-2 py-0.5 rounded text-[11px] font-extrabold flex items-center gap-1">
+                      <span>{getCurrentReviveCost()}</span>
+                      <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleReviveWithPack}
+                    disabled={(gameState.revivePacks || 0) <= 0}
+                    className="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95"
+                  >
+                    <span>🩹 Use Pack</span>
+                    <span className="font-mono bg-black/30 px-2 py-0.5 rounded text-[11px] font-extrabold text-emerald-200">
+                      {gameState.revivePacks || 0} Left
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mobile Quick Action Banner (Noticeable Combat Options for Small Screens) */}
             <div className="lg:hidden col-span-1 bg-linear-to-r from-red-950/70 via-[#10192e] to-amber-950/70 border-2 border-red-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xl">
               <div className="flex items-center gap-2.5 text-xs">
@@ -878,7 +967,10 @@ export default function GameView({
 
                 let tag = 'Locked';
                 let tagClass = 'bg-[#141c30] text-slate-400 border border-[#2a4060]';
-                if (bs?.defeated) {
+                if (gameState.isDead) {
+                  tag = 'Hero Fallen';
+                  tagClass = 'bg-red-950/80 text-red-300 border border-red-500/50 animate-pulse';
+                } else if (bs?.defeated) {
                   const sLeft = bs.respawnTime !== undefined ? bs.respawnTime : 15;
                   tag = `Respawning ${sLeft}s`;
                   tagClass = 'bg-amber-950/60 text-amber-300 border border-amber-500/30';
@@ -888,7 +980,12 @@ export default function GameView({
                 }
 
                 return (
-                  <div key={boss.id} className="bg-linear-to-b from-[#1a2440] to-[#111a2e] border border-[#2a3d60] rounded-2xl p-4.5 flex flex-col justify-between hover:border-red-500/20 transition-colors">
+                  <div 
+                    key={boss.id} 
+                    className={`bg-linear-to-b from-[#1a2440] to-[#111a2e] border rounded-2xl p-4.5 flex flex-col justify-between transition-all ${
+                      gameState.isDead ? 'border-red-500/30 opacity-85' : 'border-[#2a3d60] hover:border-red-500/30'
+                    }`}
+                  >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2">
@@ -906,13 +1003,28 @@ export default function GameView({
                       </div>
                     </div>
 
-                    <button
-                      disabled={bs?.defeated || powerScore < req || isFighting}
-                      onClick={() => fightBoss(boss.id)}
-                      className="w-full py-3 rounded-xl text-xs md:text-sm uppercase font-black tracking-wider bg-red-900/40 hover:bg-red-700/60 border border-red-500/40 text-[#ff6a6a] disabled:opacity-30 transition cursor-pointer"
-                    >
-                      {bs?.defeated ? `Respawning in ${bs.respawnTime !== undefined ? bs.respawnTime : 15}s` : isFighting ? 'Fighting...' : 'FIGHT'}
-                    </button>
+                    {gameState.isDead ? (
+                      <button
+                        type="button"
+                        onClick={handleReviveWithCoins}
+                        className="w-full py-3 rounded-xl text-xs md:text-sm uppercase font-black tracking-wider bg-linear-to-r from-red-950 via-amber-950 to-red-950 hover:from-amber-600 hover:to-yellow-500 text-amber-200 hover:text-slate-950 border border-amber-500/60 shadow-md shadow-red-950/50 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 group"
+                      >
+                        <span className="text-base group-hover:animate-bounce">💀</span>
+                        <span className="flex items-center gap-1.5">
+                          <span>REVIVE HERO ({getCurrentReviveCost()}</span>
+                          <CoinIcon className="w-4 h-4 inline-block drop-shadow" />
+                          <span>)</span>
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        disabled={bs?.defeated || powerScore < req || isFighting}
+                        onClick={() => fightBoss(boss.id)}
+                        className="w-full py-3 rounded-xl text-xs md:text-sm uppercase font-black tracking-wider bg-red-900/40 hover:bg-red-700/60 border border-red-500/40 text-[#ff6a6a] disabled:opacity-30 transition cursor-pointer"
+                      >
+                        {bs?.defeated ? `Respawning in ${bs.respawnTime !== undefined ? bs.respawnTime : 15}s` : isFighting ? 'Fighting...' : 'FIGHT'}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -947,7 +1059,10 @@ export default function GameView({
                     className="w-full flex items-center justify-between p-2 rounded-lg bg-[#141c30] hover:bg-[#1a2a4c] border border-[#2a4060] transition cursor-pointer text-left text-xs text-slate-200"
                   >
                     <span>💖 Max HP Shield (+25 HP)</span>
-                    <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20">250 🪙</span>
+                    <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
+                      <span>250</span>
+                      <CoinIcon className="w-3.5 h-3.5" />
+                    </span>
                   </button>
 
                   <button
@@ -970,7 +1085,10 @@ export default function GameView({
                     className="w-full flex items-center justify-between p-2 rounded-lg bg-[#141c30] hover:bg-[#1a2a4c] border border-[#2a4060] transition cursor-pointer text-left text-xs text-slate-200"
                   >
                     <span>🔥 Combat Tonic (+5% Damage)</span>
-                    <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20">300 🪙</span>
+                    <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
+                      <span>300</span>
+                      <CoinIcon className="w-3.5 h-3.5" />
+                    </span>
                   </button>
                 </div>
 
@@ -1018,15 +1136,26 @@ export default function GameView({
                     {/* Player Health Bar */}
                     <div>
                       <div className="flex justify-between text-xs font-mono mb-1">
-                        <span className="text-emerald-400 font-bold uppercase flex items-center gap-1">
-                          <span>🛡️</span>
+                        <span className={`${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-400'} font-bold uppercase flex items-center gap-1`}>
+                          <span>{gameState.isDead || livePlayerHP <= 0 ? '💀' : '🛡️'}</span>
                           <span>{gameState.playerName || 'Hero'}</span>
+                          {(gameState.isDead || livePlayerHP <= 0) && (
+                            <span className="text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.2 rounded font-extrabold ml-1">DECEASED</span>
+                          )}
                         </span>
-                        <span className="font-bold text-emerald-300">{livePlayerHP} / {livePlayerMaxHP} HP</span>
+                        <span className={`font-bold ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-300'}`}>
+                          {livePlayerHP} / {livePlayerMaxHP} HP
+                        </span>
                       </div>
-                      <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden border border-white/5">
+                      <div className={`w-full bg-black/40 h-2.5 rounded-full overflow-hidden border ${gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/50' : 'border-white/5'}`}>
                         <div 
-                          className="bg-linear-to-r from-emerald-600 to-emerald-400 h-full rounded-full transition-all duration-300"
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            gameState.isDead || livePlayerHP <= 0 
+                              ? 'bg-red-700' 
+                              : livePlayerHP < livePlayerMaxHP * 0.25 
+                                ? 'bg-linear-to-r from-red-600 to-amber-500' 
+                                : 'bg-linear-to-r from-emerald-600 to-emerald-400'
+                          }`}
                           style={{ width: `${Math.max(0, Math.min(100, (livePlayerHP / livePlayerMaxHP) * 100))}%` }}
                         />
                       </div>
@@ -1045,11 +1174,15 @@ export default function GameView({
 
                 {/* Revive Action Options (Coin Scaling vs 1x Revive Pack) */}
                 {(gameState.isDead || livePlayerHP < 20) && (
-                  <div className="bg-[#141220] border-2 border-amber-500/40 rounded-xl p-3 mt-2 space-y-2 animate-fadeIn">
+                  <div className={`rounded-xl p-3.5 mt-2 space-y-2.5 animate-fadeIn border-2 ${
+                    gameState.isDead 
+                      ? 'bg-linear-to-b from-red-950/90 to-[#190e18] border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]' 
+                      : 'bg-[#141220] border-amber-500/40'
+                  }`}>
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-amber-300 font-extrabold flex items-center gap-1.5">
-                        <span>💀</span>
-                        <span>{gameState.isDead ? 'CHAMPION FALLEN!' : 'CRITICAL HEALTH'}</span>
+                      <span className={`font-extrabold flex items-center gap-1.5 ${gameState.isDead ? 'text-red-300' : 'text-amber-300'}`}>
+                        <span className="text-base animate-bounce">💀</span>
+                        <span>{gameState.isDead ? 'CHAMPION DEFEATED (0 HP)' : 'CRITICAL HEALTH'}</span>
                       </span>
                       <span className="text-slate-400 text-[11px]">
                         Revives Used: <strong className="text-white font-bold">{gameState.reviveCount || 0}</strong>
@@ -1060,12 +1193,13 @@ export default function GameView({
                       <button
                         type="button"
                         onClick={handleReviveWithCoins}
-                        className="py-2.5 px-3 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md"
+                        className="py-2.5 px-3 rounded-lg bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md active:scale-95"
                         title="Pay coins to revive champion with full HP"
                       >
-                        <span>⚡ Revive</span>
-                        <span className="font-mono bg-slate-950/20 px-2 py-0.5 rounded text-[11px] font-extrabold">
-                          {getCurrentReviveCost()} 🪙
+                        <span className="flex items-center gap-1">⚡ Revive</span>
+                        <span className="font-mono bg-slate-950/20 px-2 py-0.5 rounded text-[11px] font-extrabold flex items-center gap-1">
+                          <span>{getCurrentReviveCost()}</span>
+                          <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
                         </span>
                       </button>
 
@@ -1073,10 +1207,10 @@ export default function GameView({
                         type="button"
                         onClick={handleReviveWithPack}
                         disabled={(gameState.revivePacks || 0) <= 0}
-                        className="py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md"
+                        className="py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md active:scale-95"
                         title="Use 1x Revive Pack to bypass coin scaling cost"
                       >
-                        <span>🩹 Revive Pack</span>
+                        <span className="flex items-center gap-1">🩹 Use Pack</span>
                         <span className="font-mono bg-black/30 px-2 py-0.5 rounded text-[11px] font-extrabold text-emerald-200">
                           {gameState.revivePacks || 0} Left
                         </span>
@@ -1339,7 +1473,10 @@ export default function GameView({
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mt-0.5">
-                              <span>🪙 {entry.coins.toLocaleString()} gold</span>
+                              <span className="flex items-center gap-1">
+                                <CoinIcon className="w-3.5 h-3.5" />
+                                <span>{entry.coins.toLocaleString()} gold</span>
+                              </span>
                               {entry.updatedAt && (
                                 <span className="text-slate-500 hidden sm:inline">• synced</span>
                               )}
@@ -1368,18 +1505,22 @@ export default function GameView({
 
       </div>
 
-      {/* REAL-TIME STATBAR - PINNED TO THE BOTTOM OF THE SCREEN */}
-      <div id="tycoon-bankroll-card" className="fixed bottom-0 left-0 right-0 z-40 bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-3 sm:px-8 py-2.5 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] transition-all duration-300 w-full">
+      {/* REAL-TIME STATBAR - FIXED TO SCREEN BOTTOM UNTIL FOOTER IS IN VIEW, THEN FLOATS ABOVE FOOTER */}
+      <div 
+        id="tycoon-bankroll-card" 
+        className="fixed left-0 right-0 z-40 bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-3 sm:px-8 py-2.5 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] transition-[bottom] duration-75 w-full pointer-events-auto"
+        style={{ bottom: `${statbarBottomOffset}px` }}
+      >
         <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 sm:gap-1.5 box-border">
         <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 pb-1">
-          <span className="font-mono text-[11px] text-[#7ae0ff] font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0">
-            <span>🏆</span> <span className="hidden xs:inline">PORTAL</span>
+          <span className="font-mono text-xs sm:text-sm text-[#7ae0ff] font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0">
+            <span className="text-base sm:text-lg leading-none">🏆</span> <span className="hidden xs:inline">PORTAL</span>
           </span>
           
           <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
             {/* Coins */}
             <div className="bg-[#141c30] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Gold Coins">
-              <span className="text-base">💰</span>
+              <CoinIcon className="w-4 h-4 drop-shadow" />
               <span className="font-mono text-[#f5e56b] font-extrabold text-xs sm:text-sm">{Math.floor(gameState.coins).toLocaleString()}</span>
             </div>
 
@@ -1405,8 +1546,9 @@ export default function GameView({
 
         {/* Layer 2: Player Combat Attributes (Icons + Values) */}
         <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
-          <span className="font-mono text-[10px] sm:text-xs text-amber-400/90 font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <span>⚡</span> <span className="hidden xs:inline">STATS</span>
+          <span className="font-mono text-xs sm:text-sm text-amber-400 font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0">
+            <LightningIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 drop-shadow-md text-amber-400" />
+            <span className="hidden xs:inline">STATS</span>
           </span>
 
           <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
@@ -1423,10 +1565,19 @@ export default function GameView({
             </div>
 
             {/* HP */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-emerald-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-emerald-400/60 transition" title="Player Health Points (HP)">
-              <span className="text-sm">❤️</span>
-              <span className="font-mono text-emerald-300 font-extrabold text-xs sm:text-sm">
-                {isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : `${100 + getTotalDefense() + (gameState.maxHpBonus || 0)}`}
+            <div 
+              className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs flex items-center gap-1 shadow-sm transition ${
+                gameState.isDead || (isFighting && livePlayerHP <= 0)
+                  ? 'bg-red-950/80 border-2 border-red-500 text-red-200 animate-pulse'
+                  : 'bg-[#121c33] border border-emerald-500/30 text-emerald-300 hover:border-emerald-400/60'
+              }`} 
+              title={gameState.isDead ? "Player is Deceased! Revive required" : "Player Health Points (HP)"}
+            >
+              <span className="text-sm">{gameState.isDead || (isFighting && livePlayerHP <= 0) ? '💀' : '❤️'}</span>
+              <span className={`font-mono font-extrabold text-xs sm:text-sm ${
+                gameState.isDead || (isFighting && livePlayerHP <= 0) ? 'text-red-300' : 'text-emerald-300'
+              }`}>
+                {gameState.isDead ? '0 HP (FALLEN)' : isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : `${100 + getTotalDefense() + (gameState.maxHpBonus || 0)}`}
               </span>
             </div>
 
@@ -1479,17 +1630,34 @@ export default function GameView({
               <div className="bg-linear-to-b from-[#1c0f2b] via-[#121c30] to-[#0c1322] border border-red-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden shadow-inner">
                 {/* Hero / Player Fighter Card */}
                 <div className="flex flex-col items-center text-center space-y-1.5 flex-1">
-                  <span className={`text-4xl sm:text-5xl ${isFighting ? 'animate-bounce' : ''}`}>{userProfile?.avatar || '⚔️'}</span>
-                  <div className="font-extrabold text-sm text-emerald-300 font-mono">{gameState.playerName || 'Champion'}</div>
+                  <span className={`text-4xl sm:text-5xl ${gameState.isDead || livePlayerHP <= 0 ? 'grayscale filter' : isFighting ? 'animate-bounce' : ''}`}>
+                    {gameState.isDead || livePlayerHP <= 0 ? '🪦' : (userProfile?.avatar || '⚔️')}
+                  </span>
+                  <div className={`font-extrabold text-sm font-mono flex items-center gap-1 ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-300'}`}>
+                    <span>{gameState.playerName || 'Champion'}</span>
+                    {(gameState.isDead || livePlayerHP <= 0) && (
+                      <span className="text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.2 rounded font-extrabold">DECEASED</span>
+                    )}
+                  </div>
                   <div className="text-xs font-bold text-slate-400 font-mono">ATK {getTotalAttack()} • DEF {getTotalDefense()}</div>
                   {/* Player HP Bar */}
-                  <div className="w-full max-w-[180px] bg-black/60 h-3 rounded-full overflow-hidden border border-emerald-500/40 p-0.5">
+                  <div className={`w-full max-w-[180px] bg-black/60 h-3 rounded-full overflow-hidden border p-0.5 ${
+                    gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/50' : 'border-emerald-500/40'
+                  }`}>
                     <div 
-                      className="bg-linear-to-r from-emerald-500 to-emerald-300 h-full rounded-full transition-all duration-300"
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        gameState.isDead || livePlayerHP <= 0 
+                          ? 'bg-red-700' 
+                          : livePlayerHP < livePlayerMaxHP * 0.25 
+                            ? 'bg-linear-to-r from-red-600 to-amber-500' 
+                            : 'bg-linear-to-r from-emerald-500 to-emerald-300'
+                      }`}
                       style={{ width: `${Math.max(0, Math.min(100, (livePlayerHP / livePlayerMaxHP) * 100))}%` }}
                     />
                   </div>
-                  <span className="text-xs font-mono font-bold text-emerald-400">{livePlayerHP} / {livePlayerMaxHP} HP</span>
+                  <span className={`text-xs font-mono font-bold ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-400'}`}>
+                    {livePlayerHP} / {livePlayerMaxHP} HP
+                  </span>
                 </div>
 
                 {/* VS Dynamic Indicator */}
@@ -1529,7 +1697,11 @@ export default function GameView({
                   <span>⚡</span>
                   <span>PRE-FIGHT GOLD BOOST SHOP</span>
                 </span>
-                <span className="text-[11px] font-mono text-slate-400 font-bold">Gold Balance: 🪙 {Math.floor(gameState.coins).toLocaleString()}</span>
+                <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1">
+                  <span>Gold Balance:</span>
+                  <span className="text-[#f5e56b]">{Math.floor(gameState.coins).toLocaleString()}</span>
+                  <CoinIcon className="w-3.5 h-3.5" />
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1549,7 +1721,10 @@ export default function GameView({
                   className="px-3.5 py-2.5 rounded-xl bg-[#1c2944] hover:bg-[#25375c] border border-[#2a4060] text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer active:scale-95"
                 >
                   <span className="flex items-center gap-1">💖 Max HP Shield (+25 HP)</span>
-                  <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20">250 🪙</span>
+                  <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
+                    <span>250</span>
+                    <CoinIcon className="w-3.5 h-3.5" />
+                  </span>
                 </button>
 
                 <button
@@ -1568,7 +1743,10 @@ export default function GameView({
                   className="px-3.5 py-2.5 rounded-xl bg-[#1c2944] hover:bg-[#25375c] border border-[#2a4060] text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer active:scale-95"
                 >
                   <span className="flex items-center gap-1">🔥 Combat Tonic (+5% DMG)</span>
-                  <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20">300 🪙</span>
+                  <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
+                    <span>300</span>
+                    <CoinIcon className="w-3.5 h-3.5" />
+                  </span>
                 </button>
               </div>
             </div>
@@ -1591,7 +1769,9 @@ export default function GameView({
                     onClick={handleReviveWithCoins}
                     className="px-3.5 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-yellow-500/20 active:scale-95 flex items-center gap-1.5"
                   >
-                    <span>⚡ Revive ({getCurrentReviveCost()} 🪙)</span>
+                    <span>⚡ Revive ({getCurrentReviveCost()}</span>
+                    <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
+                    <span>)</span>
                   </button>
                   <button
                     onClick={handleReviveWithPack}

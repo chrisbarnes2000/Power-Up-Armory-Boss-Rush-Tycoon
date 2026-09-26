@@ -4,6 +4,124 @@
 
 ---
 
+## [v1.2.3-dev.9] — 2026-09-26
+
+### Engineering Actions
+- **Dynamic Footer Boundary Collision Docking for Tycoon Bankroll Card (`GameView.tsx`)**:
+  - Restored fixed bottom screen docking (`fixed left-0 right-0 z-40`) so `#tycoon-bankroll-card` is immediately pinned to the bottom of the viewport on all screen sizes, including mobile.
+  - Implemented dynamic boundary collision detection via scroll & resize listeners referencing `footer#app-global-footer`:
+    - While scrolling through the game, `statbarBottomOffset` is `0px`, keeping the bar locked to the bottom of the screen.
+    - When the top of the footer enters the viewport (`footerRect.top < viewportHeight`), `bottom: ${overlap}px` dynamically raises the card, perfectly docking it directly above the footer.
+  - Preserved `pb-28 sm:pb-32` on `GameView` so the last combat logs and tycoon generators are never obscured.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.8] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Bankroll Card Layout Constraint Above Footer (`GameView.tsx`)**:
+  - **Selected Target**: `div#tycoon-bankroll-card`
+  - Replaced viewport-fixed placement (`fixed bottom-0`) with sticky positioning constrained within the main content container (`sticky bottom-0 ... mt-8`).
+  - Allows the bankroll card to float visibly as the user scrolls through tycoon generators or bosses, but stops naturally right above `<footer id="app-global-footer">`.
+  - Removed excessive `pb-32` spacing on `GameView` in favor of natural `pb-6`, completely eliminating overlap and ensuring that all bottom details, version strings, legal citations, and footer links remain 100% accessible on mobile viewports.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.7] — 2026-09-26
+
+### Engineering Actions
+- **Custom High-Impact SVG Lightning Icon Replacement (`LightningIcon.tsx`, `GameView.tsx`)**:
+  - Replaced the thin unicode character `⚡` with a custom vector SVG component (`<LightningIcon />`) engineered specifically to match the optical mass and height of the `🏆` trophy emoji:
+    - Bold electrical geometry with a wide aspect ratio and sharp contours.
+    - Electric yellow to rich amber gradient fill (`#FFF7A1` -> `#D97706`) with an amber neon drop-shadow glow filter.
+    - Specular white highlight beam down the top spine.
+    - Responsive sizing `w-4.5 h-4.5 sm:w-5 sm:h-5 drop-shadow-md` perfectly counterbalancing `🏆 PORTAL`.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.6] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Bankroll Card Label & Icon Size Harmonization (`GameView.tsx`)**:
+  - **Selected Targets**:
+    - `div#tycoon-bankroll-card ... div:nth-of-type(1) > span:nth-of-type(1)` (`🏆 PORTAL`)
+    - `div#tycoon-bankroll-card ... div:nth-of-type(2) > span:nth-of-type(1)` (`⚡ STATS`)
+  - Scaled up the `⚡ STATS` label and lightning bolt icon to match the exact visual weight, font size, and emoji dimensions of the `🏆 PORTAL` label:
+    - **Outer Span**: `font-mono text-xs sm:text-sm font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0`
+    - **Icon Span**: `text-base sm:text-lg leading-none` on both `🏆` and `⚡`
+    - **Text Label**: Perfectly synchronized typography across both layer 1 and layer 2.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.5] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Bankroll Card Lightning Bolt Sizing Calibration (`GameView.tsx`)**:
+  - **Selected Target**: `div#root ... div#tycoon-bankroll-card ... div:nth-of-type(2) > span:nth-of-type(1) > span:nth-of-type(1)` (STATS section lightning bolt icon).
+  - Increased typography size from inherited 10px/12px to `text-sm sm:text-base leading-none` with calibrated flex spacing `gap-1.5` for balanced visual prominence beside the combat attributes row.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.4] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Store Generator Upgrade Button Coin Icon Upgrade (`GameView.tsx`)**:
+  - **Selected Target**: `div#root ... div:nth-of-type(3) > button:nth-of-type(1)` (Tycoon generator item upgrade button).
+  - Replaced text `🪙` inside the generator level-up buttons (`Lv. Up ([Cost] 🪙)`) with inline `<CoinIcon className="w-3.5 h-3.5 inline-block drop-shadow" />`.
+  - Replaced `💰 Rate:` label on each generator card with `<CoinIcon className="w-3.5 h-3.5 drop-shadow" /> Rate:`.
+  - Upgraded manual Gold Ore Core button with `CoinIcon` and leaderboard gold indicators.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.3] — 2026-09-26
+
+### Engineering Actions
+- **Custom Metallic Gold Coin Icon Component (`CoinIcon.tsx`, `GameView.tsx`, `ShopView.tsx`)**:
+  - **Component Creation (`CoinIcon.tsx`)**: Built a high-resolution, vector SVG metallic gold coin icon featuring concentric gold rim gradients, inner ridge textures, a central star insignia, and top specular light reflection.
+  - **Revive & Combat Controls (`GameView.tsx`)**:
+    - **Targeted Elements Updated**:
+      - Top Arena Fallen Emergency Banner: Replaced generic emoji with `<CoinIcon className="w-3.5 h-3.5 drop-shadow" />` in the revive cost badge.
+      - Boss Roster Card Revive Button: Integrated crisp inline `<CoinIcon className="w-4 h-4 inline-block drop-shadow" />` in `"REVIVE HERO ([Cost])"`.
+      - Combat Record Revive Box: Updated coin revive button badge to feature `CoinIcon`.
+      - Pre-Fight Coin Boosts Shop & Arena Modal: Replaced coin emoji with `CoinIcon` in the gold balance badge and "+25 HP / +5% DMG" purchase chips.
+      - Pinned Bankroll HUD: Replaced `💰` with `CoinIcon` in the gold balance portal badge.
+  - **Shopfront Commerce (`ShopView.tsx`)**:
+    - Enhanced pack purchase chips with `CoinIcon` next to pack prices (e.g., Single, 10-Pack, 30-Pack).
+    - Upgraded item subtotal and checkout footer value with `CoinIcon`.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.2] — 2026-09-26
+
+### Engineering Actions
+- **Fallen Champion Combat State & Health Display Overhaul (`GameView.tsx`)**:
+  - **Selected Elements Targeted**:
+    - **Boss Roster Fight Buttons**: When the champion has fallen (`gameState.isDead === true`), the standard fight buttons are dynamically transformed into prominent high-contrast **"💀 REVIVE HERO ([Cost] 🪙)"** quick-action buttons with amber-to-red gradients, allowing players to instantly revive directly from any boss card without needing to navigate away.
+    - **Boss Card Status Tags**: Swapped tag from `Ready` or `Locked` to an animated pulsing `Hero Fallen` indicator (`bg-red-950/80 text-red-300 border border-red-500/50`).
+    - **Arena Top Fallen Alert Banner**: Added a top-of-arena emergency banner with animated pulse, displaying 0 HP deceased status and quick-revive buttons (Coins vs Revive Pack).
+    - **Live Battle Combat Log Health Bar**: Updated player health bar in the combat record to show `💀 [Hero] DECEASED` with a pulsing red 0 HP indicator and dark red empty track.
+    - **Combat Log Revive Action Box**: Upgraded fallen alert styling with a glowing crimson border (`border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]`) and animated skull icon.
+    - **Bottom Bankroll HUD Health Indicator**: Health badge transitions from green to a pulsing crimson badge (`bg-red-950/80 border-2 border-red-500 text-red-200`) showing `💀 0 HP (FALLEN)`.
+    - **Arena Modal Fighter Card**: Updated avatar to a gravestone emoji (`🪦`) with `DECEASED` badge and empty red HP bar when defeated.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
 ## [v1.2.3-dev.1] — 2026-09-26
 
 ### Engineering Actions
