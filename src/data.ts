@@ -1,4 +1,13 @@
-import { PowerUp, Boss } from './types';
+import { PowerUp, Boss, GameBalanceConfig } from './types';
+
+export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
+  baseReviveCost: 100,
+  reviveCostMultiplier: 1.5,
+  goldDropChance: 70,
+  gemDropChance: 35,
+  goldMultiplier: 1.0,
+  gemMultiplier: 1.0
+};
 
 export const POWERUPS: PowerUp[] = [
   // --- WEAPONS ---
@@ -182,6 +191,25 @@ export const POWERUPS: PowerUp[] = [
     effect: "Pass through walls, +30% ethereal damage",
     rarity: 'Epic',
     packs: [{ label: 'pt.', price: 15 }, { label: 'g.', price: 120 }]
+  },
+  {
+    id: 'Revive Pack',
+    emoji: '🩹',
+    baseRate: 0.0,
+    maxLevel: 10,
+    upgradeCost: 50,
+    attack: 0,
+    defense: 5,
+    speed: 0,
+    special: 'Instant Revive — Restores 100% HP without paying coin scaling penalty',
+    description: "Emergency medical nanites that instantly revive fallen champions at a fraction of the cost.",
+    effect: "Bypasses coin revive penalty and restores full health",
+    rarity: 'Uncommon',
+    packs: [
+      { label: 'Single Pack', price: 10 },
+      { label: '3-Pack Bundle', price: 25 },
+      { label: '10-Pack Chest', price: 75 }
+    ]
   },
   {
     id: 'Dragon Scale',

@@ -11,7 +11,7 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer id="app-global-footer" className="w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors">
+    <footer id="app-global-footer" className="w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
       <div className="max-w-[1720px] mx-auto flex flex-col gap-8">
         {/* Main 4-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -249,7 +249,7 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
               Built with <Heart className="w-3 h-3 text-red-500 inline fill-red-500" /> for Champions
             </span>
             <span className="text-slate-600">•</span>
-            <span className="font-mono text-[11px] text-slate-400">v1.2.1</span>
+            <span className="font-mono text-[11px] text-slate-400">v1.2.3</span>
           </div>
         </div>
       </div>

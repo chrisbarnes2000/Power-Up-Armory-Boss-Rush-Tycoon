@@ -95,6 +95,15 @@ export interface CustomStoryEntry {
   author: string;
 }
 
+export interface GameBalanceConfig {
+  baseReviveCost: number;       // Base coin cost for revival (e.g. 100)
+  reviveCostMultiplier: number; // Scaling factor per revive (e.g. 1.5)
+  goldDropChance: number;       // Chance % for boss to drop gold (0 - 100)
+  gemDropChance: number;        // Chance % for boss to drop gems (0 - 100)
+  goldMultiplier: number;       // Gold yield multiplier (e.g. 1.0)
+  gemMultiplier: number;        // Gem yield multiplier (e.g. 1.0)
+}
+
 export interface GameState {
   coins: number;
   gems: number;
@@ -111,4 +120,10 @@ export interface GameState {
   bossKillStats?: { [bossId: string]: number };
   bossDeathStats?: { [bossId: string]: number };
   customStories?: CustomStoryEntry[];
+  
+  // Player Death & Revive Progression
+  isDead?: boolean;
+  reviveCount?: number;
+  revivePacks?: number;
+  balanceConfig?: GameBalanceConfig;
 }

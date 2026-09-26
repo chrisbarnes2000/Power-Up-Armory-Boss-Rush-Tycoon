@@ -11,7 +11,7 @@ import GuidedTour, { TourStep } from './components/GuidedTour';
 import FontScaleControl from './components/FontScaleControl';
 import Footer from './components/Footer';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
-import { POWERUPS, BOSSES, calculatePowerScore } from './data';
+import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore } from './data';
 
 const DEFAULT_STATE: GameState = {
   coins: 2000,
@@ -28,7 +28,11 @@ const DEFAULT_STATE: GameState = {
   purchasedCodes: [],
   bossKillStats: {},
   bossDeathStats: {},
-  customStories: []
+  customStories: [],
+  isDead: false,
+  reviveCount: 0,
+  revivePacks: 2,
+  balanceConfig: DEFAULT_BALANCE_CONFIG
 };
 
 export default function App() {
@@ -329,12 +333,12 @@ export default function App() {
   }, [currentUser, userProfile, gameState]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
+    <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none w-full max-w-full overflow-x-hidden box-border" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
       
       {/* GLOBAL NAVBAR - STICKY HEADER */}
       <header 
         id="global-navbar" 
-        className={`sticky top-0 z-50 flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 md:px-8 border-b border-white/10 bg-[#0a0e1a]/95 backdrop-blur-md shadow-lg shadow-black/50 gap-1.5 sm:gap-4 transition-all duration-300 ${
+        className={`sticky top-0 z-50 flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 md:px-8 border-b border-white/10 bg-[#0a0e1a]/95 backdrop-blur-md shadow-lg shadow-black/50 gap-1.5 sm:gap-4 transition-all duration-300 w-full max-w-full box-border ${
           isScrolled ? 'py-1 sm:py-2 bg-[#080b15]/98 shadow-2xl shadow-black/80' : 'py-3.5 sm:py-4'
         }`}
       >
@@ -399,6 +403,32 @@ export default function App() {
             {isScrolled && <span className="md:hidden">Rank</span>}
           </button>
         </div>
+
+        {/* Dynamic Game Sub-Tabs on Boss Rush Tab */}
+        {activeView === 'Game' && (
+          <div id="game-sub-tabs" className="flex items-center gap-1.5 p-1 bg-[#121c30]/98 border border-[#2a4060] rounded-full shadow-lg backdrop-blur-xl">
+            <button 
+              id="game-tab-tycoon"
+              onClick={() => setControlledGameTab('tycoon')}
+              className={`py-1 px-3 rounded-full font-extrabold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                controlledGameTab === 'tycoon' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'
+              }`}
+            >
+              <span>🏪</span>
+              <span>Tycoon</span>
+            </button>
+            <button 
+              id="game-tab-bosses"
+              onClick={() => setControlledGameTab('bosses')}
+              className={`py-1 px-3 rounded-full font-extrabold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                controlledGameTab === 'bosses' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'
+              }`}
+            >
+              <span>⚔️</span>
+              <span>Bosses</span>
+            </button>
+          </div>
+        )}
 
         {/* Header Action Portal */}
         <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap justify-end">
@@ -468,7 +498,7 @@ export default function App() {
       </header>
 
       {/* RENDER VIEW - EXPANDED WIDTH CONTAINER */}
-      <main className="flex-1 px-3 sm:px-6 md:px-8 lg:px-12 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto">
+      <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-16 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto box-border">
         {activeView === 'Shop' && (
           <ShopView
             gameState={gameState}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, orderBy, limit, getDocs, doc, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { POWERUPS } from '../data';
-import { GameState, LeaderboardEntry, PurchaseItem, PurchaseRecord } from '../types';
+import { POWERUPS, DEFAULT_BALANCE_CONFIG } from '../data';
+import { GameState, LeaderboardEntry, PurchaseItem, PurchaseRecord, GameBalanceConfig } from '../types';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -1162,6 +1162,239 @@ export default function AdminModal({ isOpen, onClose, gameState, setGameState, c
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 5: GAME BALANCE, DEATH & BOSS DROP CONFIGURATION                 */}
+          {/* ========================================================================= */}
+          <div 
+            id="admin-game-balance-section"
+            className="bg-linear-to-b from-[#181f19] via-[#0d1612] to-[#070e0a] border border-emerald-500/40 rounded-2xl p-5 space-y-4 shadow-xl"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-500/20 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">⚙️</span>
+                  <h3 className="font-mono text-xs sm:text-sm text-emerald-400 font-extrabold uppercase tracking-widest">
+                    GAME BALANCE, DEATH & BOSS DROP CONFIGURATION
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  Real-time game mechanics tuner: Adjust player revival costs, revive pack allowances, and gold/diamond boss drop rates.
+                </p>
+              </div>
+
+              {/* Status Chip */}
+              <div className="flex items-center gap-2 font-mono text-xs shrink-0">
+                <span className={`px-2.5 py-1 rounded-lg border font-bold ${
+                  gameState.isDead
+                    ? 'bg-red-950/80 text-red-300 border-red-500/40 animate-pulse'
+                    : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                }`}>
+                  {gameState.isDead ? '💀 Fallen (Requires Revive)' : '⚔️ Champion Alive'}
+                </span>
+              </div>
+            </div>
+
+            {/* BALANCE CONFIGURATION GRID */}
+            {(() => {
+              const currentConfig: GameBalanceConfig = gameState.balanceConfig || DEFAULT_BALANCE_CONFIG;
+
+              const updateConfig = (key: keyof GameBalanceConfig, value: number) => {
+                const nextConfig = { ...currentConfig, [key]: value };
+                setGameState(prev => {
+                  const next = { ...prev, balanceConfig: nextConfig };
+                  saveState(next);
+                  return next;
+                });
+              };
+
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* REVIVE MECHANICS CONFIG */}
+                    <div className="bg-black/40 border border-white/10 rounded-xl p-4 space-y-3">
+                      <h4 className="font-mono text-xs text-amber-300 font-bold uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
+                        <span>⚡</span> REVIVAL & COST SCALING
+                      </h4>
+
+                      <div className="space-y-3 text-xs font-mono">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-slate-300">Base Revive Cost:</span>
+                            <strong className="text-yellow-400">{currentConfig.baseReviveCost} Coins</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="25"
+                            max="500"
+                            step="25"
+                            value={currentConfig.baseReviveCost}
+                            onChange={(e) => updateConfig('baseReviveCost', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-slate-300">Revive Cost Scaling Multiplier:</span>
+                            <strong className="text-amber-400">{currentConfig.reviveCostMultiplier}x per death</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="1.0"
+                            max="3.0"
+                            step="0.1"
+                            value={currentConfig.reviveCostMultiplier}
+                            onChange={(e) => updateConfig('reviveCostMultiplier', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                          />
+                        </div>
+
+                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">Total Death Count: <strong className="text-white">{gameState.reviveCount || 0}</strong></span>
+                          <span className="text-slate-400">Next Coin Revive Cost: <strong className="text-yellow-300">{Math.floor(currentConfig.baseReviveCost * Math.pow(currentConfig.reviveCostMultiplier, gameState.reviveCount || 0))} Coins</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BOSS DROPS CONFIG */}
+                    <div className="bg-black/40 border border-white/10 rounded-xl p-4 space-y-3">
+                      <h4 className="font-mono text-xs text-[#7ae0ff] font-bold uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
+                        <span>💎</span> BOSS GOLD & DIAMOND DROPS
+                      </h4>
+
+                      <div className="space-y-3 text-xs font-mono">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-slate-300">Gold Drop Chance:</span>
+                            <strong className="text-yellow-400">{currentConfig.goldDropChance}%</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={currentConfig.goldDropChance}
+                            onChange={(e) => updateConfig('goldDropChance', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-slate-300">Gem/Diamond Drop Chance:</span>
+                            <strong className="text-cyan-400">{currentConfig.gemDropChance}%</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={currentConfig.gemDropChance}
+                            onChange={(e) => updateConfig('gemDropChance', Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block uppercase">Gold Multiplier</span>
+                            <input
+                              type="number"
+                              min="0.1"
+                              max="10"
+                              step="0.1"
+                              value={currentConfig.goldMultiplier}
+                              onChange={(e) => updateConfig('goldMultiplier', Math.max(0.1, Number(e.target.value)))}
+                              className="w-full bg-[#101828] border border-[#2a4060] rounded px-2 py-1 text-xs font-bold text-yellow-300 font-mono"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 block uppercase">Gem Multiplier</span>
+                            <input
+                              type="number"
+                              min="0.1"
+                              max="10"
+                              step="0.1"
+                              value={currentConfig.gemMultiplier}
+                              onChange={(e) => updateConfig('gemMultiplier', Math.max(0.1, Number(e.target.value)))}
+                              className="w-full bg-[#101828] border border-[#2a4060] rounded px-2 py-1 text-xs font-bold text-cyan-300 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* QUICK BALANCE SUPPORT ACTIONS */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-black/50 border border-white/10 rounded-xl p-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGameState(prev => {
+                            const next = { ...prev, revivePacks: (prev.revivePacks || 0) + 5 };
+                            saveState(next);
+                            return next;
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>🩹</span>
+                        <span>Grant +5 Revive Packs ({gameState.revivePacks || 0} Owned)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGameState(prev => {
+                            const next = { ...prev, isDead: false };
+                            saveState(next);
+                            return next;
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-blue-950/60 hover:bg-blue-900 border border-blue-500/40 text-blue-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>⚡</span>
+                        <span>Clear Death & Revive Champion</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGameState(prev => {
+                            const next = { ...prev, reviveCount: 0 };
+                            saveState(next);
+                            return next;
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900 border border-amber-500/40 text-amber-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>🔄</span>
+                        <span>Reset Revive Scaling Counter</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGameState(prev => {
+                          const next = { ...prev, balanceConfig: DEFAULT_BALANCE_CONFIG };
+                          saveState(next);
+                          return next;
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-mono font-bold rounded-lg transition cursor-pointer ml-auto"
+                    >
+                      ⚙️ Reset Defaults
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
         </div>

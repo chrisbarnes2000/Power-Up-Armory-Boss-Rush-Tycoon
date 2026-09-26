@@ -294,12 +294,32 @@ export default function GameView({
     }
   };
 
+  // --- GAME BALANCE & REVISE HELPERS ---
+  const getCurrentReviveCost = () => {
+    const config = gameState.balanceConfig || {
+      baseReviveCost: 100,
+      reviveCostMultiplier: 1.5,
+      goldDropChance: 70,
+      gemDropChance: 35,
+      goldMultiplier: 1.0,
+      gemMultiplier: 1.0
+    };
+    const revives = gameState.reviveCount || 0;
+    return Math.floor(config.baseReviveCost * Math.pow(config.reviveCostMultiplier, revives));
+  };
+
   // --- BATTLE CYCLE ---
   const fightBoss = (bossId: string) => {
     if (isFighting) return;
     const boss = getBossData(bossId);
     const bs = getBossState(bossId);
     if (!boss || !bs) return;
+
+    if (gameState.isDead) {
+      const cost = getCurrentReviveCost();
+      addLog(`💀 Champion is fallen! Revive required (${cost} Coins or 1 Revive Pack) before challenging ${boss.emoji} ${boss.id}`, 'log-defeat');
+      return;
+    }
 
     if (bs.defeated) {
       addLog(`⚔️ ${boss.emoji} ${boss.id} has already been conquered!`, 'log-defeat');
@@ -336,8 +356,27 @@ export default function GameView({
       if (bossHP <= 0) {
         // VICTORY
         setLiveBossHP(0);
-        const reward = boss.reward + (gameState.totalBossesDefeated * 10);
-        const gemReward = Math.max(5, Math.floor(boss.reward / 5));
+
+        const config = gameState.balanceConfig || {
+          baseReviveCost: 100,
+          reviveCostMultiplier: 1.5,
+          goldDropChance: 70,
+          gemDropChance: 35,
+          goldMultiplier: 1.0,
+          gemMultiplier: 1.0
+        };
+
+        const rollGold = Math.random() * 100;
+        const rollGems = Math.random() * 100;
+        const getsGold = rollGold < config.goldDropChance;
+        const getsGems = rollGems < config.gemDropChance;
+
+        const baseReward = boss.reward + (gameState.totalBossesDefeated * 10);
+        const reward = getsGold ? Math.floor(baseReward * config.goldMultiplier) : 0;
+
+        const baseGemReward = Math.max(5, Math.floor(boss.reward / 5));
+        const gemReward = getsGems ? Math.floor(baseGemReward * config.gemMultiplier) : 0;
+
         setGameState(prev => {
           const stats = prev.bossKillStats || {};
           const next = {
@@ -354,7 +393,19 @@ export default function GameView({
           saveState(next);
           return next;
         });
-        addLog(`🏆 VICTORY! Defeated ${boss.emoji} ${boss.id}! +${reward} Coins & +${gemReward} Gems!`, 'log-victory');
+
+        let dropMsg = '';
+        if (getsGold && getsGems) {
+          dropMsg = `+${reward} Coins & +${gemReward} Gems!`;
+        } else if (getsGold) {
+          dropMsg = `+${reward} Coins (No Gems dropped)`;
+        } else if (getsGems) {
+          dropMsg = `+${gemReward} Gems (No Gold dropped)`;
+        } else {
+          dropMsg = `No Gold or Gems dropped`;
+        }
+
+        addLog(`🏆 VICTORY! Defeated ${boss.emoji} ${boss.id}! ${dropMsg}`, 'log-victory');
         setIsFighting(false);
         setActiveBossId(null);
         return;
@@ -363,11 +414,11 @@ export default function GameView({
       if (playerHP <= 0 || turn >= maxTurns) {
         // DEFEAT
         setLivePlayerHP(0);
-        addLog(`💀 Defeated by ${boss.emoji} ${boss.id}. Use Revive (100 coins) or upgrade stats!`, 'log-defeat');
         setGameState(prev => {
           const stats = prev.bossDeathStats || {};
           const next = {
             ...prev,
+            isDead: true,
             bossDeathStats: {
               ...stats,
               [bossId]: (stats[bossId] || 0) + 1
@@ -376,6 +427,9 @@ export default function GameView({
           saveState(next);
           return next;
         });
+
+        const currentCost = getCurrentReviveCost();
+        addLog(`💀 Defeated by ${boss.emoji} ${boss.id}! Revive for ${currentCost} Coins or consume 1 Revive Pack!`, 'log-defeat');
         setIsFighting(false);
         setActiveBossId(null);
         return;
@@ -454,16 +508,44 @@ export default function GameView({
     battleTurn();
   };
 
-  const handleRevive = () => {
-    if (gameState.coins >= 100) {
+  const handleReviveWithCoins = () => {
+    const cost = getCurrentReviveCost();
+    if (gameState.coins >= cost) {
       setGameState(prev => {
-        const next = { ...prev, coins: prev.coins - 100 };
+        const next = {
+          ...prev,
+          coins: prev.coins - cost,
+          isDead: false,
+          reviveCount: (prev.reviveCount || 0) + 1
+        };
         saveState(next);
         return next;
       });
-      addLog(`⚡ Revived! Your power-ups glow as your strength returns. HP fully restored.`, 'log-heal');
+      const maxHP = 100 + getTotalDefense() + (gameState.maxHpBonus || 0);
+      setLivePlayerHP(maxHP);
+      addLog(`⚡ Revived for ${cost} Coins! HP fully restored. (Next Coin Revive: ${Math.floor((gameState.balanceConfig?.baseReviveCost || 100) * Math.pow(gameState.balanceConfig?.reviveCostMultiplier || 1.5, (gameState.reviveCount || 0) + 1))} Coins)`, 'log-heal');
     } else {
-      addLog(`❌ Not enough coins to Revive (requires 100).`, 'log-defeat');
+      addLog(`❌ Insufficient Coins to Revive! Requires ${cost} Coins (You have ${Math.floor(gameState.coins)}). Use 1 Revive Pack instead!`, 'log-defeat');
+    }
+  };
+
+  const handleReviveWithPack = () => {
+    const availablePacks = gameState.revivePacks || 0;
+    if (availablePacks > 0) {
+      setGameState(prev => {
+        const next = {
+          ...prev,
+          revivePacks: prev.revivePacks! - 1,
+          isDead: false
+        };
+        saveState(next);
+        return next;
+      });
+      const maxHP = 100 + getTotalDefense() + (gameState.maxHpBonus || 0);
+      setLivePlayerHP(maxHP);
+      addLog(`🩹 Consumed 1 Revive Pack! HP fully restored without incrementing coin revive scaling penalty! (${availablePacks - 1} Packs remaining)`, 'log-heal');
+    } else {
+      addLog(`❌ No Revive Packs available! Purchase Revive Packs in the Tycoon Store or pay ${getCurrentReviveCost()} Coins.`, 'log-defeat');
     }
   };
 
@@ -569,108 +651,10 @@ export default function GameView({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col select-none py-2 md:py-4 relative">
-      
-      {/* REAL-TIME STATBAR - COMPACT STICKY HUD */}
-      <div id="tycoon-bankroll-card" className="flex flex-col gap-1.5 sm:gap-2 bg-linear-to-r from-[#1a2540]/98 via-[#131d33]/98 to-[#0f182a]/98 backdrop-blur-xl border border-[#2a4060] px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] mb-4 sticky top-[108px] xs:top-[96px] sm:top-[68px] md:top-[58px] z-40 transition-all duration-300">
-        
-        {/* Layer 1: Currencies & Yield (Icons + Values) */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 pb-1.5">
-          <span className="font-mono text-[11px] text-[#7ae0ff] font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0">
-            <span>🏆</span> <span className="hidden xs:inline">PORTAL</span>
-          </span>
-          
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
-            {/* Coins */}
-            <div className="bg-[#141c30] px-2.5 sm:px-3 py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Gold Coins">
-              <span className="text-base">💰</span>
-              <span className="font-mono text-[#f5e56b] font-extrabold text-xs sm:text-sm">{Math.floor(gameState.coins).toLocaleString()}</span>
-            </div>
-
-            {/* Gems */}
-            <div className="bg-[#141c30] px-2.5 sm:px-3 py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Gems">
-              <span className="text-base">💎</span>
-              <span className="font-mono text-[#cb9df2] font-extrabold text-xs sm:text-sm">{Math.floor(gameState.gems || 0).toLocaleString()}</span>
-            </div>
-
-            {/* Yield */}
-            <div className="bg-[#141c30] px-2.5 sm:px-3 py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Passive Yield per second">
-              <span className="text-base">⏱️</span>
-              <span className="font-mono text-green-400 font-extrabold text-xs sm:text-sm">+{(getPassiveYield() / 1000).toFixed(3)}/s</span>
-            </div>
-
-            {/* Bosses Defeated */}
-            <div className="bg-[#141c30] px-2.5 sm:px-3 py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Bosses Defeated">
-              <span className="text-base">💀</span>
-              <span className="font-mono text-red-400 font-extrabold text-xs sm:text-sm">{gameState.totalBossesDefeated}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Layer 2: Player Combat Attributes (Icons + Values) */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
-          <span className="font-mono text-[10px] sm:text-xs text-amber-400/90 font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-            <span>⚡</span> <span className="hidden xs:inline">STATS</span>
-          </span>
-
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
-            {/* ATK */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-1 rounded-full border border-red-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-red-400/60 transition" title="Attack Damage (ATK)">
-              <span className="text-sm">⚔️</span>
-              <span className="font-mono text-red-300 font-extrabold text-xs sm:text-sm">{getTotalAttack()}</span>
-            </div>
-
-            {/* DEF */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-1 rounded-full border border-blue-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-blue-400/60 transition" title="Defense Rating (DEF)">
-              <span className="text-sm">🛡️</span>
-              <span className="font-mono text-blue-300 font-extrabold text-xs sm:text-sm">{getTotalDefense()}</span>
-            </div>
-
-            {/* HP */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-1 rounded-full border border-emerald-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-emerald-400/60 transition" title="Player Health Points (HP)">
-              <span className="text-sm">❤️</span>
-              <span className="font-mono text-emerald-300 font-extrabold text-xs sm:text-sm">
-                {isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : `${100 + getTotalDefense() + (gameState.maxHpBonus || 0)}`}
-              </span>
-            </div>
-
-            {/* SPD */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-1 rounded-full border border-amber-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-amber-400/60 transition" title="Combat Speed (SPD)">
-              <span className="text-sm">⚡</span>
-              <span className="font-mono text-amber-300 font-extrabold text-xs sm:text-sm">{getTotalSpeed()}</span>
-            </div>
-
-            {/* PS */}
-            <div className="bg-[#121c33] px-2.5 sm:px-3 py-1 rounded-full border border-cyan-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-cyan-400/60 transition" title="Power Score (PS)">
-              <span className="text-sm">✨</span>
-              <span className="font-mono text-cyan-300 font-extrabold text-xs sm:text-sm">{getPowerScore()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* VIEW SUB TABS - STICKY PINNED */}
-      <div id="game-sub-tabs" className="w-full grid grid-cols-2 gap-2 p-1.5 bg-[#121c30]/98 border border-[#2a4060] rounded-2xl md:rounded-full mb-6 shadow-xl sticky top-[200px] xs:top-[182px] sm:top-[150px] md:top-[135px] z-30 backdrop-blur-xl transition-all duration-300">
-        <button 
-          id="game-tab-tycoon"
-          onClick={() => handleTabChange('tycoon')}
-          className={`w-full py-2.5 px-4 rounded-xl md:rounded-full font-extrabold text-xs md:text-sm uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 ${activeTab === 'tycoon' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-md shadow-blue-500/20' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'}`}
-        >
-          <span>🏪</span>
-          <span>Tycoon Upgrades</span>
-        </button>
-        <button 
-          id="game-tab-bosses"
-          onClick={() => handleTabChange('bosses')}
-          className={`w-full py-2.5 px-4 rounded-xl md:rounded-full font-extrabold text-xs md:text-sm uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-2 ${activeTab === 'bosses' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-md shadow-blue-500/20' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'}`}
-        >
-          <span>⚔️</span>
-          <span>Boss Challenge Mode</span>
-        </button>
-      </div>
+    <div className="w-full flex-1 flex flex-col select-none py-2 md:py-4 relative pb-32 px-2 sm:px-4 md:px-6 box-border">
 
       {/* ACTIVE VIEW TAB */}
-      <div className="flex-1">
+      <div className="flex-1 w-full max-w-full">
         
         {/* TYCOON GRID */}
         {activeTab === 'tycoon' && (
@@ -1059,14 +1043,46 @@ export default function GameView({
                   ))}
                 </div>
 
-                {/* Revive Button */}
-                {livePlayerHP < 20 && (
-                  <button 
-                    onClick={handleRevive}
-                    className="w-full py-3.5 rounded-2xl bg-yellow-600 hover:bg-yellow-500 text-black font-extrabold uppercase text-xs md:text-sm tracking-wider shadow-lg shadow-yellow-600/10 cursor-pointer transition-all active:scale-95"
-                  >
-                    ⚡ Revive (100 coins)
-                  </button>
+                {/* Revive Action Options (Coin Scaling vs 1x Revive Pack) */}
+                {(gameState.isDead || livePlayerHP < 20) && (
+                  <div className="bg-[#141220] border-2 border-amber-500/40 rounded-xl p-3 mt-2 space-y-2 animate-fadeIn">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-amber-300 font-extrabold flex items-center gap-1.5">
+                        <span>💀</span>
+                        <span>{gameState.isDead ? 'CHAMPION FALLEN!' : 'CRITICAL HEALTH'}</span>
+                      </span>
+                      <span className="text-slate-400 text-[11px]">
+                        Revives Used: <strong className="text-white font-bold">{gameState.reviveCount || 0}</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={handleReviveWithCoins}
+                        className="py-2.5 px-3 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md"
+                        title="Pay coins to revive champion with full HP"
+                      >
+                        <span>⚡ Revive</span>
+                        <span className="font-mono bg-slate-950/20 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                          {getCurrentReviveCost()} 🪙
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleReviveWithPack}
+                        disabled={(gameState.revivePacks || 0) <= 0}
+                        className="py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black uppercase text-xs tracking-wider transition cursor-pointer flex items-center justify-between shadow-md"
+                        title="Use 1x Revive Pack to bypass coin scaling cost"
+                      >
+                        <span>🩹 Revive Pack</span>
+                        <span className="font-mono bg-black/30 px-2 py-0.5 rounded text-[11px] font-extrabold text-emerald-200">
+                          {gameState.revivePacks || 0} Left
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -1352,6 +1368,84 @@ export default function GameView({
 
       </div>
 
+      {/* REAL-TIME STATBAR - PINNED TO THE BOTTOM OF THE SCREEN */}
+      <div id="tycoon-bankroll-card" className="fixed bottom-0 left-0 right-0 z-40 bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-3 sm:px-8 py-2.5 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] transition-all duration-300 w-full">
+        <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 sm:gap-1.5 box-border">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-white/10 pb-1">
+          <span className="font-mono text-[11px] text-[#7ae0ff] font-extrabold uppercase tracking-widest flex items-center gap-1.5 shrink-0">
+            <span>🏆</span> <span className="hidden xs:inline">PORTAL</span>
+          </span>
+          
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+            {/* Coins */}
+            <div className="bg-[#141c30] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Gold Coins">
+              <span className="text-base">💰</span>
+              <span className="font-mono text-[#f5e56b] font-extrabold text-xs sm:text-sm">{Math.floor(gameState.coins).toLocaleString()}</span>
+            </div>
+
+            {/* Gems */}
+            <div className="bg-[#141c30] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Gems">
+              <span className="text-base">💎</span>
+              <span className="font-mono text-[#cb9df2] font-extrabold text-xs sm:text-sm">{Math.floor(gameState.gems || 0).toLocaleString()}</span>
+            </div>
+
+            {/* Yield */}
+            <div className="bg-[#141c30] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Passive Yield per second">
+              <span className="text-base">⏱️</span>
+              <span className="font-mono text-green-400 font-extrabold text-xs sm:text-sm">+{(getPassiveYield() / 1000).toFixed(3)}/s</span>
+            </div>
+
+            {/* Bosses Defeated */}
+            <div className="bg-[#141c30] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[#2a4060] text-xs flex items-center gap-1.5 shadow-inner" title="Bosses Defeated">
+              <span className="text-base">💀</span>
+              <span className="font-mono text-red-400 font-extrabold text-xs sm:text-sm">{gameState.totalBossesDefeated}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Layer 2: Player Combat Attributes (Icons + Values) */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+          <span className="font-mono text-[10px] sm:text-xs text-amber-400/90 font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
+            <span>⚡</span> <span className="hidden xs:inline">STATS</span>
+          </span>
+
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+            {/* ATK */}
+            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-red-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-red-400/60 transition" title="Attack Damage (ATK)">
+              <span className="text-sm">⚔️</span>
+              <span className="font-mono text-red-300 font-extrabold text-xs sm:text-sm">{getTotalAttack()}</span>
+            </div>
+
+            {/* DEF */}
+            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-blue-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-blue-400/60 transition" title="Defense Rating (DEF)">
+              <span className="text-sm">🛡️</span>
+              <span className="font-mono text-blue-300 font-extrabold text-xs sm:text-sm">{getTotalDefense()}</span>
+            </div>
+
+            {/* HP */}
+            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-emerald-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-emerald-400/60 transition" title="Player Health Points (HP)">
+              <span className="text-sm">❤️</span>
+              <span className="font-mono text-emerald-300 font-extrabold text-xs sm:text-sm">
+                {isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : `${100 + getTotalDefense() + (gameState.maxHpBonus || 0)}`}
+              </span>
+            </div>
+
+            {/* SPD */}
+            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-amber-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-amber-400/60 transition" title="Combat Speed (SPD)">
+              <span className="text-sm">⚡</span>
+              <span className="font-mono text-amber-300 font-extrabold text-xs sm:text-sm">{getTotalSpeed()}</span>
+            </div>
+
+            {/* PS */}
+            <div className="bg-[#121c33] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-cyan-500/30 text-xs flex items-center gap-1 shadow-sm hover:border-cyan-400/60 transition" title="Power Score (PS)">
+              <span className="text-sm">✨</span>
+              <span className="font-mono text-cyan-300 font-extrabold text-xs sm:text-sm">{getPowerScore()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
       {/* COMBAT ARENA MODAL OVERLAY WITH ACTIVE FIGHT ANIMATION */}
       {isBattleModalOpen && (
         <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
@@ -1491,13 +1585,22 @@ export default function GameView({
 
             {/* Footer Controls */}
             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-              {livePlayerHP < 20 && (
-                <button 
-                  onClick={handleRevive}
-                  className="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-extrabold uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-yellow-600/20 active:scale-95"
-                >
-                  ⚡ Revive (100 coins)
-                </button>
+              {(gameState.isDead || livePlayerHP < 20) && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleReviveWithCoins}
+                    className="px-3.5 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-yellow-500/20 active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span>⚡ Revive ({getCurrentReviveCost()} 🪙)</span>
+                  </button>
+                  <button
+                    onClick={handleReviveWithPack}
+                    disabled={(gameState.revivePacks || 0) <= 0}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span>🩹 Pack ({gameState.revivePacks || 0} Left)</span>
+                  </button>
+                </div>
               )}
               
               <button

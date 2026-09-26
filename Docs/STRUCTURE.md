@@ -49,8 +49,12 @@ Power-Up Armory & RapportVerse Ecosystem Architecture
 │   │   └── Footer.tsx          # Global ecosystem footer with RapportVerse partnership & copyright
 │   ├── /lib/
 │   │   └── firebase.ts         # Firebase Auth and Firestore configuration & error handlers
+│   ├── /utils/
+│   │   ├── generateDocs.ts     # Automated static lore book markdown generator
+│   │   └── markdownExporter.ts # Markdown builders & client-side ZIP packaging engine
 │   ├── App.tsx                 # Central React entry point, auth listener & route switcher
 │   ├── data.ts                 # Items, bosses, pack configurations & stat calculation formulas
+│   ├── loreData.ts             # Item lore lorebooks, boss dossiers & canonical war chronicles
 │   ├── types.ts                # TypeScript domain types, models & interfaces
 │   ├── main.tsx                # React DOM render root
 │   └── index.css               # Global Tailwind CSS imports

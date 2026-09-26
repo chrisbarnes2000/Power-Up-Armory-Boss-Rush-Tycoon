@@ -4,6 +4,18 @@
 
 ---
 
+## [v1.2.3] — 2026-09-26
+
+### 🚀 What's New in v1.2.3
+
+#### 🏗️ Architecture & Subcomponent Decomposition Milestone
+- **Milestone Initiation**: Formal kick-off of the multi-phase codebase decomposition plan separating large monoliths (`GameView.tsx`, `AdminModal.tsx`, `LoreBookView.tsx`, `ShopView.tsx`, `AccountModal.tsx`, `GuidedTour.tsx`) into domain-driven subcomponents adhering to the NASA JPL Power of 10 and 500-line modularity guidelines.
+- **Dynamic Header Sub-Navigation**: Integrated Boss Rush Tycoon and Boss sub-tabs directly into the global sticky navbar.
+- **Pinned Bankroll HUD**: Upgraded bottom floating bankroll card to a high-contrast, blur-backed HUD pinned across mobile and desktop.
+- **Precision Responsive Layout**: Calibrated gutter rhythm and horizontal padding to eliminate viewport clipping across all device breakpoints.
+
+---
+
 ## [v1.2.1] — 2026-09-25
 
 ### 🚀 What's New in v1.2.1

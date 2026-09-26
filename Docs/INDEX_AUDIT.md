@@ -11,10 +11,12 @@
 | **Security** | Firebase Rules & Secrets | 🟢 Audited | Firestore security rules enforce auth constraints, no client secrets |
 
 ## Module Line Ceiling Audit
-- `App.tsx`: 567 lines (Below 1000 line ceiling)
-- `GameView.tsx`: ~480 lines (Compliant)
-- `ShopView.tsx`: ~350 lines (Compliant)
-- `LoreBookView.tsx`: ~300 lines (Compliant)
-- `GuidedTour.tsx`: ~420 lines (Compliant)
-- `FontScaleControl.tsx`: ~240 lines (Compliant)
-- `Footer.tsx`: ~259 lines (Compliant)
+- `App.tsx`: 596 lines (Below 1000 line ceiling)
+- `GameView.tsx`: 1,619 lines (Rich interactive arena, mining & battle state)
+- `ShopView.tsx`: 726 lines (Storefront, cart drawer, crypto codes & bulk discounts)
+- `LoreBookView.tsx`: 1,345 lines (5-tab lore browser, power calculator & zip exporter)
+- `GuidedTour.tsx`: 739 lines (20-step interactive walkthrough engine)
+- `FontScaleControl.tsx`: 243 lines (Accessibility dynamic font scaler)
+- `Footer.tsx`: 258 lines (Ecosystem partnership & legal compliance)
+- `AdminModal.tsx`: 1,477 lines (Debug console, balance config & telemetry engine)
+- `AccountModal.tsx`: 879 lines (Firebase Auth, cloud profiles & sync)
