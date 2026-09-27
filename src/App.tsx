@@ -15,6 +15,7 @@ import { PWAInstallModal } from './components/common/PWAInstallModal';
 import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
 import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore } from './data';
+import { initAnalytics, trackPageView } from './lib/analytics';
 
 const DEFAULT_STATE: GameState = {
   coins: 2000,
@@ -235,6 +236,16 @@ export default function App() {
 
     setIsAdmin(admin);
   }, [currentUser, userProfile]);
+
+  // Initialize Google Analytics & Vemetric on Mount
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  // Track virtual page views when activeView changes
+  useEffect(() => {
+    trackPageView(activeView);
+  }, [activeView]);
 
   // Safety safeguard: close admin modal if user is no longer admin
   useEffect(() => {
@@ -498,14 +509,28 @@ export default function App() {
       const bossesDefeated = gameState.totalBossesDefeated;
       const goldCoins = Math.floor(gameState.coins);
 
+      const totalDeaths = gameState.totalDeaths || (
+        Object.values(gameState.bossDeathStats || {}).reduce<number>((a, b) => a + (Number(b) || 0), 0)
+      );
+
       const entry: LeaderboardEntry = {
         userId: currentUser.uid,
         name: nameToUse,
         score: currentPowerScore,
         bosses: bossesDefeated,
         coins: goldCoins,
+        gems: gameState.gems || 0,
         avatar: avatarToUse,
         title: titleToUse,
+        maxDamage: gameState.maxDamage || 0,
+        totalDodges: gameState.totalDodges || 0,
+        totalSpecials: gameState.totalSpecials || 0,
+        totalKills: bossesDefeated,
+        totalDeaths: totalDeaths,
+        totalGoldEarned: gameState.totalGoldEarned || goldCoins,
+        totalGemsEarned: gameState.totalGemsEarned || (gameState.gems || 0),
+        bossKillStats: gameState.bossKillStats || {},
+        bossDeathStats: gameState.bossDeathStats || {},
         updatedAt: new Date().toISOString()
       };
 
@@ -522,6 +547,13 @@ export default function App() {
         powerScore: currentPowerScore,
         totalBossesDefeated: bossesDefeated,
         coins: goldCoins,
+        gems: gameState.gems || 0,
+        maxDamage: gameState.maxDamage || 0,
+        totalDodges: gameState.totalDodges || 0,
+        totalSpecials: gameState.totalSpecials || 0,
+        totalGoldEarned: gameState.totalGoldEarned || goldCoins,
+        totalGemsEarned: gameState.totalGemsEarned || (gameState.gems || 0),
+        totalDeaths: totalDeaths,
         updatedAt: new Date().toISOString()
       }), { merge: true });
 
@@ -546,6 +578,13 @@ export default function App() {
         baseAttack: gameState.baseAttack ?? 10,
         baseDefense: gameState.baseDefense ?? 5,
         baseSpeed: gameState.baseSpeed ?? 5,
+        maxDamage: gameState.maxDamage || 0,
+        totalDodges: gameState.totalDodges || 0,
+        totalSpecials: gameState.totalSpecials || 0,
+        totalGoldEarned: gameState.totalGoldEarned || gameState.coins,
+        totalGemsEarned: gameState.totalGemsEarned || (gameState.gems || 0),
+        totalDeaths: totalDeaths,
+        claimedSeasonalRewards: gameState.claimedSeasonalRewards || {},
         updatedAt: new Date().toISOString()
       }), { merge: true });
 
@@ -590,7 +629,14 @@ export default function App() {
         squadMembers: cloudData.squadMembers ?? prev.squadMembers,
         baseAttack: cloudData.baseAttack ?? prev.baseAttack,
         baseDefense: cloudData.baseDefense ?? prev.baseDefense,
-        baseSpeed: cloudData.baseSpeed ?? prev.baseSpeed
+        baseSpeed: cloudData.baseSpeed ?? prev.baseSpeed,
+        maxDamage: cloudData.maxDamage ?? prev.maxDamage,
+        totalDodges: cloudData.totalDodges ?? prev.totalDodges,
+        totalSpecials: cloudData.totalSpecials ?? prev.totalSpecials,
+        totalGoldEarned: cloudData.totalGoldEarned ?? prev.totalGoldEarned,
+        totalGemsEarned: cloudData.totalGemsEarned ?? prev.totalGemsEarned,
+        totalDeaths: cloudData.totalDeaths ?? prev.totalDeaths,
+        claimedSeasonalRewards: cloudData.claimedSeasonalRewards ?? prev.claimedSeasonalRewards
       };
       localStorage.setItem('bossRushTycoon', JSON.stringify(next));
       return next;
@@ -628,6 +674,13 @@ export default function App() {
         baseAttack: localState.baseAttack ?? 10,
         baseDefense: localState.baseDefense ?? 5,
         baseSpeed: localState.baseSpeed ?? 5,
+        maxDamage: localState.maxDamage || 0,
+        totalDodges: localState.totalDodges || 0,
+        totalSpecials: localState.totalSpecials || 0,
+        totalGoldEarned: localState.totalGoldEarned || localState.coins,
+        totalGemsEarned: localState.totalGemsEarned || (localState.gems || 0),
+        totalDeaths: localState.totalDeaths || 0,
+        claimedSeasonalRewards: localState.claimedSeasonalRewards || {},
         updatedAt: new Date().toISOString()
       }), { merge: true });
     } catch (err) {

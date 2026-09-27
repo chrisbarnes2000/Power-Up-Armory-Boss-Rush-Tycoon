@@ -71,7 +71,7 @@ export const AncientLegendTab: React.FC = () => {
         </div>
 
         {/* PACK NOMENCLATURE & REAGENT PACKAGING KEY */}
-        <div>
+        <div className="mb-8">
           <h4 className="text-xs font-mono text-[#cb9df2] uppercase tracking-wider font-bold mb-3 flex items-center gap-1.5">
             <span>📦</span>
             <span>ALCHEMICAL PACK SIZING & NOMENCLATURE KEY</span>
@@ -91,6 +91,37 @@ export const AncientLegendTab: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* SEASONAL RANKS & ASCENDED TITLES CODEX */}
+        {SYSTEM_LEGEND.seasonalRanks && (
+          <div>
+            <h4 className="text-xs font-mono text-[#f5e56b] uppercase tracking-wider font-bold mb-3 flex items-center gap-1.5">
+              <span>🏆</span>
+              <span>SEASONAL RANKS & ASCENDED CHAMPION TITLES</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {SYSTEM_LEGEND.seasonalRanks.map(rank => (
+                <div key={rank.title} className="bg-[#141c30] border border-amber-500/20 hover:border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h5 className="font-extrabold text-xs text-white">{rank.title}</h5>
+                      <span className="text-[10px] font-mono text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                        {rank.period}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-cyan-300 block mb-2 font-bold">
+                      ✦ Criteria: {rank.criteria}
+                    </span>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {rank.lore}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

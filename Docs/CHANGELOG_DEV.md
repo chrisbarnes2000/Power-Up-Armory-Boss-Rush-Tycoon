@@ -4,15 +4,50 @@
 
 ---
 
-## [v1.3.0-dev.2] — 2026-09-27
+## [v1.3.0-dev.5] — 2026-09-27
 
 ### Engineering Actions
+- **Rank & Seasonal System Lore Documentation (`/Docs/LoreBook/systems/seasonal-ranks-and-leaderboards.md`, `src/loreData.ts`, `AncientLegendTab.tsx`)**:
+  - **Seasonal Ranks Codex**: Authored canonical Markdown documentation (`seasonal-ranks-and-leaderboards.md`) detailing monthly horizons, annual grand championships, boss executioner bounties, and ascended titles (*Apex Voidwalker*, *Gauntlet Veteran*, *Iron Will*, *Cataclysm*, *Shadow Dancer*, *Spellweaver*, *Midas Treasury*, *Crystal Lord*, *Immortal Grand Champion*).
+  - **In-Game Lore Compendium Integration**: Updated `SYSTEM_LEGEND` in `src/loreData.ts` and rendered the **Seasonal Ranks & Ascended Titles** codex card grid directly inside `AncientLegendTab.tsx` in the live app's Lore tab.
+  - **Compendium Index Alignment**: Linked the seasonal ranks codex across `/Docs/LoreBook/README.md` and `/Docs/LoreBook/SUMMARY.md`.
+- **Analytics & Telemetry Configuration (`appConfig.ts`, `firebase-applet-config.json`, `analytics.ts`, `App.tsx`)**:
+  - **Vemetric Analytics Integration**: Added public Vemetric project ID (`K9lVIvd4pe2UmylV`) to app configuration and wired dynamic script initialization with page view and custom event tracking.
+  - **Google Analytics Integration**: Configured GA measurement ID (`G-YX5LPMCNB8`) in `firebase-applet-config.json` and `appConfig.ts`, dispatching `gtag.js` telemetry for page views and game events.
+  - **App Lifecycle Telemetry**: Invoked `initAnalytics()` on application mount and bound `trackPageView(activeView)` to tab navigation switches in `src/App.tsx`.
+
+## [v1.3.0-dev.4] — 2026-09-27
+
+### Engineering Actions
+- **Seasonal Leaderboard & Tracking System for Monthly / Yearly Rewards (`StatsLeaderboard.tsx`, `/leaderboard/`, `seasonalRewards.ts`, `types.ts`)**:
+  - **Multi-Category Leaderboard Roster (`LeaderboardRosterTable.tsx`)**: Extended cloud and local leaderboards to support dynamic sorting across 10 categories: Power Score, Total Boss Kills, Most Deaths (Gladiator Perseverance), Max Single-Hit Damage, Most Dodges, Most Specials, Total Gold Earned, and Total Gems Earned.
+  - **Per-Boss Specialists & Bounty Matrix (`BossSpecialistGrid.tsx`)**: Created dedicated boss ledger tracking the #1 Top Executioner (Most Kills) and #1 Undying Challenger (Most Deaths / Perseverance) for each of the 8 bosses with +15k Gold bounties and personal player record comparisons.
+  - **Interactive Seasonal Reward Claim Station (`SeasonalRewardClaimStation.tsx`)**: Implemented automated progress tracking and instant claim station for Monthly and Yearly milestone tiers (e.g. *Apex Voidwalker*, *Iron Will*, *Cataclysm*, *Shadow Dancer*, *Spellweaver*, *Midas Treasury*, *Immortal Champion*).
+  - **Hero Combat Telemetry Dashboard (`HeroAttributeSummary.tsx`)**: Displays hero attributes (Attack, Defense, Max HP, Speed) alongside real-time live telemetry (Max Damage single-hit record, Attacks Dodged, Specials Cast, K/D ratio).
+  - **Combat & Mining Telemetry Collection (`GameView.tsx`)**: Integrated real-time tracking of single-hit crit peaks, dodges, special ability triggers, gold/gems earned, and death counts directly into state and Firestore synchronization.
+  - **Cloud Schema & Security Hardening (`firestore.rules`)**: Extended Firestore security rules to validate extended leaderboard and player progress fields (`gems`, `maxDamage`, `totalDodges`, `totalSpecials`, `totalGoldEarned`, `totalGemsEarned`, `totalDeaths`, `bossKillStats`, `bossDeathStats`, `claimedSeasonalRewards`). Deployed via `deploy_firebase`.
+  - **NASA JPL Rule 4 Modularity**: Decomposed monolithic stats view into 6 single-responsibility subcomponents inside `/src/components/game/leaderboard/`.
+
+## [v1.3.0-dev.3] — 2026-09-27
+
+### Engineering Actions
+- **Documentation Tree Consolidation (`/Docs/`, `/Docs/Agent_Instructions/`, `/Docs/LoreBook/`, `/Docs/Audits/`, `/Docs/Roadmaps/`, `/Docs/PublicRelations/`)**:
+  - **Public Relations & Partnership Migration**: Relocated `INDEX_MARKETING.md` to `/Docs/PublicRelations/INDEX_MARKETING.md`, moved/renamed `RapportVersePartnership.md`, and authored [`PowerUpBossTycoonPartnership.md`](./PublicRelations/PowerUpBossTycoonPartnership.md) as the official affiliate, partner, and sponsor integration kit.
+  - **Dedicated Audit & Quality Scorecard Hub (`/Docs/Audits/`)**: Relocated `INDEX_AUDIT.md` and authored deep-dive compliance scorecards for [**NASA JPL Power of 10**](./Audits/NASA_JPL_POWER_OF_10.md), [**WCAG 2.1/2.2 AA Accessibility**](./Audits/WCAG_ACCESSIBILITY_AUDIT.md), and [**Component Modularity Ceilings**](./Audits/MODULARITY_SCORECARD.md).
+  - **Roadmap & Milestone Horizon Directory (`/Docs/Roadmaps/`)**: Relocated `INDEX_ROADMAP.md` into `/Docs/Roadmaps/INDEX_ROADMAP.md`.
+  - **Agent Governance Hub (`Docs/Agent_Instructions/`)**: Organized all agent governance policies, protocols, and standard operating procedures into a dedicated subfolder (`PROJECT_INSTRUCTIONS.md`, `DELEGATION_AND_CHECKIN.md`, `ITIL_GOVERNANCE.md`, `FSD_SPECIFICATION.md`, `SPRINT_CEREMONIES.md`, and master index `README.md`).
+  - **In-Game Lore Book Compendium (`Docs/LoreBook/`)**: Migrated all markdown boss dossiers, canonical chronicles, item catalogs, and realm system compendiums to `/Docs/LoreBook/`. Updated generator scripts (`generateDocs.ts`) accordingly.
+  - **Structural Index Updates**: Updated `/AGENTS.md`, `/Docs/STRUCTURE.md`, and `/Docs/README.md` to align with the new consolidated structure.
 - **Reset Cards Height Reduction (`LocalResetOptions.tsx`)**:
   - **Compact Preset Cards**: Reduced the vertical height and padding of the user reset preset cards (`min-h-0`, padding `p-3`, button padding `py-2`), ensuring they fit neatly on all screen sizes without excessive scrolling.
 - **Squad Recruitment & Invite Code Bonus System (`SquadRecruitSection.tsx`, `AccountModal.tsx`, `App.tsx`, `types.ts`)**:
   - **Unique Champion Invite Code**: Each player has a personalized squad invite code (`ARMORY-XXXXX`) with one-click clipboard copying and native OS share triggers.
   - **Recruitment Grant (+3,000 Coins & +150 Gems)**: Redeeming a squad invite code grants both players +3,000 Coins and +150 Gems, registered once per account to prevent duplication.
   - **Co-Op Raid & Horde Roadmap Teaser**: Integrated squad recruitment level tracking (`squadRecruitsCount`) and squad formation metadata designed as the foundation for upcoming Co-Op Horde Assaults and multi-champion World Boss raids.
+
+## [v1.3.0-dev.2] — 2026-09-27
+
+### Engineering Actions
 - **PWA Installation Desk & Recurring Monthly Champion Grant (`PWAInstallModal.tsx`, `App.tsx`, `types.ts`)**:
   - **App Installation Desk Overlay**: Built a specialized PWA installation modal with dedicated guides for Chromium (Chrome/Edge desktop & Android) and Apple Safari on iOS. Includes a native `navigator.share` Web Share API trigger for quick "Add to Home Screen" actions on iPhone/iPad.
   - **Recurring Monthly PWA Bonus (5,000 Coins + 250 Gems)**: Added a recurring reward system for PWA champions. Users can claim a monthly bonus of +5,000 Coins and +250 Gems once per calendar month (`pwaBonusClaimedMonth`), tracked across local storage and Firestore cloud synchronizations.

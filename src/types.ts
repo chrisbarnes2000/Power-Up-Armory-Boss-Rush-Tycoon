@@ -73,9 +73,33 @@ export interface LeaderboardEntry {
   score: number;
   bosses: number;
   coins: number;
+  gems?: number;
   avatar?: string;
   title?: string;
+  maxDamage?: number;
+  totalDodges?: number;
+  totalSpecials?: number;
+  totalKills?: number;
+  totalDeaths?: number;
+  totalGoldEarned?: number;
+  totalGemsEarned?: number;
+  bossKillStats?: { [bossId: string]: number };
+  bossDeathStats?: { [bossId: string]: number };
+  seasonKey?: string;
   updatedAt?: string;
+}
+
+export interface SeasonalRewardTier {
+  id: string;
+  title: string;
+  period: 'monthly' | 'yearly';
+  category: 'kills' | 'deaths' | 'gold' | 'gems' | 'max_damage' | 'dodges' | 'specials' | 'overall_power';
+  criteriaText: string;
+  minRequirement: number;
+  coinsReward: number;
+  gemsReward: number;
+  badgeEmoji: string;
+  titleReward?: string;
 }
 
 export interface UserProfile {
@@ -87,6 +111,13 @@ export interface UserProfile {
   powerScore?: number;
   totalBossesDefeated?: number;
   coins?: number;
+  gems?: number;
+  maxDamage?: number;
+  totalDodges?: number;
+  totalSpecials?: number;
+  totalGoldEarned?: number;
+  totalGemsEarned?: number;
+  totalDeaths?: number;
   isAdmin?: boolean;
   isArmoryStoreEnabled?: boolean;
   inviteCode?: string;
@@ -171,4 +202,13 @@ export interface GameState {
   baseAttack?: number;
   baseDefense?: number;
   baseSpeed?: number;
+
+  // Extended Combat & Seasonal Telemetry
+  maxDamage?: number;
+  totalDodges?: number;
+  totalSpecials?: number;
+  totalGoldEarned?: number;
+  totalGemsEarned?: number;
+  totalDeaths?: number;
+  claimedSeasonalRewards?: { [rewardId: string]: boolean };
 }

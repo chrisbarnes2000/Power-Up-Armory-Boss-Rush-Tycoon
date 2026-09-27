@@ -43,6 +43,13 @@ service cloud.firestore {
         (!('powerScore' in data) || (data.powerScore is number)) &&
         (!('totalBossesDefeated' in data) || (data.totalBossesDefeated is number)) &&
         (!('coins' in data) || (data.coins is number)) &&
+        (!('gems' in data) || (data.gems is number)) &&
+        (!('maxDamage' in data) || (data.maxDamage is number)) &&
+        (!('totalDodges' in data) || (data.totalDodges is number)) &&
+        (!('totalSpecials' in data) || (data.totalSpecials is number)) &&
+        (!('totalGoldEarned' in data) || (data.totalGoldEarned is number)) &&
+        (!('totalGemsEarned' in data) || (data.totalGemsEarned is number)) &&
+        (!('totalDeaths' in data) || (data.totalDeaths is number)) &&
         (!('isAdmin' in data) || (data.isAdmin is bool)) &&
         (!('isArmoryStoreEnabled' in data) || (data.isArmoryStoreEnabled is bool));
     }
@@ -57,6 +64,17 @@ service cloud.firestore {
         data.bosses is number &&
         data.bosses >= 0 &&
         data.coins is number &&
+        (!('gems' in data) || (data.gems is number)) &&
+        (!('maxDamage' in data) || (data.maxDamage is number)) &&
+        (!('totalDodges' in data) || (data.totalDodges is number)) &&
+        (!('totalSpecials' in data) || (data.totalSpecials is number)) &&
+        (!('totalKills' in data) || (data.totalKills is number)) &&
+        (!('totalDeaths' in data) || (data.totalDeaths is number)) &&
+        (!('totalGoldEarned' in data) || (data.totalGoldEarned is number)) &&
+        (!('totalGemsEarned' in data) || (data.totalGemsEarned is number)) &&
+        (!('bossKillStats' in data) || (data.bossKillStats is map)) &&
+        (!('bossDeathStats' in data) || (data.bossDeathStats is map)) &&
+        (!('seasonKey' in data) || (data.seasonKey is string && data.seasonKey.size() <= 32)) &&
         (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 16)) &&
         (!('title' in data) || (data.title is string && data.title.size() <= 64));
     }
@@ -80,6 +98,13 @@ service cloud.firestore {
         (!('baseAttack' in data) || (data.baseAttack is number)) &&
         (!('baseDefense' in data) || (data.baseDefense is number)) &&
         (!('baseSpeed' in data) || (data.baseSpeed is number)) &&
+        (!('maxDamage' in data) || (data.maxDamage is number)) &&
+        (!('totalDodges' in data) || (data.totalDodges is number)) &&
+        (!('totalSpecials' in data) || (data.totalSpecials is number)) &&
+        (!('totalGoldEarned' in data) || (data.totalGoldEarned is number)) &&
+        (!('totalGemsEarned' in data) || (data.totalGemsEarned is number)) &&
+        (!('totalDeaths' in data) || (data.totalDeaths is number)) &&
+        (!('claimedSeasonalRewards' in data) || (data.claimedSeasonalRewards is map)) &&
         (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 

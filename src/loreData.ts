@@ -619,5 +619,67 @@ export const SYSTEM_LEGEND = {
       volume: 'Bulk Vacuum Stash (Bulk Quantity)',
       lore: 'Heavyweight reinforced containers for bulk armory storage. Seals in astral volatility and preserves maximum potency.'
     }
+  ],
+  seasonalRanks: [
+    {
+      title: '👑 Apex Voidwalker',
+      period: 'Monthly Season',
+      criteria: 'Slay 25+ Bosses in a single month',
+      lore: 'Granted only to champions whose blades pierce the deepest layers of astral space. They fight for absolute celestial dominance.'
+    },
+    {
+      title: '⚔️ Gauntlet Veteran',
+      period: 'Monthly Season',
+      criteria: 'Slay 10+ Bosses in a single month',
+      lore: 'Awarded to battle-tested gladiators who routinely conquer intermediate titans.'
+    },
+    {
+      title: '🗡️ Bronze Gladiator',
+      period: 'Monthly Season',
+      criteria: 'Slay 3+ Bosses in a single month',
+      lore: 'The rite of passage for all initiates stepping into the gauntlet arena.'
+    },
+    {
+      title: '💀 Iron Will',
+      period: 'Monthly Season',
+      criteria: 'Persevere through 10+ Defeats without surrender',
+      lore: 'In the Armory, defeat is simply an alchemical crucible. Those with the Iron Will rise stronger after every mortal fall.'
+    },
+    {
+      title: '💥 Cataclysm',
+      period: 'Monthly Season',
+      criteria: 'Deliver 1,000+ Single-Hit Damage',
+      lore: 'Bestowed upon tactical min-maxers whose critical strikes shatter boss armor and warp space-time.'
+    },
+    {
+      title: '💨 Shadow Dancer',
+      period: 'Monthly Season',
+      criteria: 'Evade 25+ Boss Strikes',
+      lore: 'Masters of velocity and agility who slip through catastrophic attacks like smoke on the wind.'
+    },
+    {
+      title: '✨ Spellweaver',
+      period: 'Monthly Season',
+      criteria: 'Execute 15+ Artifact Specials',
+      lore: 'Alchemical savants who master the resonance of Star Fragments, Void Orbs, and Dragon Breath.'
+    },
+    {
+      title: '🪙 Gold Baron',
+      period: 'Monthly Season',
+      criteria: 'Amass 100,000+ Gold Coins',
+      lore: 'Tycoon lords whose compounding mining generators outproduce entire planetary economies.'
+    },
+    {
+      title: '💎 Crystal Lord',
+      period: 'Monthly Season',
+      criteria: 'Harvest 500+ Prismatic Gems',
+      lore: 'Collectors of pure astral starlight harvested directly from slain celestial leviathans.'
+    },
+    {
+      title: '🏆 Immortal Grand Champion',
+      period: 'Annual Championship',
+      criteria: 'Conquer 75+ Bosses across the year',
+      lore: 'The supreme rank of the Armory. Immortalized in the Hall of Champions forever.'
+    }
   ]
 };

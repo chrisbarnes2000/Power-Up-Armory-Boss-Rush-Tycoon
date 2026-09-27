@@ -3,24 +3,37 @@
 Power-Up Armory & RapportVerse Ecosystem Architecture
 
 ```
-├── /Docs/                      # Technical specification documents
+├── /Docs/                      # Technical specification & governance documents
 │   ├── README.md               # Developer documentation & ecosystem reference
 │   ├── STRUCTURE.md            # Structural layout and dependencies
 │   ├── CHANGELOG_DEV.md        # High-frequency developer turn-by-turn changelog
 │   ├── CHANGELOG.md            # Customer-facing public milestone release notes
-│   ├── INDEX_ROADMAP.md        # Active horizon roadmap & archived milestone log
-│   ├── INDEX_AUDIT.md          # NASA JPL Power of 10 & WCAG audit scorecards
-│   ├── INDEX_MARKETING.md      # Ecosystem marketing & social broadcast copy
-│   ├── PROJECT_INSTRUCTIONS.md # Agent workflow, Power of 10 rules & WCAG guidelines
-│   ├── ITIL_GOVERNANCE.md      # ITIL v4 Service Management & Change Enablement Policy
-│   ├── FSD_SPECIFICATION.md    # Functional Specification Standard (IEEE 830 & Stanford FSD)
-│   ├── DELEGATION_AND_CHECKIN.md # 5-Point Delegation Checklist & Check-In Protocol
-│   ├── SPRINT_CEREMONIES.md    # Agile Sprint Ceremonies, Story Point Estimation & Retrospective Engine
-│   ├── PARTNERSHIP.md          # Proud Partner of RapportVerse affiliation document
-│   └── /PublicRelations/       # Public relations and ecosystem strategy
-│       └── BRAND_BRIEF.md      # Brand promise, positioning & strategy
-├── /docs/                      # Lore book & in-game compendium
-│   └── /lore-book/             # Boss chronicles, item catalogs & system compendiums
+│   ├── /Agent_Instructions/    # Agent execution workflows & engineering governance
+│   │   ├── README.md           # Engineering governance and protocol index
+│   │   ├── PROJECT_INSTRUCTIONS.md # Agent workflow, Power of 10 rules & WCAG guidelines
+│   │   ├── ITIL_GOVERNANCE.md  # ITIL v4 Service Management & Change Enablement Policy
+│   │   ├── FSD_SPECIFICATION.md# Functional Specification Standard (IEEE 830 & Stanford FSD)
+│   │   ├── DELEGATION_AND_CHECKIN.md # 5-Point Delegation Checklist & Check-In Protocol
+│   │   └── SPRINT_CEREMONIES.md# Agile Sprint Ceremonies, Story Point Estimation & Retrospective Engine
+│   ├── /Audits/                # System audits, quality scorecards & NASA JPL evaluations
+│   │   ├── INDEX_AUDIT.md      # Master audit index and status overview
+│   │   ├── NASA_JPL_POWER_OF_10.md # NASA JPL Power of 10 safety scorecard
+│   │   ├── WCAG_ACCESSIBILITY_AUDIT.md # WCAG 2.1/2.2 AA accessibility evaluation
+│   │   └── MODULARITY_SCORECARD.md # Component line count ceilings & maintainability metrics
+│   ├── /Roadmaps/              # Milestone horizons & release plans
+│   │   └── INDEX_ROADMAP.md    # Active horizon roadmap & archived milestone log
+│   ├── /LoreBook/              # In-game lore book & compendium
+│   │   ├── README.md           # Lore book master compendium index
+│   │   ├── SUMMARY.md          # GitBook-compliant summary manifest
+│   │   ├── /bosses/            # Boss threat classifications & tactical dossiers
+│   │   ├── /chronicles/        # Canonical war chronicles & campaign eras
+│   │   ├── /items/             # Power-up items directory & mechanical lore
+│   │   └── /systems/           # Realm systems, currency economies & world laws
+│   └── /PublicRelations/       # Public relations, ecosystem partnerships & marketing
+│       ├── BRAND_BRIEF.md      # Brand promise, positioning & strategy
+│       ├── INDEX_MARKETING.md  # Social broadcast copy & distribution matrix
+│       ├── RapportVersePartnership.md # Proud Partner of RapportVerse affiliation document
+│       └── PowerUpBossTycoonPartnership.md # Official affiliate, sponsor & partner one-sheet kit
 ├── /public/                    # Static public web assets
 │   ├── favicon.svg             # Multi-layer SVG favicon
 │   ├── apple-touch-icon.svg    # iOS Safari bookmark icon
@@ -41,19 +54,21 @@ Power-Up Armory & RapportVerse Ecosystem Architecture
 │   ├── /config/
 │   │   └── appConfig.ts        # Centralized application configuration (version, release, branding, partnership)
 │   ├── /data/
-│   │   └── tourSteps.ts        # Express 5-Step & Grand 20-Step walkthrough step configurations
-    │   ├── /components/            # UI Components and views
-    │   │   ├── /admin/             # Modular admin console subcomponents
-    │   │   ├── /game/              # Boss Rush gauntlet, tycoon & leaderboard subcomponents
-    │   │   ├── /tour/              # Interactive onboarding walkthrough subcomponents
-    │   │   ├── /account/           # Modular profile stats, guest auth & local data reset options
-    │   │   ├── /shop/              # Modular shopping carts, navigation bars, and item card subcomponents
-    │   │   ├── /lore/              # Modular item directory, boss dossiers & campaign quill tabs
-    │   │   ├── ShopView.tsx        # Armory Storefront orchestrator, coordinating cart and grids
-    │   │   ├── GameView.tsx        # Real-time Boss Rush gauntlet, tycoon mining & key redemption
-    │   │   ├── LoreBookView.tsx    # Interactive Lore Book layout coordinator, binding tab subcomponents
-    │   │   ├── AdminModal.tsx      # Admin panel for debugging, score resets & telemetry
-    │   │   ├── AccountModal.tsx    # Profile coordinator orchestrating logins and cloud data syncing
+│   │   ├── tourSteps.ts        # Express 5-Step & Grand 20-Step walkthrough step configurations
+│   │   └── seasonalRewards.ts  # Monthly & yearly reward tiers, prize currencies & criteria
+│   ├── /components/            # UI Components and views
+│   │   ├── /admin/             # Modular admin console subcomponents
+│   │   ├── /game/              # Boss Rush gauntlet, tycoon & leaderboard subcomponents
+│   │   │   └── /leaderboard/   # Modular seasonal rankings, reward claims & boss specialists
+│   │   ├── /tour/              # Interactive onboarding walkthrough subcomponents
+│   │   ├── /account/           # Modular profile stats, guest auth & local data reset options
+│   │   ├── /shop/              # Modular shopping carts, navigation bars, and item card subcomponents
+│   │   ├── /lore/              # Modular item directory, boss dossiers & campaign quill tabs
+│   │   ├── ShopView.tsx        # Armory Storefront orchestrator, coordinating cart and grids
+│   │   ├── GameView.tsx        # Real-time Boss Rush gauntlet, tycoon mining & key redemption
+│   │   ├── LoreBookView.tsx    # Interactive Lore Book layout coordinator, binding tab subcomponents
+│   │   ├── AdminModal.tsx      # Admin panel for debugging, score resets & telemetry
+│   │   ├── AccountModal.tsx    # Profile coordinator orchestrating logins and cloud data syncing
 │   │   ├── GuidedTour.tsx      # Interactive walkthrough orchestrator shell
 │   │   ├── FontScaleControl.tsx# Accessibility font scalar controls
 │   │   └── Footer.tsx          # Global ecosystem footer with RapportVerse partnership & copyright

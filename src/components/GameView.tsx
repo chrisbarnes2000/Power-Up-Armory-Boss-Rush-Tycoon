@@ -282,7 +282,11 @@ export function GameView({
     setTimeout(() => setRecentMineGain(null), 600);
 
     setGameState(prev => {
-      const next = { ...prev, coins: prev.coins + totalMined };
+      const next = { 
+        ...prev, 
+        coins: prev.coins + totalMined,
+        totalGoldEarned: (prev.totalGoldEarned || 0) + totalMined
+      };
       saveState(next);
       return next;
     });
@@ -438,6 +442,8 @@ export function GameView({
             ...prev,
             coins: prev.coins + reward,
             gems: prev.gems + gemReward,
+            totalGoldEarned: (prev.totalGoldEarned || 0) + reward,
+            totalGemsEarned: (prev.totalGemsEarned || 0) + gemReward,
             bosses: prev.bosses.map(b => b.id === bossId ? { ...b, defeated: true, respawnTime: 15 } : b),
             totalBossesDefeated: prev.totalBossesDefeated + 1,
             killStreak: (prev.killStreak || 0) + 1,
@@ -477,6 +483,7 @@ export function GameView({
             isDead: true,
             deathStreak: (prev.deathStreak || 0) + 1,
             killStreak: 0,
+            totalDeaths: (prev.totalDeaths || 0) + 1,
             bossDeathStats: {
               ...stats,
               [bossId]: (stats[bossId] || 0) + 1
@@ -504,17 +511,27 @@ export function GameView({
       }
 
       // Special Artifact Triggers
+      let specialTriggered = false;
       if (Math.random() < 0.12) {
         const ownedSpecials = gameState.powerups.filter(p => p.owned && p.quantity > 0);
         if (ownedSpecials.length > 0) {
           const randomSpecial = ownedSpecials[Math.floor(Math.random() * ownedSpecials.length)];
           const itemData = getPowerupData(randomSpecial.id);
           if (itemData) {
+            specialTriggered = true;
             addLog(`✨ ${itemData.emoji} Special: ${itemData.special}`, 'log-special');
             if (itemData.id === 'Star Fragment' && Math.random() < 0.1) {
               bossHP = 0;
               setLiveBossHP(0);
               addLog(`💫 SUPERNOVA! ${boss.emoji} ${boss.id} was instantly vaporized!`, 'log-victory');
+              setGameState(prev => {
+                const next = {
+                  ...prev,
+                  totalSpecials: (prev.totalSpecials || 0) + 1
+                };
+                saveState(next);
+                return next;
+              });
               setTimeout(battleTurn, 1400);
               return;
             }
@@ -530,6 +547,19 @@ export function GameView({
         }
       }
 
+      // Update max damage and specials in state
+      setGameState(prev => {
+        const currentMax = prev.maxDamage || 0;
+        const newMax = Math.max(currentMax, damage);
+        const newSpecials = (prev.totalSpecials || 0) + (specialTriggered ? 1 : 0);
+        if (newMax !== currentMax || specialTriggered) {
+          const next = { ...prev, maxDamage: newMax, totalSpecials: newSpecials };
+          saveState(next);
+          return next;
+        }
+        return prev;
+      });
+
       bossHP = Math.max(0, bossHP - damage);
       addLog(`🗡️ You deal ${damage} damage! Boss HP: ${bossHP}`, 'log-damage');
 
@@ -543,6 +573,11 @@ export function GameView({
       const isDodge = Math.random() < 0.2;
       if (isDodge) {
         addLog(`🔄 You dodged the boss attack!`, 'log-buff');
+        setGameState(prev => {
+          const next = { ...prev, totalDodges: (prev.totalDodges || 0) + 1 };
+          saveState(next);
+          return next;
+        });
       } else {
         const defenseMultiplier = Math.min(0.8, getTotalDefense() / 150);
         let actualBossDamage = Math.max(1, Math.floor(bossAtk * (0.7 + Math.random() * 0.6)));
@@ -765,6 +800,7 @@ export function GameView({
         {activeTab === 'stats' && (
           <StatsLeaderboard
             gameState={gameState}
+            setGameState={setGameState}
             currentUser={currentUser}
             userProfile={userProfile}
             cloudLeaderboard={cloudLeaderboard}

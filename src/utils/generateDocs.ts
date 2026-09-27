@@ -13,7 +13,7 @@ import {
   slugify
 } from './markdownExporter';
 
-const docsDir = path.resolve(process.cwd(), 'docs/lore-book');
+const docsDir = path.resolve(process.cwd(), 'Docs/LoreBook');
 const itemsDir = path.join(docsDir, 'items');
 const bossesDir = path.join(docsDir, 'bosses');
 const chroniclesDir = path.join(docsDir, 'chronicles');

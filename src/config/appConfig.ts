@@ -6,6 +6,10 @@ export interface AppConfig {
   appName: string;
   fullTitle: string;
   year: number;
+  analytics: {
+    googleAnalyticsMeasurementId: string;
+    vemetricProjectId: string;
+  };
   partner: {
     name: string;
     url: string;
@@ -27,6 +31,10 @@ export const APP_CONFIG: AppConfig = {
   appName: 'Power-Up Armory',
   fullTitle: 'Power-Up Armory · Boss Rush Tycoon',
   year: 2026,
+  analytics: {
+    googleAnalyticsMeasurementId: 'G-YX5LPMCNB8',
+    vemetricProjectId: 'K9lVIvd4pe2UmylV'
+  },
   partner: {
     name: 'RapportVerse',
     url: 'https://rapprt.space',
