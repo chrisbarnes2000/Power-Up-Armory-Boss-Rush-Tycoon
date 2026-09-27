@@ -6,9 +6,10 @@ interface FooterProps {
   onNavigate: (view: 'Shop' | 'Game' | 'Stats' | 'Lore') => void;
   onOpenTour?: () => void;
   onOpenAccount?: () => void;
+  onOpenInstall?: () => void;
 }
 
-export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: FooterProps) {
+export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenInstall }: FooterProps) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -105,6 +106,17 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
                   >
                     <span>🧭</span>
                     <span>Launch 20-Step Interactive Tour</span>
+                  </button>
+                </li>
+              )}
+              {onOpenInstall && (
+                <li>
+                  <button
+                    onClick={onOpenInstall}
+                    className="hover:text-cyan-300 text-cyan-400 font-semibold transition text-left cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>📱</span>
+                    <span>PWA App Installation Guide</span>
                   </button>
                 </li>
               )}

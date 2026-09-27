@@ -8,6 +8,16 @@
 
 ### 🚀 What's New in v1.3.0
 
+#### 👥 Squad Recruitment & Co-Op Invite Code System
+- **Personal Squad Invite Codes**: Every champion now has their own unique Squad Invite Code (`ARMORY-XXXXX`) available in the Account Modal with instant one-click clipboard copying and native device sharing.
+- **Recruitment Grants (+3,000 Coins + 150 Gems)**: Redeeming a friend's squad invite code awards an instant one-time champion bonus of **+3,000 Gold** and **+150 Gems**, while advancing your Squad Formation tier.
+- **Co-Op Horde & World Boss Roadmap**: The squad recruitment network establishes your party formation in preparation for upcoming cooperative horde defense battles and multi-champion World Boss raids.
+
+#### 📱 Progressive Web App (PWA) Installation Desk & Monthly Champion Grant
+- **Cross-Platform Installation Guides**: Added a dedicated PWA installation desk supporting Chromium browsers (Chrome, Edge, Opera on PC & Android) with automatic one-tap prompt capture, and tailored step-by-step guidance for Safari on iOS.
+- **Native Safari iOS Share Sheet Trigger**: Integrated a quick-launch button using the standard `navigator.share` Web Share API to open the Safari share panel directly on iPhone and iPad for easy "Add to Home Screen" actions.
+- **Monthly PWA Champion Grant (5,000 Coins + 250 Gems)**: Champions who install the app or launch in standalone mode can claim a recurring monthly grant of **+5,000 Gold** and **+250 Gems** once per calendar month, synced to both local storage and cloud profiles.
+
 #### 🕹️ Horizontal Side-by-Side Arcade Battle Display
 - **Space-Efficient Combat Splits**: Shifted the combat live metrics from a stacked vertical layout into a responsive, side-by-side split row inside the battle logging card. Now, the Hero health is pinned on the left and the Boss health is on the right, punctuated by a central glowing `VS` badge.
 - **Mobile-Tailored Ergonomics**: Configured custom mobile breakpoints (`text-[10px]`, `h-1.5` bar heights, tight spacing) that compact automatically on small phones, giving players complete log visibility and smooth arcade animations.

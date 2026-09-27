@@ -7,6 +7,16 @@
 ## [v1.3.0-dev.2] — 2026-09-27
 
 ### Engineering Actions
+- **Reset Cards Height Reduction (`LocalResetOptions.tsx`)**:
+  - **Compact Preset Cards**: Reduced the vertical height and padding of the user reset preset cards (`min-h-0`, padding `p-3`, button padding `py-2`), ensuring they fit neatly on all screen sizes without excessive scrolling.
+- **Squad Recruitment & Invite Code Bonus System (`SquadRecruitSection.tsx`, `AccountModal.tsx`, `App.tsx`, `types.ts`)**:
+  - **Unique Champion Invite Code**: Each player has a personalized squad invite code (`ARMORY-XXXXX`) with one-click clipboard copying and native OS share triggers.
+  - **Recruitment Grant (+3,000 Coins & +150 Gems)**: Redeeming a squad invite code grants both players +3,000 Coins and +150 Gems, registered once per account to prevent duplication.
+  - **Co-Op Raid & Horde Roadmap Teaser**: Integrated squad recruitment level tracking (`squadRecruitsCount`) and squad formation metadata designed as the foundation for upcoming Co-Op Horde Assaults and multi-champion World Boss raids.
+- **PWA Installation Desk & Recurring Monthly Champion Grant (`PWAInstallModal.tsx`, `App.tsx`, `types.ts`)**:
+  - **App Installation Desk Overlay**: Built a specialized PWA installation modal with dedicated guides for Chromium (Chrome/Edge desktop & Android) and Apple Safari on iOS. Includes a native `navigator.share` Web Share API trigger for quick "Add to Home Screen" actions on iPhone/iPad.
+  - **Recurring Monthly PWA Bonus (5,000 Coins + 250 Gems)**: Added a recurring reward system for PWA champions. Users can claim a monthly bonus of +5,000 Coins and +250 Gems once per calendar month (`pwaBonusClaimedMonth`), tracked across local storage and Firestore cloud synchronizations.
+  - **PWA Quick-Access Triggers**: Placed an `App Install 📱` pill trigger in the top navbar and a dedicated `PWA App Installation Guide` link inside the global footer.
 - **Horizontal Mobile-Optimized Combat Layout (`BossGauntlet.tsx`)**:
   - **Side-by-Side Arena Healthbars**: Replaced the stacked vertical hero/boss combat bars inside the battle record card with a horizontal, flex-row side-by-side split container separated by a high-intensity centered `VS` arcade badge.
   - **Compact Mobile Constraints**: Designed the horizontal splits to shrink elegantly on mobile screens by reducing text size (`text-[10px]`), compressing margins, and reducing health bar thickness (`h-1.5`) so it fits small mobile viewports flawlessly without log clipping.

@@ -18,6 +18,7 @@ import { X, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 import { LiveHeroStats } from './account/LiveHeroStats';
 import { AccountQuickBadge } from './account/AccountQuickBadge';
 import { EditProfileForm } from './account/EditProfileForm';
+import { SquadRecruitSection } from './account/SquadRecruitSection';
 import { LocalResetOptions } from './account/LocalResetOptions';
 import { GuestAuthForm } from './account/GuestAuthForm';
 
@@ -102,6 +103,79 @@ export default function AccountModal({
         : '🎮 Starter profile restored! (29 PS, 5 DEF/Armor, 2,000 Coins, 500 Gems)'
     );
     setTimeout(() => setProfileMessage(null), 5000);
+  };
+
+  // Squad Invite Code Redemption Handler
+  const handleRedeemInviteCode = (code: string): { success: boolean; message: string } => {
+    const cleanCode = code.trim().toUpperCase();
+    const myCode = 
+      gameState.inviteCode || 
+      userProfile?.inviteCode || 
+      `ARMORY-${(userProfile?.userId || gameState.playerName || 'CHAMP').replace(/[^A-Za-z0-9]/g, '').slice(0, 5).toUpperCase() || 'HERO7'}`;
+
+    if (cleanCode === myCode) {
+      return { success: false, message: 'You cannot redeem your own squad invite code!' };
+    }
+
+    if (gameState.invitedByCode || userProfile?.invitedByCode) {
+      return { success: false, message: 'You have already redeemed a squad invite code!' };
+    }
+
+    // Grant bonus: +3,000 Coins and +150 Gems
+    const updatedState: GameState = {
+      ...gameState,
+      coins: gameState.coins + 3000,
+      gems: gameState.gems + 150,
+      invitedByCode: cleanCode,
+      inviteCode: myCode,
+      squadRecruitsCount: (gameState.squadRecruitsCount || 0) + 1,
+      squadMembers: [...(gameState.squadMembers || []), `Recruited via ${cleanCode}`],
+      battleLog: [
+        {
+          message: `👥 Squad Invite Redeemed (${cleanCode})! Received +3,000 Coins & +150 Gems bonus!`,
+          className: 'log-reward'
+        },
+        ...gameState.battleLog
+      ]
+    };
+
+    setGameState(updatedState);
+    localStorage.setItem('bossRushTycoon', JSON.stringify(updatedState));
+
+    if (currentUser) {
+      const userRef = doc(db, 'users', currentUser.uid);
+      updateDoc(userRef, {
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: (userProfile?.squadRecruitsCount || 0) + 1,
+        coins: updatedState.coins,
+        updatedAt: new Date().toISOString()
+      }).catch(err => console.warn('Could not sync invite to user profile:', err));
+
+      const progressRef = doc(db, 'user_progress', currentUser.uid);
+      setDoc(progressRef, {
+        userId: currentUser.uid,
+        coins: updatedState.coins,
+        gems: updatedState.gems,
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: updatedState.squadRecruitsCount,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => console.warn('Could not sync invite to user progress:', err));
+
+      setUserProfile(prev => prev ? {
+        ...prev,
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: (prev.squadRecruitsCount || 0) + 1,
+        coins: updatedState.coins
+      } : null);
+    }
+
+    return { 
+      success: true, 
+      message: `🎉 Success! Joined squad (${cleanCode})! Received +3,000 Coins & +150 Gems!` 
+    };
   };
 
   // Check isAdmin flag in auth details or firestore profile
@@ -535,6 +609,14 @@ export default function AccountModal({
             onClearErrors={() => setAuthError(null)}
           />
         )}
+
+        {/* Squad Recruitment & Invite Section */}
+        <SquadRecruitSection
+          gameState={gameState}
+          setGameState={setGameState}
+          userProfile={userProfile}
+          onRedeemInviteCode={handleRedeemInviteCode}
+        />
 
         {/* Danger Zone Reset Options */}
         <LocalResetOptions

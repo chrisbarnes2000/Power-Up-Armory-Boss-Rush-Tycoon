@@ -89,6 +89,9 @@ export interface UserProfile {
   coins?: number;
   isAdmin?: boolean;
   isArmoryStoreEnabled?: boolean;
+  inviteCode?: string;
+  invitedByCode?: string;
+  squadRecruitsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -150,6 +153,15 @@ export interface GameState {
     short?: boolean;
     full?: boolean;
   };
+
+  // PWA Monthly Installation Bonus Claim Tracking (Format: 'YYYY-MM')
+  pwaBonusClaimedMonth?: string;
+
+  // Squad Recruitment & Invite System (For future Co-Op Horde & Raid Bosses)
+  inviteCode?: string;
+  invitedByCode?: string;
+  squadRecruitsCount?: number;
+  squadMembers?: string[];
 
   // Pre-fight upgrade counters (Tracked between boss fights)
   hpUpgradesInCurrentFightCount?: number;

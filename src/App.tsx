@@ -11,6 +11,7 @@ import GuidedTour, { TourStep } from './components/GuidedTour';
 import { TOUR_BONUSES } from './data/tourSteps';
 import FontScaleControl from './components/FontScaleControl';
 import Footer from './components/Footer';
+import { PWAInstallModal } from './components/common/PWAInstallModal';
 import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
 import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore } from './data';
@@ -84,6 +85,7 @@ export default function App() {
   const [controlledShopCategory, setControlledShopCategory] = useState<'weapons' | 'defense' | 'utility' | 'mystic'>('weapons');
   const [controlledGameTab, setControlledGameTab] = useState<'tycoon' | 'bosses' | 'stats'>('tycoon');
   const [isShopCartDrawerOpen, setIsShopCartDrawerOpen] = useState(false);
+  const [isPWAInstallOpen, setIsPWAInstallOpen] = useState(false);
 
   // Synchronize active view and sub tabs to a given tour step
   const handleTourStepChange = useCallback((step: TourStep) => {
@@ -151,6 +153,48 @@ export default function App() {
       return next;
     });
   }, []);
+
+  // Recurring Monthly PWA Installation Grant Claim Handler (Once per calendar month)
+  const handleClaimPwaBonus = useCallback(() => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    setGameState(prev => {
+      if (prev.pwaBonusClaimedMonth === currentMonth) return prev; // Guard against duplicate payouts in same month
+
+      const next: GameState = {
+        ...prev,
+        coins: prev.coins + 5000,
+        gems: prev.gems + 250,
+        pwaBonusClaimedMonth: currentMonth,
+        battleLog: [
+          {
+            message: `📱 Monthly PWA Installation Grant Claimed! Received +5,000 Coins & +250 Gems (${currentMonthName})!`,
+            className: 'log-reward'
+          },
+          ...prev.battleLog
+        ]
+      };
+
+      try {
+        localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save PWA bonus state to localStorage:', e);
+      }
+
+      if (currentUser) {
+        setDoc(doc(db, 'user_progress', currentUser.uid), sanitizeForFirestore({
+          userId: currentUser.uid,
+          coins: next.coins,
+          gems: next.gems,
+          pwaBonusClaimedMonth: currentMonth,
+          updatedAt: new Date().toISOString()
+        }), { merge: true }).catch(err => console.warn('Could not sync PWA bonus to cloud:', err));
+      }
+
+      return next;
+    });
+  }, [currentUser]);
 
   // --- CHECK ISADMIN FLAG IN AUTH DETAILS OR FIRESTORE PROFILE ---
   useEffect(() => {
@@ -539,6 +583,11 @@ export default function App() {
         reviveCount: cloudData.reviveCount ?? prev.reviveCount,
         revivePacks: cloudData.revivePacks ?? prev.revivePacks,
         completedTours: cloudData.completedTours ?? prev.completedTours,
+        pwaBonusClaimedMonth: cloudData.pwaBonusClaimedMonth ?? prev.pwaBonusClaimedMonth,
+        inviteCode: cloudData.inviteCode ?? prev.inviteCode,
+        invitedByCode: cloudData.invitedByCode ?? prev.invitedByCode,
+        squadRecruitsCount: cloudData.squadRecruitsCount ?? prev.squadRecruitsCount,
+        squadMembers: cloudData.squadMembers ?? prev.squadMembers,
         baseAttack: cloudData.baseAttack ?? prev.baseAttack,
         baseDefense: cloudData.baseDefense ?? prev.baseDefense,
         baseSpeed: cloudData.baseSpeed ?? prev.baseSpeed
@@ -571,6 +620,11 @@ export default function App() {
         reviveCount: localState.reviveCount || 0,
         revivePacks: localState.revivePacks || 0,
         completedTours: localState.completedTours || {},
+        pwaBonusClaimedMonth: localState.pwaBonusClaimedMonth,
+        inviteCode: localState.inviteCode,
+        invitedByCode: localState.invitedByCode,
+        squadRecruitsCount: localState.squadRecruitsCount || 0,
+        squadMembers: localState.squadMembers || [],
         baseAttack: localState.baseAttack ?? 10,
         baseDefense: localState.baseDefense ?? 5,
         baseSpeed: localState.baseSpeed ?? 5,
@@ -613,13 +667,18 @@ export default function App() {
         reviveCount: gameState.reviveCount || 0,
         revivePacks: gameState.revivePacks || 0,
         completedTours: gameState.completedTours || {},
+        pwaBonusClaimedMonth: gameState.pwaBonusClaimedMonth,
+        inviteCode: gameState.inviteCode,
+        invitedByCode: gameState.invitedByCode,
+        squadRecruitsCount: gameState.squadRecruitsCount || 0,
+        squadMembers: gameState.squadMembers || [],
         baseAttack: gameState.baseAttack ?? 10,
         baseDefense: gameState.baseDefense ?? 5,
         baseSpeed: gameState.baseSpeed ?? 5,
         updatedAt: new Date().toISOString()
       }), { merge: true }).catch(err => console.warn('Auto-save error:', err));
     }
-  }, [gameState.totalBossesDefeated, gameState.gems, gameState.powerups, gameState.isDead, currentUser]);
+  }, [gameState.totalBossesDefeated, gameState.gems, gameState.powerups, gameState.isDead, gameState.pwaBonusClaimedMonth, currentUser]);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none w-full max-w-full overflow-x-clip box-border" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
@@ -658,6 +717,17 @@ export default function App() {
             >
               <span className="text-xs sm:text-sm animate-pulse">🧭</span>
               <span className="hidden xs:inline">Tour</span>
+            </button>
+
+            {/* PWA / iOS Install Trigger Button */}
+            <button
+              id="header-pwa-install-btn"
+              onClick={() => setIsPWAInstallOpen(true)}
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-linear-to-r from-cyan-500/20 via-blue-500/20 to-cyan-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-500/40 text-[11px] sm:text-xs text-cyan-300 hover:text-cyan-200 font-extrabold transition flex items-center gap-1 cursor-pointer shadow-sm"
+              title="Install Web App on Google Chrome or Safari iOS (iPhone/iPad)"
+            >
+              <span className="text-xs sm:text-sm animate-bounce">📱</span>
+              <span className="hidden xs:inline">App Install</span>
             </button>
 
             {/* Champion Account Button */}
@@ -891,6 +961,7 @@ export default function App() {
         }}
         onOpenTour={startTour}
         onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenInstall={() => setIsPWAInstallOpen(true)}
       />
 
       {/* ADMINISTRATIVE OVERLAY */}
@@ -924,6 +995,14 @@ export default function App() {
         onStepChange={handleTourStepChange}
         completedTours={gameState.completedTours}
         onClaimBonus={handleClaimTourBonus}
+      />
+
+      {/* PWA INSTALLATION DESK OVERLAY */}
+      <PWAInstallModal
+        isOpen={isPWAInstallOpen}
+        onClose={() => setIsPWAInstallOpen(false)}
+        gameState={gameState}
+        onClaimBonus={handleClaimPwaBonus}
       />
 
       {/* CLOUD SAVE CONFLICT OVERLAY MODAL */}
