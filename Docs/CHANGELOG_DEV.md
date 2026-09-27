@@ -7,6 +7,23 @@
 ## [v1.3.0-dev.2] — 2026-09-27
 
 ### Engineering Actions
+- **Horizontal Mobile-Optimized Combat Layout (`BossGauntlet.tsx`)**:
+  - **Side-by-Side Arena Healthbars**: Replaced the stacked vertical hero/boss combat bars inside the battle record card with a horizontal, flex-row side-by-side split container separated by a high-intensity centered `VS` arcade badge.
+  - **Compact Mobile Constraints**: Designed the horizontal splits to shrink elegantly on mobile screens by reducing text size (`text-[10px]`), compressing margins, and reducing health bar thickness (`h-1.5`) so it fits small mobile viewports flawlessly without log clipping.
+- **Arena Sizing Optimizations (`BattleModal.tsx`, `PreFightCoinShop.tsx`)**:
+  - **Enlarged BossGauntlet Section**: Substantially scaled up the grand visualization area in `BattleModal`. Emojis boosted from text-4xl to massive text-7xl, text boosted to text-xl font-black, and HP bars expanded from thin h-3 lines into solid, glowing h-5 progress gauges. Centralized VS indicator also enlarged.
+  - **Horizontal Flex-Row Mobile Adaptation**: Enforced a `flex-row` side-by-side split row on mobile screens inside `BattleModal`. Responsively scales down emojis (`text-3xl`), names (`text-xs`), and HP bar widths (`max-w-[100px]`) on smaller screens. This ensures the Hero, VS Badge, and Boss are visible side-by-side simultaneously on any phone without vertical overflow.
+  - **Compressed Pre-Fight Coin Shop**: Scaled down the coin shop inside the overlay. In compact mode, padding shrinks to a tight p-2, descriptions are toggled off, and products are packed side-by-side inside a responsive grid using p-1.5 buttons to optimize vertical space.
+- **Battle Cycling & Consecutive Streak Mechanics (`BattleModal.tsx`, `GameView.tsx`, `types.ts`, `combatEngine.ts`, `data.ts`)**:
+  - **Relocated Battle Cycling Deck**: Moved the high-fidelity ready bosses selection deck from the top of the Boss tab directly inside the dynamic, overlaying **`BattleModal` (Arena Combat Modal)**. This ensures perfect visibility of the cycle controls while keeping combat and selection together in one modal.
+  - **Inline Attribute Interpolation**: Equipped `BattleModal` to dynamically compute boss scaling thresholds (HP, attack, power requirement overrides) inside the overlay.
+  - **Kill v Death Streak Stat Bonuses**: Enabled real-time tracking of player Kill and Death streaks. Consecutively defeating bosses awards a **`+5%` Power Score bonus per stack (up to +50%)**. Consecutively dying to bosses awards a **`+5%` underdog adrenaline boost per stack (up to +30%)**, helping players overcome difficult boss blocks. Shown cleanly in the Pre-Fight status panel.
+- **Database Sanitization & Safety Guardrails (`App.tsx`)**:
+  - **Firestore Payload Sanitizer**: Implemented `sanitizeForFirestore` to recursively purge any fields containing `undefined` values inside objects and arrays before writing to `user_progress`, `users`, or `leaderboard` collections.
+  - **Boss Respawn Time Cleanup**: Swapped `respawnTime: undefined` with a structured destructuring pattern (`const { respawnTime, ...cleanBoss } = boss`) inside the boss auto-replenish loop, preventing state corruption.
+- **Combat Simulation Rate Tuning & Battle Indicators (`BossArena.tsx`, `GameView.tsx`)**:
+  - **Slower Combat Animation**: Reduced turn progression speed inside `GameView.tsx` from `500ms` down to a rhythmic `1400ms` delay, improving game visibility and allowing for high-end cinematic scaling or 3D view hooks later on.
+  - **Attack Next Alert Badge**: Added a visually distinctive "🔥 READY TO FIGHT · ATTACK NEXT 🔥" badge right above the primary combat action button inside the boss arena selection cards when an active, undefeated boss is ready to be challenged.
 - **User Moderation Dropdown Consolidation & Layout Alignment (`AdminUserModeration.tsx`, `AdminBalanceConfig.tsx`)**:
   - **Restored Defaults Button**: Moved the `⚙️ Reset Balance Defaults` button back to the footer of the `AdminBalanceConfig` view, allowing quick local restoration of standard mechanical multipliers.
   - **Cohesive dropdown (`z-50`)**: Moved `🧬 Sync God Config` into the newly created `⚙️ More Actions` list dropdown, uniting all four player cloud operations (+5 Revive packs, Clear death, Reset death counters, and Sync god config) in a single overlay.

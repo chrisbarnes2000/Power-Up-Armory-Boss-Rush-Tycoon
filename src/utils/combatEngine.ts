@@ -76,11 +76,27 @@ export const getNormalMaxHP = (gameState: GameState): number => {
 };
 
 export const getPowerScore = (gameState: GameState): number => {
-  return Math.floor(
+  const basePS = Math.floor(
     getTotalAttack(gameState) * 1.5 + 
     getTotalDefense(gameState) * 1.2 + 
     getTotalSpeed(gameState) * 0.8
   );
+
+  // Kill v Death Streak Bonuses
+  const kStreak = gameState.killStreak || 0;
+  const dStreak = gameState.deathStreak || 0;
+
+  let multiplier = 1.0;
+  if (kStreak > 0) {
+    // +5% bonus per consecutive kill (up to +50%)
+    multiplier += Math.min(0.50, kStreak * 0.05);
+  }
+  if (dStreak > 0) {
+    // +5% underdog adrenaline boost per consecutive death (up to +30%)
+    multiplier += Math.min(0.30, dStreak * 0.05);
+  }
+
+  return Math.floor(basePS * multiplier);
 };
 
 export const getCurrentReviveCost = (gameState: GameState): number => {

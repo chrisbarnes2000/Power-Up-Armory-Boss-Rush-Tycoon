@@ -142,6 +142,8 @@ export interface GameState {
   reviveCount?: number;
   revivePacks?: number;
   balanceConfig?: GameBalanceConfig;
+  killStreak?: number;
+  deathStreak?: number;
 
   // Completed Tour Rewards Tracking (One-time payouts)
   completedTours?: {

@@ -440,6 +440,8 @@ export function GameView({
             gems: prev.gems + gemReward,
             bosses: prev.bosses.map(b => b.id === bossId ? { ...b, defeated: true, respawnTime: 15 } : b),
             totalBossesDefeated: prev.totalBossesDefeated + 1,
+            killStreak: (prev.killStreak || 0) + 1,
+            deathStreak: 0,
             bossKillStats: {
               ...stats,
               [bossId]: (stats[bossId] || 0) + 1
@@ -473,6 +475,8 @@ export function GameView({
           const next = {
             ...prev,
             isDead: true,
+            deathStreak: (prev.deathStreak || 0) + 1,
+            killStreak: 0,
             bossDeathStats: {
               ...stats,
               [bossId]: (stats[bossId] || 0) + 1
@@ -511,7 +515,7 @@ export function GameView({
               bossHP = 0;
               setLiveBossHP(0);
               addLog(`💫 SUPERNOVA! ${boss.emoji} ${boss.id} was instantly vaporized!`, 'log-victory');
-              setTimeout(battleTurn, 500);
+              setTimeout(battleTurn, 1400);
               return;
             }
             if (itemData.id === 'Void Orb') {
@@ -531,7 +535,7 @@ export function GameView({
 
       if (bossHP <= 0) {
         setLiveBossHP(0);
-        setTimeout(battleTurn, 500);
+        setTimeout(battleTurn, 1400);
         return;
       }
 
@@ -553,7 +557,7 @@ export function GameView({
 
       setLivePlayerHP(playerHP);
       setLiveBossHP(bossHP);
-      setTimeout(battleTurn, 500);
+      setTimeout(battleTurn, 1400);
     };
 
     battleTurn();
@@ -819,6 +823,8 @@ export function GameView({
         onToggleTimestamps={toggleTimestamps}
         persistLogs={persistLogs}
         onTogglePersistLogs={togglePersistLogs}
+        onFightBoss={fightBoss}
+        powerScore={getPowerScore()}
       />
     </div>
   );

@@ -30,6 +30,8 @@ export interface BattleModalProps {
   onToggleTimestamps?: () => void;
   persistLogs?: boolean;
   onTogglePersistLogs?: () => void;
+  onFightBoss: (bossId: string) => void;
+  powerScore: number;
 }
 
 export const BattleModal: React.FC<BattleModalProps> = ({
@@ -57,9 +59,43 @@ export const BattleModal: React.FC<BattleModalProps> = ({
   showTimestamps = true,
   onToggleTimestamps,
   persistLogs = true,
-  onTogglePersistLogs
+  onTogglePersistLogs,
+  onFightBoss,
+  powerScore
 }) => {
   const modalLogRef = useRef<HTMLDivElement>(null);
+  const [cycledIndex, setCycledIndex] = React.useState(0);
+
+  const getBossPowerReq = (bossId: string) => {
+    const boss = BOSSES.find(b => b.id === bossId);
+    if (!boss) return 0;
+    const scale = 1 + (gameState.totalBossesDefeated * 0.02);
+    return Math.floor(boss.powerReq * scale);
+  };
+
+  const getBossHP = (bossId: string) => {
+    const boss = BOSSES.find(b => b.id === bossId);
+    if (!boss) return 0;
+    const scale = 1 + (gameState.totalBossesDefeated * 0.05);
+    return Math.floor(boss.baseHP * scale);
+  };
+
+  const getBossAttack = (bossId: string) => {
+    const boss = BOSSES.find(b => b.id === bossId);
+    if (!boss) return 0;
+    const scale = 1 + (gameState.totalBossesDefeated * 0.03);
+    return Math.floor(boss.baseAttack * scale);
+  };
+
+  const readyBosses = BOSSES.filter(boss => {
+    const bs = gameState.bosses.find(b => b.id === boss.id);
+    const req = getBossPowerReq(boss.id);
+    return !gameState.isDead && !bs?.defeated && powerScore >= req;
+  });
+
+  const activeCycledBoss = readyBosses.length > 0 
+    ? readyBosses[((cycledIndex % readyBosses.length) + readyBosses.length) % readyBosses.length] 
+    : null;
 
   useEffect(() => {
     if (isOpen && modalLogRef.current) {
@@ -100,22 +136,24 @@ export const BattleModal: React.FC<BattleModalProps> = ({
 
         {/* Duel Stage Visualization */}
         {activeBossId ? (
-          <div className="bg-linear-to-b from-[#1c0f2b] via-[#121c30] to-[#0c1322] border border-red-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden shadow-inner">
+          <div className="bg-linear-to-b from-[#1c0f2b] via-[#121c30] to-[#0c1322] border-2 border-red-500/50 rounded-2xl p-2.5 sm:p-5 md:p-6 flex flex-row items-center justify-between gap-2 sm:gap-5 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.15)]">
             {/* Hero / Player Fighter Card */}
-            <div className="flex flex-col items-center text-center space-y-1.5 flex-1">
-              <span className={`text-4xl sm:text-5xl ${gameState.isDead || livePlayerHP <= 0 ? 'grayscale filter' : isFighting ? 'animate-bounce' : ''}`}>
+            <div className="flex flex-col items-center text-center space-y-1 sm:space-y-2 flex-1 min-w-0">
+              <span className={`text-3xl sm:text-5xl md:text-7xl filter drop-shadow-[0_3px_10px_rgba(0,0,0,0.6)] transition-all ${gameState.isDead || livePlayerHP <= 0 ? 'grayscale filter' : isFighting ? 'animate-bounce' : ''}`}>
                 {gameState.isDead || livePlayerHP <= 0 ? '🪦' : (userProfile?.avatar || '⚔️')}
               </span>
-              <div className={`font-extrabold text-sm font-mono flex items-center gap-1 ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-300'}`}>
-                <span>{gameState.playerName || 'Champion'}</span>
+              <div className={`font-black text-xs sm:text-lg md:text-xl font-mono flex items-center gap-0.5 sm:gap-1 truncate max-w-full ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-300'}`}>
+                <span className="truncate">{gameState.playerName || 'Hero'}</span>
                 {(gameState.isDead || livePlayerHP <= 0) && (
-                  <span className="text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.2 rounded font-extrabold">DECEASED</span>
+                  <span className="text-[8px] sm:text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1 py-0.2 rounded font-extrabold shrink-0">DEAD</span>
                 )}
               </div>
-              <div className="text-xs font-bold text-slate-400 font-mono">ATK {totalAttack} • DEF {totalDefense}</div>
+              <div className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-300 font-mono bg-black/30 border border-white/5 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg truncate max-w-full">
+                ATK {totalAttack} • DEF {totalDefense}
+              </div>
               {/* Player HP Bar */}
-              <div className={`w-full max-w-[180px] bg-black/60 h-3 rounded-full overflow-hidden border p-0.5 ${
-                gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/50' : 'border-emerald-500/40'
+              <div className={`w-full max-w-[100px] sm:max-w-[210px] bg-black/60 h-2 sm:h-4 md:h-5 rounded-full overflow-hidden border p-0.5 ${
+                gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/40' : 'border-emerald-500/40'
               }`}>
                 <div 
                   className={`h-full rounded-full transition-all duration-300 ${
@@ -128,38 +166,108 @@ export const BattleModal: React.FC<BattleModalProps> = ({
                   style={{ width: `${Math.max(0, Math.min(100, (livePlayerHP / livePlayerMaxHP) * 100))}%` }}
                 />
               </div>
-              <span className={`text-xs font-mono font-bold ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-400'}`}>
-                {livePlayerHP} / {livePlayerMaxHP} HP
+              <span className={`text-[10px] sm:text-sm md:text-base font-mono font-black ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-400'}`}>
+                {livePlayerHP} HP
               </span>
             </div>
 
             {/* VS Dynamic Indicator */}
             <div className="flex flex-col items-center justify-center shrink-0">
-              <span className="text-2xl font-black font-mono text-red-500 animate-pulse bg-red-950/70 border border-red-500/40 px-3.5 py-1 rounded-xl shadow-lg shadow-red-950/50">VS</span>
-              <span className="text-[10px] text-slate-300 font-mono mt-1 uppercase tracking-wider font-extrabold">
-                {isFighting ? '⚔️ DUEL ACTIVE' : 'PRE-FIGHT READY'}
+              <span className="text-sm sm:text-3xl md:text-5xl font-black font-mono text-red-500 animate-pulse bg-red-950/80 border-2 border-red-500/60 px-2 py-1 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.3)]">VS</span>
+              <span className="text-[8px] sm:text-xs text-red-400 font-mono mt-1 sm:mt-2 uppercase tracking-wider font-extrabold bg-red-950/40 border border-red-500/20 px-1 py-0.2 sm:px-2 sm:py-0.5 rounded">
+                DUEL
               </span>
             </div>
 
             {/* Boss Fighter Card */}
-            <div className="flex flex-col items-center text-center space-y-1.5 flex-1">
-              <span className={`text-4xl sm:text-5xl ${isFighting ? 'animate-pulse' : ''}`}>{currentBoss?.emoji || '👹'}</span>
-              <div className="font-extrabold text-sm text-red-400 font-mono">{activeBossId}</div>
-              <div className="text-xs font-bold text-slate-400 font-mono">Boss HP: {bossHP}</div>
+            <div className="flex flex-col items-center text-center space-y-1 sm:space-y-2 flex-1 min-w-0">
+              <span className={`text-3xl sm:text-5xl md:text-7xl filter drop-shadow-[0_3px_10px_rgba(0,0,0,0.6)] transition-all ${isFighting ? 'animate-pulse' : ''}`}>{currentBoss?.emoji || '👹'}</span>
+              <div className="font-black text-xs sm:text-lg md:text-xl text-red-400 font-mono truncate max-w-full">{activeBossId}</div>
+              <div className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-300 font-mono bg-black/30 border border-white/5 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg truncate max-w-full">
+                Power: {getBossPowerReq(activeBossId)} PS
+              </div>
               {/* Boss HP Bar */}
-              <div className="w-full max-w-[180px] bg-black/60 h-3 rounded-full overflow-hidden border border-red-500/40 p-0.5">
+              <div className="w-full max-w-[100px] sm:max-w-[210px] bg-black/60 h-2 sm:h-4 md:h-5 rounded-full overflow-hidden border border-red-500/40 p-0.5">
                 <div 
                   className="bg-linear-to-r from-red-600 to-orange-500 h-full rounded-full transition-all duration-300"
                   style={{ width: `${Math.max(0, Math.min(100, (liveBossHP / liveBossMaxHP) * 100))}%` }}
                 />
               </div>
-              <span className="text-xs font-mono font-bold text-red-400">{liveBossHP} / {liveBossMaxHP} HP</span>
+              <span className="text-[10px] sm:text-sm md:text-base font-mono font-black text-red-400">{liveBossHP} HP</span>
             </div>
           </div>
         ) : (
-          <div className="bg-[#141d30] border border-[#2a4060] rounded-2xl p-4 text-center">
-            <span className="text-3xl block mb-2">🎯</span>
-            <p className="text-xs font-bold text-slate-300">Select any arena boss from the roster to trigger a live animated duel simulation!</p>
+          <div className="bg-[#141d30] border border-[#2a4060] rounded-2xl p-4 sm:p-5 text-center shadow-lg">
+            <span className="text-3xl sm:text-4xl block mb-2 animate-bounce">🎯</span>
+            <p className="text-xs sm:text-sm font-bold text-slate-200">Select any arena boss from the roster or cycle using the deck below to trigger a live animated duel simulation!</p>
+          </div>
+        )}
+
+        {/* Dynamic Boss Battle Cycling Controller inside Combat Modal */}
+        {readyBosses.length > 0 && activeCycledBoss ? (
+          <div className="bg-linear-to-b from-[#111625] via-[#152035] to-[#0c101c] border-2 border-amber-500/40 rounded-2xl p-3 shadow-[0_0_15px_rgba(245,158,11,0.15)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl animate-bounce">⚡</span>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-mono text-[9px] font-black text-amber-300 uppercase tracking-widest bg-amber-950/70 border border-amber-500/30 px-1.5 py-0.2 rounded-full">
+                    🔥 {readyBosses.length} Ready
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Target: <strong className="text-white">{((cycledIndex % readyBosses.length) + readyBosses.length) % readyBosses.length + 1}</strong> of {readyBosses.length}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5 font-mono">
+                  Assault: <strong className="text-[#ffd666]">{activeCycledBoss.emoji} {activeCycledBoss.id}</strong> (HP: {getBossHP(activeCycledBoss.id)}, ATK: {getBossAttack(activeCycledBoss.id)})
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setCycledIndex(prev => prev - 1)}
+                className="px-2.5 py-1.5 bg-[#172238] hover:bg-[#203050] text-amber-400 hover:text-white border border-[#2a4060] rounded-lg text-[10px] font-mono font-bold transition cursor-pointer flex-1 sm:flex-initial"
+              >
+                ◀ Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => onFightBoss(activeCycledBoss.id)}
+                disabled={isFighting}
+                className="px-4 py-2 bg-linear-to-r from-amber-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-slate-950 font-mono text-[10px] font-black uppercase tracking-wider rounded-lg transition cursor-pointer flex-2 sm:flex-initial flex items-center justify-center gap-1.5 shadow active:scale-95 text-center"
+              >
+                <span>⚔️ FIGHT NEXT</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCycledIndex(prev => prev + 1)}
+                className="px-2.5 py-1.5 bg-[#172238] hover:bg-[#203050] text-amber-400 hover:text-white border border-[#2a4060] rounded-lg text-[10px] font-mono font-bold transition cursor-pointer flex-1 sm:flex-initial"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-linear-to-b from-[#111625] via-[#1b1c2e] to-[#0c101c] border border-dashed border-[#2a4060]/50 rounded-2xl p-3 text-slate-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-start gap-2">
+              <span className="text-xl filter drop-shadow mt-0.5">🔒</span>
+              <div>
+                <h4 className="font-mono text-[10px] text-[#ffd666] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                  <span>BOSS CYCLING DECK</span>
+                  <span className="bg-[#1e2a4a] text-blue-300 border border-blue-500/20 text-[8px] px-1 py-0.2 rounded font-sans tracking-widest font-bold">LOCKED</span>
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-normal font-mono">
+                  {gameState.isDead ? (
+                    <span>Champion is fallen. Revive below to enable active boss cycling!</span>
+                  ) : (
+                    <span>
+                      Need <strong className="text-blue-300">50 PS</strong> to unlock cycling (Current: {powerScore} PS). Buy items in Shop to boost attributes!
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

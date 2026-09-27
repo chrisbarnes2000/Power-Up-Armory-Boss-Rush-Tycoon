@@ -37,6 +37,27 @@ const DEFAULT_STATE: GameState = {
   balanceConfig: DEFAULT_BALANCE_CONFIG
 };
 
+// Safety-critical utility to clean and strip undefined fields recursively before Firestore writes
+function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const clean: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const val = obj[key];
+        if (val !== undefined) {
+          clean[key] = sanitizeForFirestore(val);
+        }
+      }
+    }
+    return clean as T;
+  }
+  return obj;
+}
+
 export default function App() {
   const [activeView, setActiveView] = useState<'Shop' | 'Game' | 'Stats' | 'Lore'>('Game');
   const [gameState, setGameState] = useState<GameState>(DEFAULT_STATE);
@@ -275,7 +296,7 @@ export default function App() {
               !(localState.powerups || []).some(p => p.owned);
 
             if (!isLocalDefault) {
-              setDoc(doc(db, 'user_progress', user.uid), {
+              setDoc(doc(db, 'user_progress', user.uid), sanitizeForFirestore({
                 userId: user.uid,
                 coins: localState.coins,
                 gems: localState.gems,
@@ -295,7 +316,7 @@ export default function App() {
                 baseDefense: localState.baseDefense ?? 5,
                 baseSpeed: localState.baseSpeed ?? 5,
                 updatedAt: new Date().toISOString()
-              }, { merge: true }).catch(err => console.warn('Push local state to cloud error:', err));
+              }), { merge: true }).catch(err => console.warn('Push local state to cloud error:', err));
             }
           }
         } catch (err) {
@@ -395,7 +416,8 @@ export default function App() {
           if (boss.defeated) {
             const currentRespawn = boss.respawnTime !== undefined ? boss.respawnTime : 15;
             if (currentRespawn <= 1) {
-              return { ...boss, defeated: false, respawnTime: undefined };
+              const { respawnTime, ...cleanBoss } = boss;
+              return { ...cleanBoss, defeated: false };
             } else {
               return { ...boss, respawnTime: currentRespawn - 1 };
             }
@@ -444,10 +466,10 @@ export default function App() {
       };
 
       // Write to Firestore public leaderboard collection
-      await setDoc(doc(db, 'leaderboard', currentUser.uid), entry, { merge: true });
+      await setDoc(doc(db, 'leaderboard', currentUser.uid), sanitizeForFirestore(entry), { merge: true });
 
       // Update user doc with latest stats
-      await setDoc(doc(db, 'users', currentUser.uid), {
+      await setDoc(doc(db, 'users', currentUser.uid), sanitizeForFirestore({
         userId: currentUser.uid,
         email: currentUser.email || '',
         displayName: nameToUse,
@@ -457,11 +479,11 @@ export default function App() {
         totalBossesDefeated: bossesDefeated,
         coins: goldCoins,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }), { merge: true });
 
       // Write comprehensive progress backup
       const progressDocRef = doc(db, 'user_progress', currentUser.uid);
-      await setDoc(progressDocRef, {
+      await setDoc(progressDocRef, sanitizeForFirestore({
         userId: currentUser.uid,
         coins: gameState.coins,
         gems: gameState.gems,
@@ -481,7 +503,7 @@ export default function App() {
         baseDefense: gameState.baseDefense ?? 5,
         baseSpeed: gameState.baseSpeed ?? 5,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }), { merge: true });
 
       setGameState(prev => ({ ...prev, powerScore: currentPowerScore }));
     } catch (err) {
@@ -533,7 +555,7 @@ export default function App() {
     try {
       const progressDocRef = doc(db, 'user_progress', currentUser.uid);
       const localState = cloudSaveConflict.local;
-      await setDoc(progressDocRef, {
+      await setDoc(progressDocRef, sanitizeForFirestore({
         userId: currentUser.uid,
         coins: localState.coins,
         gems: localState.gems,
@@ -553,7 +575,7 @@ export default function App() {
         baseDefense: localState.baseDefense ?? 5,
         baseSpeed: localState.baseSpeed ?? 5,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }), { merge: true });
     } catch (err) {
       console.warn('Could not force local save to cloud:', err);
     }
@@ -575,7 +597,7 @@ export default function App() {
     if (now - lastCloudSaveTimeRef.current >= 30000) {
       lastCloudSaveTimeRef.current = now;
 
-      setDoc(doc(db, 'user_progress', currentUser.uid), {
+      setDoc(doc(db, 'user_progress', currentUser.uid), sanitizeForFirestore({
         userId: currentUser.uid,
         coins: gameState.coins,
         gems: gameState.gems,
@@ -595,7 +617,7 @@ export default function App() {
         baseDefense: gameState.baseDefense ?? 5,
         baseSpeed: gameState.baseSpeed ?? 5,
         updatedAt: new Date().toISOString()
-      }, { merge: true }).catch(err => console.warn('Auto-save error:', err));
+      }), { merge: true }).catch(err => console.warn('Auto-save error:', err));
     }
   }, [gameState.totalBossesDefeated, gameState.gems, gameState.powerups, gameState.isDead, currentUser]);
 

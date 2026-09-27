@@ -8,6 +8,31 @@
 
 ### 🚀 What's New in v1.3.0
 
+#### 🕹️ Horizontal Side-by-Side Arcade Battle Display
+- **Space-Efficient Combat Splits**: Shifted the combat live metrics from a stacked vertical layout into a responsive, side-by-side split row inside the battle logging card. Now, the Hero health is pinned on the left and the Boss health is on the right, punctuated by a central glowing `VS` badge.
+- **Mobile-Tailored Ergonomics**: Configured custom mobile breakpoints (`text-[10px]`, `h-1.5` bar heights, tight spacing) that compact automatically on small phones, giving players complete log visibility and smooth arcade animations.
+
+#### ⚔️ Enlarged Arena Visuals & Compressed Pre-Fight Coin Shop
+- **Epic Battle Proportions**: Substantially enlarged the `BossGauntlet` duel visualization cards inside the modal overlay. Hero/Boss avatars scale up to a massive **text-7xl**, names are printed in a striking **text-xl font-black**, and health bars are thickened into glowing **h-5** progress gauges to emphasize the battle action.
+- **Horizontal Row Mobile Adaptability**: Forced a side-by-side **horizontal row** inside the modal on small phones. Scales down card elements responsively (e.g., text-3xl emojis, text-xs text, and 100px-wide HP bars), guaranteeing that the Hero, VS Badge, and Boss remain completely visible side-by-side on any mobile screen.
+- **Micro Pre-Fight Coin Shop**: Scaled down the Pre-Fight Coin Shop inside the overlay to maximize combat space. Uses a space-saving side-by-side product grid with mini `p-1.5` buttons and removes redundant descriptive paragraphs when in compact mode.
+
+#### ⚡ Arena Battle Cycling Deck inside Combat Modal Overlay
+- **Modal-Integrated Cycling**: Relocated the ready-bosses battle deck from the Arena page tab directly into your dynamic **Arena Combat Modal overlay**! You can now easily review, cycle through, and challenge next-eligible bosses using `◀ Prev`, `Next ▶`, and **⚔️ FIGHT NEXT** triggers without ever leaving or closing the active battle screen.
+- **Embedded Progression Support**: If your hero is low on Power Score or fallen, the modal-embedded controller provides interactive guidance showing exactly what stats are needed to unlock subsequent arena challenges.
+
+#### 🏅 Consecutive Kill & Underdog Adrenaline Streak Bonuses
+- **Kill Streak Power Multipliers**: Track your win streaks! Consecutive boss victories without dying award a **`+5%` Power Score bonus per consecutive win (up to +50%)**.
+- **Underdog Death Recovery**: Help when you're stuck! Consecutive defeats inside the arena award an adrenaline-fueled underdog bonus of **`+5%` Power Score per consecutive death (up to +30%)**, giving you the extra grit needed to break out of death cycles.
+
+#### 🛡️ Cloud Synchronizer Stability Guardrails
+- **Undefined Field Prevention**: Built an automatic payload filter (`sanitizeForFirestore`) that sanitizes cloud data arrays and nested structures before saving. This solves a rare Google Firestore exception where state properties might carry an unexpected `undefined` value.
+- **Boss Respawn Time Recovery**: Resolved an issue in the auto-respawn timer that passed `undefined` properties to the database on champion resurrection, ensuring uninterrupted offline/online synchronization.
+
+#### ⚔️ Strategic Combat Speed Tuning & Arena Visuals
+- **Slower, More Dramatic Battle Rates**: Slowed down combat simulation turn timeouts from `500ms` to `1400ms`. Each attack, hit, and critical swipe is now distinct, allowing players to fully experience the battle action—laying the foundation for premium high-fidelity 3D animated view overlays later.
+- **"ATTACK NEXT" Smart Readiness Guidance**: Integrated a dynamic, orange pulse-animated `🔥 READY TO FIGHT · ATTACK NEXT 🔥` guidance badge right above the `FIGHT` button on un-conquered bosses that the champion is eligible to attack immediately based on current Power Scores.
+
 #### 📚 Lore Book Modular Decomposition
 - **Highly Refactored Architecture**: Slashed single-file complexity inside the Item Compendium. Successfully decomposed the massive `LoreBookView.tsx` into multiple, focused submodules in `/src/components/lore/` to maintain safety-critical design specifications.
 

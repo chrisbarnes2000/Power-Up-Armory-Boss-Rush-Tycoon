@@ -289,39 +289,20 @@ export const BossGauntlet: React.FC<BossGauntletProps> = ({
           
           {/* Dynamic live combat health bars */}
           {isFighting && activeBossId && (
-            <div className="bg-[#141c30]/60 border border-red-500/20 rounded-xl p-3 mb-3 space-y-2.5">
-              {/* Boss Health Bar */}
-              <div>
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-red-400 font-bold uppercase flex items-center gap-1">
-                    <span>👾</span>
-                    <span>{getBossData(activeBossId)?.id || activeBossId}</span>
+            <div className="bg-[#141c30]/80 border border-red-500/30 rounded-xl p-1.5 sm:p-2 md:p-3 mb-3 flex flex-row items-center gap-1.5 sm:gap-2 md:gap-4 justify-between select-none">
+              
+              {/* Player Side */}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center text-[8.5px] sm:text-[10px] md:text-xs font-mono mb-0.5 sm:mb-1 gap-1">
+                  <span className={`font-black uppercase truncate ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-400'} flex items-center gap-0.5`}>
+                    <span className="text-[9px] sm:text-xs shrink-0">{gameState.isDead || livePlayerHP <= 0 ? '💀' : '🛡️'}</span>
+                    <span className="truncate max-w-[40px] sm:max-w-[90px]">{gameState.playerName || 'Hero'}</span>
                   </span>
-                  <span className="font-bold text-red-300">{liveBossHP} / {liveBossMaxHP} HP</span>
-                </div>
-                <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden border border-white/5">
-                  <div 
-                    className="bg-linear-to-r from-red-600 to-orange-500 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${Math.max(0, Math.min(100, (liveBossHP / liveBossMaxHP) * 100))}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Player Health Bar */}
-              <div>
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className={`${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-400'} font-bold uppercase flex items-center gap-1`}>
-                    <span>{gameState.isDead || livePlayerHP <= 0 ? '💀' : '🛡️'}</span>
-                    <span>{gameState.playerName || 'Hero'}</span>
-                    {(gameState.isDead || livePlayerHP <= 0) && (
-                      <span className="text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1.5 py-0.2 rounded font-extrabold ml-1">DECEASED</span>
-                    )}
-                  </span>
-                  <span className={`font-bold ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-300'}`}>
-                    {livePlayerHP} / {livePlayerMaxHP} HP
+                  <span className={`font-bold shrink-0 ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400 animate-pulse' : 'text-emerald-300'}`}>
+                    {livePlayerHP} HP
                   </span>
                 </div>
-                <div className={`w-full bg-black/40 h-2.5 rounded-full overflow-hidden border ${gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/50' : 'border-white/5'}`}>
+                <div className={`w-full bg-black/40 h-1 sm:h-1.5 md:h-2 rounded-full overflow-hidden border ${gameState.isDead || livePlayerHP <= 0 ? 'border-red-500/40' : 'border-white/5'}`}>
                   <div 
                     className={`h-full rounded-full transition-all duration-300 ${
                       gameState.isDead || livePlayerHP <= 0 
@@ -334,6 +315,29 @@ export const BossGauntlet: React.FC<BossGauntletProps> = ({
                   />
                 </div>
               </div>
+
+              {/* VS Badge */}
+              <div className="shrink-0 flex items-center justify-center bg-red-950/80 border border-red-500/50 rounded-full px-1 py-[1px] sm:px-1.5 md:px-2 md:py-0.5 text-[7px] sm:text-[8px] md:text-[10px] font-black text-red-400 uppercase tracking-widest font-mono select-none">
+                VS
+              </div>
+
+              {/* Boss Side */}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center text-[8.5px] sm:text-[10px] md:text-xs font-mono mb-0.5 sm:mb-1 gap-1">
+                  <span className="text-red-400 font-bold uppercase truncate flex items-center gap-0.5">
+                    <span className="text-[9px] sm:text-xs shrink-0">👾</span>
+                    <span className="truncate max-w-[40px] sm:max-w-[90px]">{getBossData(activeBossId)?.id || activeBossId}</span>
+                  </span>
+                  <span className="font-bold text-red-300 shrink-0">{liveBossHP} HP</span>
+                </div>
+                <div className="w-full bg-black/40 h-1 sm:h-1.5 md:h-2 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className="bg-linear-to-r from-red-600 to-orange-500 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.max(0, Math.min(100, (liveBossHP / liveBossMaxHP) * 100))}%` }}
+                  />
+                </div>
+              </div>
+
             </div>
           )}
 
