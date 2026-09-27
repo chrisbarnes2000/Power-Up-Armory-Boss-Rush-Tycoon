@@ -11,8 +11,14 @@
 | **Security** | Firebase Rules & Secrets | 🟢 Audited | Firestore security rules enforce auth constraints, no client secrets |
 
 ## Module Line Ceiling Audit
-- `App.tsx`: 596 lines (Below 1000 line ceiling)
-- `GameView.tsx`: 1,619 lines (Rich interactive arena, mining & battle state)
+- `App.tsx`: 597 lines (Below 1000 line ceiling)
+- `GameView.tsx`: 408 lines (Reduced from 1,800 lines down to 408 lines via 5 subcomponents)
+- `game/TycoonGenerators.tsx`: 168 lines (Astral Ore mining clicker with combo bonus & categorized generator matrix)
+- `game/BossGauntlet.tsx`: 272 lines (Boss roster grid, pre-fight coin shop, combat logs feed & revive controls)
+- `game/KeyRedemptionCard.tsx`: 56 lines (In-store receipt key & promo code redemption interface)
+- `game/StatsLeaderboard.tsx`: 314 lines (Player attributes, boss kill/death ledger & Hall of Champions)
+- `game/TycoonBankrollCard.tsx`: 168 lines (Real-time bankroll & combat stats bar with dynamic footer clearance)
+- `game/BattleModal.tsx`: 254 lines (Arena combat simulation & pre-fight gold shop)
 - `ShopView.tsx`: 726 lines (Storefront, cart drawer, crypto codes & bulk discounts)
 - `LoreBookView.tsx`: 1,345 lines (5-tab lore browser, power calculator & zip exporter)
 - `GuidedTour.tsx`: 739 lines (20-step interactive walkthrough engine)

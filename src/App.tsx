@@ -10,6 +10,7 @@ import AccountModal from './components/AccountModal';
 import GuidedTour, { TourStep } from './components/GuidedTour';
 import FontScaleControl from './components/FontScaleControl';
 import Footer from './components/Footer';
+import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
 import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore } from './data';
 
@@ -45,17 +46,6 @@ export default function App() {
   const [cloudLeaderboard, setCloudLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isSyncingLeaderboard, setIsSyncingLeaderboard] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // --- SCROLL DETECTION FOR DYNAMIC COMPACT NAVBAR ---
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // --- GUIDED TOUR ENGINE (SHORT / FULL / SKIP) ---
   const [isTourActive, setIsTourActive] = useState(false);
@@ -333,166 +323,168 @@ export default function App() {
   }, [currentUser, userProfile, gameState]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none w-full max-w-full overflow-x-hidden box-border" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
+    <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none w-full max-w-full overflow-x-clip box-border" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
       
-      {/* GLOBAL NAVBAR - STICKY HEADER */}
+      {/* GLOBAL NAVBAR - STICKY 2-TIER HEADER */}
       <header 
         id="global-navbar" 
-        className={`sticky top-0 z-50 flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 md:px-8 border-b border-white/10 bg-[#0a0e1a]/95 backdrop-blur-md shadow-lg shadow-black/50 gap-1.5 sm:gap-4 transition-all duration-300 w-full max-w-full box-border ${
-          isScrolled ? 'py-1 sm:py-2 bg-[#080b15]/98 shadow-2xl shadow-black/80' : 'py-3.5 sm:py-4'
-        }`}
+        className="sticky top-0 z-50 flex flex-col border-b border-white/10 bg-[#0a0e1a] shadow-2xl shadow-black/80 w-full max-w-full box-border"
       >
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className={`transition-all duration-300 ${isScrolled ? 'text-2xl' : 'text-3xl'}`}>⚔️</span>
-          <div>
-            <h1 className={`font-black uppercase tracking-wider font-mono text-[#7ae0ff] transition-all duration-300 ${isScrolled ? 'text-sm sm:text-base' : 'text-lg'}`}>
-              POWER-UP ARMORY
-            </h1>
-            {!isScrolled && (
-              <p className="text-xs text-slate-400 uppercase tracking-widest font-bold hidden sm:block">
+        {/* Tier 1: Brand & Top Utility Controls (Accessibility, Tour, Account, Admin, Cloud Status) */}
+        <div className="w-full flex items-center justify-between px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 border-b border-white/5 bg-[#0a0e1a]">
+          {/* Logo & Brand Identity */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <span className="text-xl sm:text-2xl filter drop-shadow">⚔️</span>
+            <div>
+              <h1 className="font-black uppercase tracking-wider font-mono text-[#7ae0ff] text-xs sm:text-sm md:text-base leading-none">
+                POWER-UP ARMORY
+              </h1>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-bold hidden md:block mt-0.5">
                 GAMIFIED TYCOON COMMERCE
               </p>
+            </div>
+          </div>
+
+          {/* Top Utility Actions: Accessibility, Tour, Account, Admin, Cloud Status */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+            {/* Dynamic Font Scale Slider Control */}
+            <FontScaleControl />
+
+            {/* 20-Step Guided Tour Trigger Button */}
+            <button
+              id="header-guided-tour-btn"
+              onClick={startTour}
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-linear-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-[11px] sm:text-xs text-amber-300 hover:text-amber-200 font-extrabold transition flex items-center gap-1 cursor-pointer shadow-sm"
+              title="Start 20-Step Guided Tour across all 4 pages and sub-tabs"
+            >
+              <span className="text-xs sm:text-sm animate-pulse">🧭</span>
+              <span className="hidden xs:inline">Tour</span>
+            </button>
+
+            {/* Champion Account Button */}
+            {currentUser ? (
+              <button
+                id="header-account-btn"
+                onClick={() => setIsAccountOpen(true)}
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-blue-950/50 hover:bg-blue-900/70 border border-blue-500/40 text-[11px] sm:text-xs text-blue-200 hover:text-white font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Open Champion Account Details"
+              >
+                <span className="text-xs sm:text-sm">{userProfile?.avatar || '⚔️'}</span>
+                <span className="font-mono truncate max-w-[70px] sm:max-w-[100px]">
+                  {userProfile?.displayName || currentUser.displayName || gameState.playerName}
+                </span>
+                <span className="text-[10px] sm:text-[11px] bg-blue-500/20 text-blue-300 px-1.5 py-0.2 rounded font-mono hidden md:inline">
+                  {calculatePowerScore(gameState)} PS
+                </span>
+              </button>
+            ) : (
+              <button
+                id="header-account-btn"
+                onClick={() => setIsAccountOpen(true)}
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-[11px] sm:text-xs text-white font-extrabold transition flex items-center gap-1 cursor-pointer shadow-md shadow-blue-500/20 uppercase tracking-wider"
+                title="Sign in with Email or Google to link account"
+              >
+                <span>🔑</span>
+                <span>Sign In</span>
+              </button>
             )}
-          </div>
-        </div>
 
-        {/* View Toggle Panel */}
-        <div className={`flex bg-[#141c30] border border-[#2a4060] rounded-[40px] shadow-inner flex-wrap justify-center gap-1 sm:gap-0 transition-all duration-300 ${isScrolled ? 'p-0.5' : 'p-1'}`}>
-          <button 
-            id="nav-tab-lore"
-            onClick={() => setActiveView('Lore')} 
-            className={`rounded-[30px] font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-              isScrolled ? 'px-2.5 sm:px-4 py-1 sm:py-1.5' : 'px-4 sm:px-6 py-2'
-            } ${activeView === 'Lore' ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <span>📖</span>
-            <span className={isScrolled ? 'hidden md:inline' : 'inline'}>Lore Book</span>
-            {isScrolled && <span className="md:hidden">Lore</span>}
-          </button>
-          <button 
-            id="nav-tab-shop"
-            onClick={() => setActiveView('Shop')} 
-            className={`rounded-[30px] font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-              isScrolled ? 'px-2.5 sm:px-4 py-1 sm:py-1.5' : 'px-4 sm:px-6 py-2'
-            } ${activeView === 'Shop' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <span>🏪</span>
-            <span className={isScrolled ? 'hidden md:inline' : 'inline'}>Armory Store</span>
-            {isScrolled && <span className="md:hidden">Store</span>}
-          </button>
-          <button 
-            id="nav-tab-game"
-            onClick={() => setActiveView('Game')} 
-            className={`rounded-[30px] font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-              isScrolled ? 'px-2.5 sm:px-4 py-1 sm:py-1.5' : 'px-4 sm:px-6 py-2'
-            } ${activeView === 'Game' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <span>🎮</span>
-            <span className={isScrolled ? 'hidden md:inline' : 'inline'}>Boss Rush Game</span>
-            {isScrolled && <span className="md:hidden">Boss Rush</span>}
-          </button>
-          <button 
-            id="nav-tab-stats"
-            onClick={() => setActiveView('Stats')} 
-            className={`rounded-[30px] font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 ${
-              isScrolled ? 'px-2.5 sm:px-4 py-1 sm:py-1.5' : 'px-4 sm:px-6 py-2'
-            } ${activeView === 'Stats' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            <span>📊</span>
-            <span className={isScrolled ? 'hidden md:inline' : 'inline'}>Rank & Stats</span>
-            {isScrolled && <span className="md:hidden">Rank</span>}
-          </button>
-        </div>
+            {/* Admin Panel Chip */}
+            {isAdmin && (
+              <button
+                id="header-admin-button"
+                onClick={() => setIsAdminOpen(true)}
+                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-[11px] sm:text-xs text-red-300 hover:text-white font-bold transition flex items-center gap-1 cursor-pointer"
+                title="Open Root Administration Console"
+              >
+                <span>⚙️</span>
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+            )}
 
-        {/* Dynamic Game Sub-Tabs on Boss Rush Tab */}
-        {activeView === 'Game' && (
-          <div id="game-sub-tabs" className="flex items-center gap-1.5 p-1 bg-[#121c30]/98 border border-[#2a4060] rounded-full shadow-lg backdrop-blur-xl">
-            <button 
-              id="game-tab-tycoon"
-              onClick={() => setControlledGameTab('tycoon')}
-              className={`py-1 px-3 rounded-full font-extrabold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
-                controlledGameTab === 'tycoon' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'
-              }`}
-            >
-              <span>🏪</span>
-              <span>Tycoon</span>
-            </button>
-            <button 
-              id="game-tab-bosses"
-              onClick={() => setControlledGameTab('bosses')}
-              className={`py-1 px-3 rounded-full font-extrabold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
-                controlledGameTab === 'bosses' ? 'bg-[#2a4060] border border-[#5a8ac0] text-[#d0e8ff] shadow-sm' : 'text-slate-400 hover:text-slate-100 hover:bg-[#18243c]'
-              }`}
-            >
-              <span>⚔️</span>
-              <span>Bosses</span>
-            </button>
-          </div>
-        )}
-
-        {/* Header Action Portal */}
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap justify-end">
-          {/* Dynamic Font Scale Slider Control */}
-          <FontScaleControl />
-
-          {/* 20-Step Guided Tour Trigger Button */}
-          <button
-            id="header-guided-tour-btn"
-            onClick={startTour}
-            className="px-3 sm:px-4 py-2 rounded-full bg-linear-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-xs text-amber-300 hover:text-amber-200 font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-sm shadow-amber-500/10"
-            title="Start 20-Step Guided Tour across all 4 pages and sub-tabs"
-          >
-            <span className="text-sm animate-pulse">🧭</span>
-            <span className="hidden xs:inline">Tour (20 Steps)</span>
-          </button>
-
-          {/* Champion Account Button */}
-          {currentUser ? (
-            <button
-              id="header-account-btn"
-              onClick={() => setIsAccountOpen(true)}
-              className="px-3.5 sm:px-4 py-2 rounded-full bg-blue-950/50 hover:bg-blue-900/70 border border-blue-500/40 text-xs text-blue-200 hover:text-white font-bold transition flex items-center gap-2 cursor-pointer shadow-sm"
-              title="Open Champion Account Details"
-            >
-              <span className="text-base">{userProfile?.avatar || '⚔️'}</span>
-              <span className="font-mono truncate max-w-[90px] sm:max-w-[120px]">
-                {userProfile?.displayName || currentUser.displayName || gameState.playerName}
-              </span>
-              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-mono hidden sm:inline">
-                {calculatePowerScore(gameState)} PS
-              </span>
-            </button>
-          ) : (
-            <button
-              id="header-account-btn"
-              onClick={() => setIsAccountOpen(true)}
-              className="px-3.5 sm:px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-xs text-white font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-500/20 uppercase tracking-wider"
-              title="Sign in with Email or Google to link account"
-            >
-              <span>🔑</span>
-              <span>Sign In</span>
-            </button>
-          )}
-
-          {/* Admin Panel Chip (Only shown if user has isAdmin flag in auth details or firestore profile) */}
-          {isAdmin && (
-            <button
-              id="header-admin-button"
-              onClick={() => setIsAdminOpen(true)}
-              className="px-3 sm:px-4 py-2 rounded-full bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-xs text-red-300 hover:text-white font-bold transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>⚙️</span>
-              <span className="hidden sm:inline">Admin</span>
-            </button>
-          )}
-
-          {/* Sync Info */}
-          <div className="text-right hidden lg:block">
-            <p className="text-xs text-white/40 uppercase tracking-widest font-bold">FIREBASE</p>
-            <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 justify-end">
+            {/* Sync Info */}
+            <div className="text-right hidden lg:flex items-center gap-1.5 pl-2 border-l border-white/10 text-xs font-mono text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              {currentUser ? 'Account Linked' : 'Cloud Ready'}
-            </p>
+              <span className="text-[11px] font-bold text-slate-400">{currentUser ? 'Cloud Synced' : 'Cloud Ready'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tier 2: Primary Navigation System (Pinned smoothly and fully opaque) */}
+        <div className="w-full flex items-center justify-center px-2 sm:px-6 py-1.5 bg-[#0b101d] border-t border-white/5 shadow-inner">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center max-w-full">
+            <div className="flex bg-[#121c30] border border-[#2a4060] rounded-full p-0.5 shadow-inner">
+              <button 
+                id="nav-tab-lore"
+                onClick={() => setActiveView('Lore')} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Lore' ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">📖</span>
+                <span className="hidden xs:inline">Lore Book</span>
+                <span className="xs:hidden">Lore</span>
+              </button>
+              <button 
+                id="nav-tab-shop"
+                onClick={() => setActiveView('Shop')} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Shop' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">🏪</span>
+                <span className="hidden xs:inline">Armory Store</span>
+                <span className="xs:hidden">Store</span>
+              </button>
+              <button 
+                id="nav-tab-game"
+                onClick={() => setActiveView('Game')} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Game' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">🎮</span>
+                <span className="hidden xs:inline">Boss Rush</span>
+                <span className="xs:hidden">Game</span>
+              </button>
+              <button 
+                id="nav-tab-stats"
+                onClick={() => setActiveView('Stats')} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Stats' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">📊</span>
+                <span className="hidden xs:inline">Rank & Stats</span>
+                <span className="xs:hidden">Rank</span>
+              </button>
+            </div>
+
+            {/* Dynamic Game Sub-Tabs on Boss Rush Tab */}
+            {activeView === 'Game' && (
+              <div id="game-sub-tabs" className="flex items-center gap-0.5 p-0.5 bg-[#142036] border border-[#2a4060] rounded-full shadow-md animate-fadeIn">
+                <button 
+                  id="game-tab-tycoon"
+                  onClick={() => setControlledGameTab('tycoon')}
+                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                    controlledGameTab === 'tycoon' ? 'bg-amber-500 text-slate-950 shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                  }`}
+                >
+                  <span>⚡</span>
+                  <span>Tycoon</span>
+                </button>
+                <button 
+                  id="game-tab-bosses"
+                  onClick={() => setControlledGameTab('bosses')}
+                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                    controlledGameTab === 'bosses' ? 'bg-red-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                  }`}
+                >
+                  <span>⚔️</span>
+                  <span>Bosses</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -591,6 +583,9 @@ export default function App() {
         onClose={() => setIsTourActive(false)}
         onStepChange={handleTourStepChange}
       />
+
+      {/* UNIVERSAL MOBILE TOUCH & DESKTOP HOVER TOOLTIP ENGINE */}
+      <GlobalTouchTooltip />
     </div>
   );
 }

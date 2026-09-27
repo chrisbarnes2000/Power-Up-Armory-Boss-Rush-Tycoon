@@ -11,7 +11,7 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer id="app-global-footer" className="w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
+    <footer id="app-global-footer" className="relative z-30 w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
       <div className="max-w-[1720px] mx-auto flex flex-col gap-8">
         {/* Main 4-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

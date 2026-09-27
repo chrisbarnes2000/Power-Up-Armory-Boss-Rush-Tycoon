@@ -95,6 +95,12 @@ export interface CustomStoryEntry {
   author: string;
 }
 
+export interface BattleLogEntry {
+  message: string;
+  className: string;
+  timestamp?: string;
+}
+
 export interface GameBalanceConfig {
   baseReviveCost: number;       // Base coin cost for revival (e.g. 100)
   reviveCostMultiplier: number; // Scaling factor per revive (e.g. 1.5)

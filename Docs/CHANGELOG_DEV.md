@@ -4,6 +4,231 @@
 
 ---
 
+## [v1.2.3-dev.24] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Statbar Footer Docking & Zero-Lag Physics (`TycoonBankrollCard.tsx`, `Footer.tsx`)**:
+  - Removed the CSS `transition-[bottom] duration-75` property which caused an asynchronous 75ms interpolation lag/wiggle during active scrolling.
+  - Replaced asynchronous React state updating with direct DOM ref manipulation synced via synchronous scroll event execution and `requestAnimationFrame`.
+  - Mathematically locked the top edge of `<Footer />` (`#app-global-footer`, `relative z-30`) to `<TycoonBankrollCard />` (`#tycoon-bankroll-card`, `z-40 will-change-[bottom]`), ensuring a flush, pixel-perfect collision without floating gaps, stutter, or rubber-banding.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.23] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Layout Reorganization (`GameView.tsx`)**:
+  - Relocated `<KeyRedemptionCard />` (`#game-redeem-container`) from the top of the Tycoon tab to the bottom below the Gold Core clicker and power-up generator grid.
+  - Prioritizes active gameplay and gold core mining at the top of the viewport while keeping the code redemption bridge accessible at the bottom of the Tycoon section.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.22] — 2026-09-26
+
+### Engineering Actions
+- **Universal Mobile Touch-and-Hold & Desktop Hover Tooltip Engine (`GlobalTouchTooltip.tsx`, `App.tsx`)**:
+  - Architected and mounted `GlobalTouchTooltip`, a centralized engine listening for `[data-tooltip]` and `[title]` attributes across the entire DOM tree.
+  - **Touch & Mobile Support**: Long-pressing (250ms) or touching any interactive element with tooltip metadata immediately triggers a floating dark-slate popover badge with glowing pointer arrow and auto-dismissal (3.2s or on-scroll).
+  - **Desktop & A11y Support**: Integrates seamless pointer tracking with boundary collision clamping and WCAG 2.1 AA keyboard `focusin`/`focusout` listeners.
+  - Unified all elements (Header Tour, Account, Admin, Font Scale, Lore Compendium Markdown Downloads, Shop Quantity, Combat Timestamps & LocalStorage Toggles, Tycoon Currency & Stat Pills) under the universal touch-friendly tooltip system.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.21] — 2026-09-26
+
+### Engineering Actions
+- **Mobile Touch & Tap Popover Tooltip Engine (`TycoonBankrollCard.tsx`)**:
+  - Replaced passive `<div>` stat elements with interactive, accessible `<button>` pills featuring active scale feedback (`active:scale-95`).
+  - Added tap-to-inspect popover tooltip badge floating above the statbar on mobile and touchscreens.
+  - Implemented auto-dismiss timer (3.2s) and close trigger `✕` for non-intrusive mobile exploration.
+  - Retained native `title="..."` attributes for desktop mouse hover.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.20] — 2026-09-26
+
+### Engineering Actions
+- **Statbar Compact Notation & Single-Line Constraint (`TycoonBankrollCard.tsx`)**:
+  - Implemented `formatCompact` and `formatYield` smart rounding utilities (e.g. `12.5k`, `1.4M`, `2.1B`, `+15/s`) to prevent large integer expansion.
+  - Reduced pill padding to `px-2 sm:px-2.5 py-0.5` and inter-item spacing to `gap-1 sm:gap-1.5`.
+  - Constrained both the Currency/Portal row and the Combat Stats row to strict single-line (`flex-nowrap`, non-breaking) layouts with the category headers (`🏆 PORTAL`, `⚡ STATS`).
+  - Added full unrounded precision metrics into the hover `title="..."` tooltip attributes.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.19] — 2026-09-26
+
+### Engineering Actions
+- **Statbar Alignment & Right-Pinning (`TycoonBankrollCard.tsx`)**:
+  - Applied `ml-auto justify-end` to the currency pills list (Coins, Gems, Yield/s, Boss Kills) and the combat stats list (ATK, DEF, HP, SPD, PS) within `TycoonBankrollCard.tsx`.
+  - Pinned the metric lists firmly to the right side of their respective grouped containers while anchoring the left section headers (`🏆 PORTAL`, `⚡ STATS`) cleanly to the left edge.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.18] — 2026-09-26
+
+### Engineering Actions
+- **Mobile Header Font Scale & Space Optimization (`App.tsx`)**:
+  - Scaled down the header logo typography from `text-sm sm:text-base` to `text-xs sm:text-sm md:text-base` and brand emoji from `text-2xl` to `text-xl sm:text-2xl`.
+  - Optimized Tier 2 primary navigation tabs with compact `text-[11px] sm:text-xs` typography and responsive labels (`Lore`, `Store`, `Game`, `Rank` on narrow mobile viewports; full labels on standard screens).
+  - Reduced button padding from `px-3 sm:px-5 py-1.5` to `px-2.5 sm:px-4 py-1 sm:py-1.5` and tightened sub-tab controls to `text-[10px] sm:text-[11px]`.
+  - Scaled top utility chips (`Tour`, `Account`, `Admin`) to `text-[11px] sm:text-xs` for a sleek, compact single-row header footprint on small mobile viewports.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.17] — 2026-09-26
+
+### Engineering Actions
+- **Sticky Header Physics & Contrast Hardening (`App.tsx`)**:
+  - Replaced `overflow-x-hidden` on the root viewport container with `overflow-x-clip` to prevent scroll-container interference with CSS `position: sticky; top: 0`.
+  - Replaced semi-transparent Tier 2 navigation backgrounds with solid, 100% opaque slate-midnight surfaces (`bg-[#0b101d] border-t border-white/5 shadow-inner`) to eliminate visual bleed-through when cards and combat text scroll underneath.
+  - Hardened `<header id="global-navbar">` with `sticky top-0 z-50 bg-[#0a0e1a] shadow-2xl` for consistent top pinning across desktop and mobile devices.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.16] — 2026-09-26
+
+### Engineering Actions
+- **Header Architecture & Scroll Flicker Elimination (`App.tsx`)**:
+  - **Root Cause Resolution**: Identified the scroll flicker root cause as an infinite hysteresis jitter loop where a 30px scroll threshold dynamically collapsed navbar padding, reduced text sizes, and unmounted subtitle DOM nodes, causing sudden document layout height jumps of ~40px.
+  - **Restructured into 2-Tier Sticky Header**:
+    - **Tier 1 (Top Utility & Brand Bar)**: Houses the logo identity (`⚔️ POWER-UP ARMORY`) alongside the system action suite: Font Scale accessibility slider (`<FontScaleControl />`), Guided Tour button (`🧭 Tour`), Champion Account button (`🔑 Sign In` / Profile Chip), Admin console button (`⚙️ Admin`), and Firebase cloud status indicator.
+    - **Tier 2 (Primary Navigation & Sub-Tabs)**: Centered, smooth pill navigation bar (`📖 Lore Book`, `🏪 Armory Store`, `🎮 Boss Rush`, `📊 Rank & Stats`) with embedded sub-tabs (`⚡ Tycoon` & `⚔️ Bosses`) when the game tab is selected.
+  - **Physics & Stability**: Eliminated scroll-triggered layout shifts and unmounting, ensuring 100% stable, jitter-free pinning across all scroll positions.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.15] — 2026-09-26
+
+### Engineering Actions
+- **Toggleable Timestamps & LocalStorage Combat Log Persistence (`GameView.tsx`, `BossGauntlet.tsx`, `BattleModal.tsx`, `types.ts`)**:
+  - Added `timestamp` (`HH:mm:ss`) support across all combat log messages (`BattleLogEntry` interface).
+  - Added interactive `⏱️ Time ON/OFF` toggle button to show or hide inline monospace timestamp tags (`[HH:mm:ss]`) beside each log entry.
+  - Added `💾 Saved / Volatile` LocalStorage persistence mode toggle, automatically preserving up to 100 historical combat logs across page reloads and browser sessions.
+  - Added a `🧹 Clear` action button to flush stale logs on demand.
+  - Saved user preferences (`powerupArmory_log_showTimestamps`, `powerupArmory_log_persistLogs`) in LocalStorage for persistent configuration.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.14] — 2026-09-26
+
+### Engineering Actions
+- **Combat Log Stream Direction Calibration (`GameView.tsx`, `BossGauntlet.tsx`, `BattleModal.tsx`)**:
+  - Re-ordered combat logging to prepend the newest combat events directly at the top of the feed (`[newLog, ...prev]`).
+  - Synced auto-scroll refs (`scrollTop = 0`) across both the Arena dashboard and the live `BattleModal` dialog so immediate battle events, critical strikes, and rewards are instantly in view without manual scrolling.
+  - Added "Newest First" visual badge indicator to the combat record header.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.13] — 2026-09-26
+
+### Engineering Actions
+- **UI Streamlining & Focus Target**:
+  - Removed duplicate secondary sub-navigation menu from `GameView.tsx` as requested.
+  - Aligned view switching directly with the primary global header navigation system.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.12] — 2026-09-26
+
+### Engineering Actions
+- **Approach 1 Finalization (Phases 3 & 5 Decomposition + Complete Validation of Phases 1, 2, 4)**:
+  - **Phase 3: Extracted `TycoonGenerators.tsx` (`src/components/game/TycoonGenerators.tsx`)** (168 lines):
+    - Encapsulates Astral Ore Core clicker, combo multiplier tracker, and recent mining gain visual feedback.
+    - Categorized powerup generator matrix (Weapons Class, Defense Safeguards, Utility Systems, Mystic Arts).
+    - Detailed hover tooltips, real-time rate calculators, level-up upgrades, and gem copy purchasing flows.
+  - **Phase 5: Extracted `BossGauntlet.tsx` (`src/components/game/BossGauntlet.tsx`)** (272 lines):
+    - Encapsulates boss roster grid with status tags (`Ready`, `Hero Fallen`, `Respawning`, `Locked`).
+    - Pre-fight gold booster shop (+25 HP Shield, +5% Damage Tonic) and Fallen Champion banner with immediate revival triggers.
+    - Live combat log feed container with auto-scrolling ref and mobile quick arena simulation launcher.
+  - **Extracted `KeyRedemptionCard.tsx` (`src/components/game/KeyRedemptionCard.tsx`)** (56 lines):
+    - Dedicated receipt key and promo cipher redemption component with responsive input, validation, and submission state.
+  - **Validated & Hardened Phases 1, 2, & 4 Subcomponents**:
+    - Confirmed zero duplicate setups, circular dependencies, or broken interfaces in `TycoonBankrollCard.tsx`, `BattleModal.tsx`, and `StatsLeaderboard.tsx`.
+  - **`GameView.tsx` Orchestration Refactor**:
+    - Reduced `GameView.tsx` from **1,259 lines down to 448 lines** (75% total reduction from initial 1,800 lines).
+    - Added integrated subnavigation switcher for instant toggling between Tycoon, Boss Arena, and Ranks tabs.
+    - Updated `/Docs/INDEX_AUDIT.md` metrics.
+- **Quality & Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly with 0 warnings.
+
+---
+
+## [v1.2.3-dev.11] — 2026-09-26
+
+### Engineering Actions
+- **Approach 1 (Phased Domain-Driven Subcomponent Decomposition - Phase 4: Leaderboard & Stats)**:
+  - **Extracted `StatsLeaderboard.tsx` (`src/components/game/StatsLeaderboard.tsx`)**:
+    - Created dedicated subcomponent (283 lines) encapsulating:
+      - Hero Character Attributes card (ATK, DEF, HP, SPD, and total Power Score).
+      - Boss Kill/Death History telemetry ledger tracking personal triumph/defeat counts.
+      - Hall of Champions global rankings with multi-column sorting (Power Score, Bosses Defeated, Coins).
+      - Cloud synchronization status badge, sign-in prompt for guest players, and score sync action trigger.
+  - **Modularized `GameView.tsx`**:
+    - Removed `leaderboardSortBy` internal state from `GameView.tsx`, localizing it within `StatsLeaderboard`.
+    - Shrank `GameView.tsx` from 1,521 lines down to 1,259 lines (~541 lines removed overall from original 1,800).
+    - Updated `/Docs/INDEX_AUDIT.md` module line ceiling metrics.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
+## [v1.2.3-dev.10] — 2026-09-26
+
+### Engineering Actions
+- **Approach 1 (Phased Domain-Driven Subcomponent Decomposition - Phases 1 & 2)**:
+  - **Phase 1: Extracted `TycoonBankrollCard.tsx` (`src/components/game/TycoonBankrollCard.tsx`)**:
+    - Isolated the fixed/docking real-time bankroll and combat statbar into a dedicated subcomponent (144 lines).
+    - Encapsulated dynamic footer collision detection and scroll/resize listeners strictly inside the card.
+    - Preserved currency metrics (coins, gems, passive yield, bosses defeated) and player combat stats (ATK, DEF, live HP/max HP, SPD, PS).
+  - **Phase 2: Extracted `BattleModal.tsx` (`src/components/game/BattleModal.tsx`)**:
+    - Extracted the full combat arena simulation dialog and duel visualization into a dedicated subcomponent (208 lines).
+    - Encapsulates player vs boss duel stage, live HP bars, pre-fight gold booster shop, live scrolling battle feed, and coin/pack revival controls.
+  - **Main Game View Modularization (`GameView.tsx`)**:
+    - Decreased line count from 1,800 to 1,521 lines with zero state regression or interface breaking changes.
+    - Updated `/Docs/INDEX_AUDIT.md` module line ceiling metrics.
+- **Quality & Verification Gate**:
+  - Executed `compile_applet` and `lint_applet` (`tsc --noEmit`) with 0 errors.
+
+---
+
 ## [v1.2.3-dev.9] — 2026-09-26
 
 ### Engineering Actions
