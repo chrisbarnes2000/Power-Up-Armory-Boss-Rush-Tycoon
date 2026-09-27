@@ -4,6 +4,27 @@
 
 ---
 
+## [v1.3.0] — 2026-09-27
+
+### 🚀 What's New in v1.3.0
+
+#### 📚 Lore Book Modular Decomposition
+- **Highly Refactored Architecture**: Slashed single-file complexity inside the Item Compendium. Successfully decomposed the massive `LoreBookView.tsx` into multiple, focused submodules in `/src/components/lore/` to maintain safety-critical design specifications.
+
+#### 💡 Real-Time Sandbox Balance Isolation Banners
+- **Context-Aware Visual Warnings**: Added visually prominent info banners inside the Game Balance calibration tab. Clearly informs administrators that real-time sliders and numbers represent isolated local sandboxes (persisted to LocalStorage and synced only to their own profile), preserving other players' independent game limits.
+
+#### 🧬 Consolidated Cloud Overrides & More Actions Dropdown
+- **Cohesive `z-50` Dropdown**: Replaced sprawling layout lists with a polished **"⚙️ More Actions"** dropdown on each player moderation card, featuring layered `z-50` overlays that avoid list-item clipping.
+- **Persistent Cloud Support Triggers**: Built 4 powerful administrative actions inside the dropdown that write directly to the target user's persistent Firestore cloud account:
+  1. **🧬 Sync God Config**: Pushes your currently adjusted sandbox sliders as that user's baseline game balance override.
+  2. **🩹 Grant +5 Revive Packs**: Rewards 5 free extra revives to the user's online inventory.
+  3. **⚡ Clear Death & Revive**: Resurrects a fallen champion remotely in the cloud.
+  4. **🔄 Reset Death Scaling Counter**: Clears progressive revival pricing penalties back to 0 for the player.
+- **Mobile Left-Constrained Alignment**: Designed smart CSS overrides that left-constrain the dropdown menu on mobile screens (`left-0`), transitioning to right-aligned (`md:right-0 md:left-auto`) on desktop screens.
+
+---
+
 ## [v1.2.5] — 2026-09-26
 
 ### 🚀 What's New in v1.2.5

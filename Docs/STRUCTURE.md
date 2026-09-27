@@ -42,17 +42,18 @@ Power-Up Armory & RapportVerse Ecosystem Architecture
 │   │   └── appConfig.ts        # Centralized application configuration (version, release, branding, partnership)
 │   ├── /data/
 │   │   └── tourSteps.ts        # Express 5-Step & Grand 20-Step walkthrough step configurations
-│   ├── /components/            # UI Components and views
-│   │   ├── /admin/             # Modular admin console subcomponents
-│   │   ├── /game/              # Boss Rush gauntlet, tycoon & leaderboard subcomponents
-│   │   ├── /tour/              # Interactive onboarding walkthrough subcomponents
-│   │   ├── /account/           # Modular profile stats, guest auth & local data reset options
-│   │   ├── /shop/              # Modular shopping carts, navigation bars, and item card subcomponents
-│   │   ├── ShopView.tsx        # Armory Storefront orchestrator, coordinating cart and grids
-│   │   ├── GameView.tsx        # Real-time Boss Rush gauntlet, tycoon mining & key redemption
-│   │   ├── LoreBookView.tsx    # Interactive Lore Book, boss profiles & gear compendium
-│   │   ├── AdminModal.tsx      # Admin panel for debugging, score resets & telemetry
-│   │   ├── AccountModal.tsx    # Profile coordinator orchestrating logins and cloud data syncing
+    │   ├── /components/            # UI Components and views
+    │   │   ├── /admin/             # Modular admin console subcomponents
+    │   │   ├── /game/              # Boss Rush gauntlet, tycoon & leaderboard subcomponents
+    │   │   ├── /tour/              # Interactive onboarding walkthrough subcomponents
+    │   │   ├── /account/           # Modular profile stats, guest auth & local data reset options
+    │   │   ├── /shop/              # Modular shopping carts, navigation bars, and item card subcomponents
+    │   │   ├── /lore/              # Modular item directory, boss dossiers & campaign quill tabs
+    │   │   ├── ShopView.tsx        # Armory Storefront orchestrator, coordinating cart and grids
+    │   │   ├── GameView.tsx        # Real-time Boss Rush gauntlet, tycoon mining & key redemption
+    │   │   ├── LoreBookView.tsx    # Interactive Lore Book layout coordinator, binding tab subcomponents
+    │   │   ├── AdminModal.tsx      # Admin panel for debugging, score resets & telemetry
+    │   │   ├── AccountModal.tsx    # Profile coordinator orchestrating logins and cloud data syncing
 │   │   ├── GuidedTour.tsx      # Interactive walkthrough orchestrator shell
 │   │   ├── FontScaleControl.tsx# Accessibility font scalar controls
 │   │   └── Footer.tsx          # Global ecosystem footer with RapportVerse partnership & copyright

@@ -273,6 +273,80 @@ export default function AdminModal({
     }
   };
 
+  const handleSyncGodConfigToUser = async (userId: string, name: string) => {
+    try {
+      const configToSync = gameState.balanceConfig || {
+        baseReviveCost: 100,
+        reviveCostMultiplier: 1.5,
+        goldDropChance: 100,
+        gemDropChance: 15,
+        goldMultiplier: 1.0,
+        gemMultiplier: 1.0,
+        permUpgradeLimitPerFight: 3
+      };
+      await setDoc(doc(db, 'users', userId), {
+        balanceConfig: configToSync,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setWipeNotice(`🧬 God Sandbox Balance Config successfully synced to "${name}"'s base account!`);
+      setTimeout(() => setWipeNotice(null), 4000);
+    } catch (err) {
+      console.error('Error syncing god config:', err);
+      setWipeNotice(`Could not sync God config for "${name}".`);
+    }
+  };
+
+  const handleGrantRevivesToUser = async (userId: string, name: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const docSnap = await getDoc(userRef);
+      const currentPacks = docSnap.exists() ? (docSnap.data().revivePacks || 0) : 0;
+      await setDoc(userRef, {
+        revivePacks: currentPacks + 5,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setWipeNotice(`🩹 Successfully granted +5 Revive Packs to "${name}" in the cloud!`);
+      setTimeout(() => setWipeNotice(null), 4000);
+    } catch (err) {
+      console.error('Error granting packs in cloud:', err);
+      setWipeNotice(`Could not grant revive packs to "${name}".`);
+    }
+  };
+
+  const handleClearDeathForUser = async (userId: string, name: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        isDead: false,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setWipeNotice(`⚡ Cleared death status for "${name}" in the cloud!`);
+      setTimeout(() => setWipeNotice(null), 4000);
+    } catch (err) {
+      console.error('Error clearing death in cloud:', err);
+      setWipeNotice(`Could not revive "${name}".`);
+    }
+  };
+
+  const handleResetRevivesForUser = async (userId: string, name: string) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        reviveCount: 0,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      setWipeNotice(`🔄 Reset progressive death scaling cost counter to 0 for "${name}"!`);
+      setTimeout(() => setWipeNotice(null), 4000);
+    } catch (err) {
+      console.error('Error resetting scaling in cloud:', err);
+      setWipeNotice(`Could not reset counters for "${name}".`);
+    }
+  };
+
   const addToPayload = () => {
     const item = POWERUPS.find(p => p.id === selectedItemId);
     if (!item) return;
@@ -693,6 +767,13 @@ export default function AdminModal({
               onOpenConfirmWipe={() => setConfirmWipeOpen(true)}
               userStoreStatuses={userStoreStatuses}
               onToggleArmoryStore={handleToggleArmoryStore}
+              gameState={gameState}
+              setGameState={setGameState}
+              saveState={saveState}
+              handleSyncGodConfigToUser={handleSyncGodConfigToUser}
+              handleGrantRevivesToUser={handleGrantRevivesToUser}
+              handleClearDeathForUser={handleClearDeathForUser}
+              handleResetRevivesForUser={handleResetRevivesForUser}
             />
           )}
         </div>

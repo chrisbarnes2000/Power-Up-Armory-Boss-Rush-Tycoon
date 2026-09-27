@@ -1,5 +1,6 @@
-import React from 'react';
-import { LeaderboardEntry } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { LeaderboardEntry, GameState } from '../../types';
+import { POWERUPS } from '../../data';
 
 interface AdminUserModerationProps {
   playerList: LeaderboardEntry[];
@@ -16,6 +17,13 @@ interface AdminUserModerationProps {
   onOpenConfirmWipe: () => void;
   userStoreStatuses?: { [userId: string]: boolean };
   onToggleArmoryStore?: (userId: string) => Promise<void>;
+  gameState: GameState;
+  setGameState: React.Dispatch<React.SetStateAction<GameState>>;
+  saveState: (state: GameState) => void;
+  handleSyncGodConfigToUser?: (userId: string, name: string) => Promise<void>;
+  handleGrantRevivesToUser?: (userId: string, name: string) => Promise<void>;
+  handleClearDeathForUser?: (userId: string, name: string) => Promise<void>;
+  handleResetRevivesForUser?: (userId: string, name: string) => Promise<void>;
 }
 
 export default function AdminUserModeration({
@@ -32,8 +40,18 @@ export default function AdminUserModeration({
   handleResetAccountStats,
   onOpenConfirmWipe,
   userStoreStatuses = {},
-  onToggleArmoryStore
+  onToggleArmoryStore,
+  gameState,
+  setGameState,
+  saveState,
+  handleSyncGodConfigToUser,
+  handleGrantRevivesToUser,
+  handleClearDeathForUser,
+  handleResetRevivesForUser
 }: AdminUserModerationProps) {
+  const [activeMoreMenuUserId, setActiveMoreMenuUserId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const filteredPlayers = playerList.filter(p => {
     const q = playerSearch.toLowerCase();
     return (
@@ -43,6 +61,19 @@ export default function AdminUserModeration({
     );
   });
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveMoreMenuUserId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="bg-linear-to-b from-red-950/30 via-[#14121e] to-[#0d0f18] border border-red-500/30 rounded-2xl p-5 space-y-4 shadow-xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-500/20 pb-4">
@@ -50,11 +81,11 @@ export default function AdminUserModeration({
           <div className="flex items-center gap-2">
             <span className="text-base text-red-400">⚠️</span>
             <h3 className="font-mono text-xs text-red-400 font-extrabold uppercase tracking-widest">
-              USER & LEADERBOARD PURGE MANAGEMENT
+              USER PROFILE & ACCOUNT STATUS MODERATION
             </h3>
           </div>
           <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-            Search and wipe requested usernames from the global Hall of Champions leaderboard, or reset player cloud stats upon user request.
+            Manage global cloud profiles, adjust user store settings, and apply localized sandbox quick-actions directly to their remote account.
           </p>
         </div>
 
@@ -113,11 +144,11 @@ export default function AdminUserModeration({
           {playerList.length === 0 ? 'No players currently recorded on the Hall of Champions leaderboard.' : 'No users match your search query.'}
         </div>
       ) : (
-        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
           {filteredPlayers.map((player) => (
             <div
               key={player.userId}
-              className="bg-black/40 border border-white/10 hover:border-red-500/30 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 transition"
+              className="bg-black/40 border border-white/10 hover:border-red-500/30 rounded-xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 transition relative"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -137,7 +168,7 @@ export default function AdminUserModeration({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap relative">
                 {confirmWipeUser?.userId === player.userId ? (
                   <div className="flex items-center gap-1.5 bg-red-950/90 border border-red-500/50 rounded-lg p-1 animate-fadeIn">
                     <button
@@ -162,7 +193,77 @@ export default function AdminUserModeration({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 relative">
+                    
+                    {/* dropdown button for 4 quick applies */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMoreMenuUserId(activeMoreMenuUserId === player.userId ? null : player.userId)}
+                        className="px-2.5 py-1.5 bg-[#172238] hover:bg-[#203050] text-slate-200 border border-[#2a4060] rounded-lg text-xs font-mono font-bold transition cursor-pointer flex items-center gap-1"
+                        title="More administrative support actions"
+                      >
+                        <span>⚙️ More Actions</span>
+                        <span className="text-[9px]">▼</span>
+                      </button>
+
+                      {/* Dropdown Options overlay list */}
+                      {activeMoreMenuUserId === player.userId && (
+                        <div 
+                          ref={dropdownRef}
+                          className="absolute left-0 md:right-0 md:left-auto mt-1.5 w-56 bg-[#111827] border border-[#2a4060] rounded-xl shadow-2xl p-1.5 z-50 space-y-1 animate-fade-in"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSyncGodConfigToUser?.(player.userId, player.name);
+                              setActiveMoreMenuUserId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-cyan-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer border-b border-white/5 pb-2 mb-1"
+                          >
+                            <span>🧬</span>
+                            <span>Sync God Config</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleGrantRevivesToUser?.(player.userId, player.name);
+                              setActiveMoreMenuUserId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-emerald-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <span>🩹</span>
+                            <span>Grant +5 Revive Packs</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleClearDeathForUser?.(player.userId, player.name);
+                              setActiveMoreMenuUserId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-blue-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <span>⚡</span>
+                            <span>Clear Death & Revive</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleResetRevivesForUser?.(player.userId, player.name);
+                              setActiveMoreMenuUserId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-amber-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <span>🔄</span>
+                            <span>Reset Death Scaling Counter</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => onToggleArmoryStore?.(player.userId)}
@@ -173,7 +274,7 @@ export default function AdminUserModeration({
                       }`}
                       title={userStoreStatuses[player.userId] ? 'Armory Store is ENABLED for this user. Click to disable.' : 'Armory Store is DISABLED for this user. Click to enable.'}
                     >
-                      🛒 {userStoreStatuses[player.userId] ? 'Armory: ON' : 'Armory: OFF'}
+                      🛒 {userStoreStatuses[player.userId] ? 'Store: ON' : 'Store: OFF'}
                     </button>
                     <button
                       type="button"
@@ -198,6 +299,99 @@ export default function AdminUserModeration({
           ))}
         </div>
       )}
+
+      {/* LOCALIZED SANDBOX QUICK BONUS CONTROLS */}
+      <div className="bg-black/40 border border-white/10 rounded-2xl p-4.5 space-y-3 mt-4">
+        <h4 className="font-mono text-xs text-amber-400 font-extrabold uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2">
+          <span>🎮</span> YOUR LOCAL CHARACTER LIVE SANDBOX ADJUSTMENTS
+        </h4>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Quick debug tools that apply immediately to **your active local browser session character state** for fast gameplay testing:
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              setGameState(prev => {
+                const next = { ...prev, revivePacks: (prev.revivePacks || 0) + 5 };
+                saveState(next);
+                return next;
+              });
+            }}
+            className="px-3 py-1.5 bg-[#172c20]/60 hover:bg-[#203c2c] border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>🩹</span>
+            <span>Grant +5 Revive Packs ({gameState.revivePacks || 0} Owned)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setGameState(prev => {
+                const next = { ...prev, isDead: false };
+                saveState(next);
+                return next;
+              });
+            }}
+            className="px-3 py-1.5 bg-[#14233c]/60 hover:bg-[#1a3054] border border-blue-500/40 text-blue-300 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>⚡</span>
+            <span>Clear Death & Revive Champion</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setGameState(prev => {
+                const next = { ...prev, reviveCount: 0 };
+                saveState(next);
+                return next;
+              });
+            }}
+            className="px-3 py-1.5 bg-[#3a2c10]/60 hover:bg-[#503d1c] border border-amber-500/40 text-amber-300 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>🔄</span>
+            <span>Reset Revive Scaling Counter</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Are you sure you want to trigger Zero Slate Reset?\n\nThis will reset stats to 100 HP, 1,000 Coins, 200 Gems, 0 kills/deaths, 0 Power Score, 0 ATK, and 0 DEF.")) {
+                setGameState(prev => {
+                  const next: GameState = {
+                    ...prev,
+                    coins: 1000,
+                    gems: 200,
+                    maxHpBonus: 0,
+                    damageBonusPercent: 0,
+                    powerScore: 0,
+                    totalBossesDefeated: 0,
+                    baseAttack: 0,
+                    baseDefense: 0,
+                    baseSpeed: 0,
+                    bossKillStats: {},
+                    bossDeathStats: {},
+                    powerups: POWERUPS.map(p => ({ id: p.id, owned: false, level: 0, quantity: 0 })),
+                    bosses: (prev.bosses || []).map(b => ({ ...b, defeated: false })),
+                    isDead: false,
+                    reviveCount: 0,
+                    hpUpgradesInCurrentFightCount: 0,
+                    dmgUpgradesInCurrentFightCount: 0,
+                  };
+                  saveState(next);
+                  return next;
+                });
+              }
+            }}
+            className="px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 border border-rose-500/60 text-rose-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-rose-950/50"
+          >
+            <span>🧼</span>
+            <span>Zero Slate Reset (100 HP, 1k Coins, 200 Gems)</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

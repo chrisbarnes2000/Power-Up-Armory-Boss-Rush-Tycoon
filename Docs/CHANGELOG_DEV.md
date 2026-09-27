@@ -4,6 +4,37 @@
 
 ---
 
+## [v1.3.0-dev.2] — 2026-09-27
+
+### Engineering Actions
+- **User Moderation Dropdown Consolidation & Layout Alignment (`AdminUserModeration.tsx`, `AdminBalanceConfig.tsx`)**:
+  - **Restored Defaults Button**: Moved the `⚙️ Reset Balance Defaults` button back to the footer of the `AdminBalanceConfig` view, allowing quick local restoration of standard mechanical multipliers.
+  - **Cohesive dropdown (`z-50`)**: Moved `🧬 Sync God Config` into the newly created `⚙️ More Actions` list dropdown, uniting all four player cloud operations (+5 Revive packs, Clear death, Reset death counters, and Sync god config) in a single overlay.
+  - **Mobile Layout Constraints**: Set the absolute dropdown to be left-aligned (`left-0`) on mobile displays to prevent clipping or layout overflow, and right-aligned (`md:right-0 md:left-auto`) on desktop viewports.
+
+## [v1.3.0-dev.1] — 2026-09-27
+
+### Engineering Actions
+- **Sandbox Balance Config Synchronization & Account Migration (`AdminUserModeration.tsx`, `AdminBalanceConfig.tsx`, `AdminModal.tsx`)**:
+  - **Relocated Local Sandbox Actions**:
+    - Shifted all 5 localized character sandbox triggers (Grant +5 Revives, Clear Death & Revive Champion, Reset Revive Counter, Zero Slate Reset, Reset Balance Defaults) from the general Balance Sliders view over to the per-user `Acct Mod & Stats` panel (`AdminUserModeration.tsx`).
+  - **Implemented God Config Cloud Sync**:
+    - Created a specialized **`🧬 Sync God Config`** trigger alongside each player profile card. Clicking this takes the administrator's active local "god-sandbox" balance settings (`gameState.balanceConfig`) and serializes/pushes it directly into that user's persistent base cloud account in Cloud Firestore, allowing custom balance overrides on any live profile.
+- **Lore Book Modular Decomposition (`LoreBookView.tsx`, `/src/components/lore/`)**:
+  - **Single-File Complexity Reduced (88% reduction)**:
+    - Slashed the monolithic `LoreBookView.tsx` from **1,344 lines to 157 lines** of high-efficiency routing and layout orchestration.
+  - **Modular Architecture Decomposed**:
+    - Decoupled primary tab view segments into a standalone `/src/components/lore/` subfolder housing five single-responsibility modules:
+      1. `ChroniclesTab.tsx` — Manages the Canonical historical chapter grid (Chapters I-VII) alongside player database records and live boss kill/death counts.
+      2. `StoryWeaverTab.tsx` — Isolates the RPG Sandbox creative writer form with automatic layout-drafting templates and Firestore binding connections.
+      3. `ItemCompendiumTab.tsx` — Encompasses the filtered search list of the 16 primary items, active stat calculations, and single-item Markdown file downloading triggers.
+      4. `BossBestiaryTab.tsx` — Hosts the Threat Registry sidebar, health comparisons, weaknesses grids, and optimal weapon recommendations.
+      5. `AncientLegendTab.tsx` — Renders the currencies, alchemical packaging nomenclatures, and mathematical yield formula indices.
+  - **Type Safety & Compiler Compliance**:
+    - Cast `Object.values` arrays as strict `number[]` inside `ChroniclesTab.tsx` to prevent compiler evaluation issues on key indices.
+
+---
+
 ## [v1.2.6-dev.1] — 2026-09-26
 
 ### Engineering Actions

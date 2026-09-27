@@ -54,6 +54,15 @@ export default function AdminBalanceConfig({
         </div>
       </div>
 
+      {/* Sandbox Isolation Helper Banner */}
+      <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-3.5 text-xs text-amber-200 leading-relaxed flex items-start gap-2.5">
+        <span className="text-base">💡</span>
+        <div>
+          <strong className="text-white block mb-0.5 font-mono text-[11px] uppercase tracking-wider">State Isolation Sandbox:</strong>
+          These balance variables apply exclusively to your private, active game state simulation. Adjustments are saved to your browser's local storage and synced to your private Firestore player profile (if authenticated). Other players' sessions, limits, or drop tables remain fully unaffected, ensuring zero cross-session contamination.
+        </div>
+      </div>
+
       {/* BALANCE CONFIGURATION GRID */}
       <div className="space-y-4">
         {/* HERO BASE ATTRIBUTES & POWER SCORE BASELINE CONFIG */}
@@ -322,91 +331,8 @@ export default function AdminBalanceConfig({
 
         </div>
 
-        {/* QUICK BALANCE SUPPORT ACTIONS */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-black/50 border border-white/10 rounded-xl p-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                setGameState(prev => {
-                  const next = { ...prev, revivePacks: (prev.revivePacks || 0) + 5 };
-                  saveState(next);
-                  return next;
-                });
-              }}
-              className="px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
-            >
-              <span>🩹</span>
-              <span>Grant +5 Revive Packs ({gameState.revivePacks || 0} Owned)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setGameState(prev => {
-                  const next = { ...prev, isDead: false };
-                  saveState(next);
-                  return next;
-                });
-              }}
-              className="px-3 py-1.5 bg-blue-950/60 hover:bg-blue-900 border border-blue-500/40 text-blue-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
-            >
-              <span>⚡</span>
-              <span>Clear Death & Revive Champion</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setGameState(prev => {
-                  const next = { ...prev, reviveCount: 0 };
-                  saveState(next);
-                  return next;
-                });
-              }}
-              className="px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900 border border-amber-500/40 text-amber-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
-            >
-              <span>🔄</span>
-              <span>Reset Revive Scaling Counter</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to trigger Zero Slate Reset?\n\nThis will reset stats to 100 HP, 1,000 Coins, 200 Gems, 0 kills/deaths, 0 Power Score, 0 ATK, and 0 DEF.")) {
-                  setGameState(prev => {
-                    const next: GameState = {
-                      ...prev,
-                      coins: 1000,
-                      gems: 200,
-                      maxHpBonus: 0,
-                      damageBonusPercent: 0,
-                      powerScore: 0,
-                      totalBossesDefeated: 0,
-                      baseAttack: 0,
-                      baseDefense: 0,
-                      baseSpeed: 0,
-                      bossKillStats: {},
-                      bossDeathStats: {},
-                      powerups: POWERUPS.map(p => ({ id: p.id, owned: false, level: 0, quantity: 0 })),
-                      bosses: (prev.bosses || []).map(b => ({ ...b, defeated: false })),
-                      isDead: false,
-                      reviveCount: 0,
-                      hpUpgradesInCurrentFightCount: 0,
-                      dmgUpgradesInCurrentFightCount: 0,
-                    };
-                    saveState(next);
-                    return next;
-                  });
-                }
-              }}
-              className="px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 border border-rose-500/60 text-rose-200 text-xs font-mono font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-md shadow-rose-950/50"
-            >
-              <span>🧼</span>
-              <span>Zero Slate Reset (100 HP, 1k Coins, 200 Gems, 0 Stats/Kills)</span>
-            </button>
-          </div>
-
+        {/* Reset Defaults button */}
+        <div className="flex items-center justify-end pt-4 border-t border-white/5">
           <button
             type="button"
             onClick={() => {
@@ -416,11 +342,12 @@ export default function AdminBalanceConfig({
                 return next;
               });
             }}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-mono font-bold rounded-lg transition cursor-pointer ml-auto"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-xl text-xs font-mono font-bold transition cursor-pointer"
           >
-            ⚙️ Reset Defaults
+            ⚙️ Reset Balance Defaults
           </button>
         </div>
+
       </div>
     </div>
   );

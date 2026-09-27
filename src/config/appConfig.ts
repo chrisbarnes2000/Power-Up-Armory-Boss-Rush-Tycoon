@@ -20,9 +20,9 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG: AppConfig = {
-  version: '1.2.5',
-  versionTag: 'v1.2.5',
-  devVersionTag: 'v1.2.5-dev.1',
+  version: '1.3.0',
+  versionTag: 'v1.3.0',
+  devVersionTag: 'v1.3.0-dev.1',
   releaseName: 'Boss Rush Tycoon · Shop Architecture',
   appName: 'Power-Up Armory',
   fullTitle: 'Power-Up Armory · Boss Rush Tycoon',
