@@ -4,6 +4,263 @@
 
 ---
 
+## [v1.2.6-dev.1] — 2026-09-26
+
+### Engineering Actions
+- **Shop System Decoupling & Modularization (`ShopView.tsx`, `src/utils/shopUtils.ts`, `src/components/game/TycoonGrid.tsx`)**:
+  - **Logic Consolidation**:
+    - Removed inline math/helper functions (`getPackUnits`, `getItemTotalUnits`, `optimizeCartForItem`) inside `ShopView.tsx`.
+    - Re-routed all components and grids (including `TycoonGrid.tsx`) to pull helper functions from the shared logic file `src/utils/shopUtils.ts`.
+  - **Modular Architecture Refactored**:
+    - Mounted the standalone `<ShopCategoryNav>` inside the categories segment, enabling seamless, dynamic category listings and counts.
+    - Replaced the inline cart preview with the optimized, high-fidelity `<ShopCartDrawer>` component.
+    - Shifted the dense map loops rendering individual items inside the grid to the independent `<ShopItemCard>` subcomponent.
+  - **Line-Count Decreased**:
+    - Slashed `ShopView.tsx` file density from **733 lines to 290 lines** (over a 60% reduction in complexity) for unmatched readability and maintainability.
+  - **Padding & Margin Consolidation**:
+    - Removed redundant margins and padding overlaps inside `<ShopCategoryNav>` (removing nested `mb-6` spacing and narrowing horizontal item gaps to `gap-2 sm:gap-3`).
+    - Tightened `<ShopItemCard>` padding from `p-5` to `p-4` to present a clean, high-density dashboard.
+    - Reduced outer wrapper padding from `p-4 md:p-8` to `p-4 md:p-6` and margins around the header/navigation containers to `mb-6` / `mb-4`.
+    - Consolidated `<ShopItemCard>` header layout from double stacked rows to a unified, left-aligned emoji flex grid with nested item name, tooltip trigger, and rarity badges, decreasing card height and layout density.
+    - Escalated the Armory header title text size inside `ShopView.tsx` from `text-[10px] sm:text-xs` to `text-xs sm:text-sm md:text-base` alongside extra letter-tracking (`tracking-widest font-black`).
+    - Aligned `<ShopCategoryNav>` categories to start-alignment on mobile (`justify-start px-2`) while keeping center alignment on desktops (`sm:justify-center`), resolving pill clipping on small viewports.
+- **Account Modal Decomposition & Layout Standardization (`AccountModal.tsx`, `/src/components/account/`)**:
+  - **Modular Architecture Decomposed**:
+    - Extracted core views and logic into a dedicated subcomponent directory `/src/components/account/` with five single-responsibility subcomponents:
+      1. `LiveHeroStats.tsx` — Renders the player overall combat stat panels (Power Score, Bosses slain, and gold hoard).
+      2. `AccountQuickBadge.tsx` — Encompasses player name, title tags, verified status, and cloud controls (Sign Out & Sync Leaderboard).
+      3. `EditProfileForm` — Integrates avatar crest choices, customizable heroic names, and selection of titles.
+      4. `GuestAuthForm` — Manages Google and email authorization tabs and credential entry.
+      5. `LocalResetOptions` — Offers one-click preset character data wiping.
+  - **Symmetrical Layout Refactoring**:
+    - Moved the **Live Hero Stats Overview** panel directly above the **Account Quick Stats Badge** containing contact credentials for better priority representation.
+    - Swapped the reset option cards' headers from single-line flexboxes to fluid, wrap-ready rows, preventing any text overhang of the PS & DEF badges on desktops.
+    - Expanded the max width wrapper from `max-w-xl` to `md:max-w-3xl` and increased padding to `p-6 md:p-8` for spacious desktop presentation.
+    - Amplified preset option descriptions to `text-xs sm:text-sm text-slate-300` for crisp legibility.
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.5-final] — 2026-09-26
+
+### Engineering Actions
+- **Finalized v1.2.5 Version Cut**:
+  - Promoted development milestone to stable public `1.2.5` version release.
+  - Repurposed primary navigation controls: renamed navigation tab from "Armory Store" to "Tycoon Shop", pointing standard users directly to clicker upgrade panels under `GameView`.
+  - Shifted Markdown ZIP Exporter utility into the bottom developer-reference panel of the Item Compendium inside `LoreBookView`.
+  - Implemented dynamic user access controls: added toggles in `AdminUserModeration` to enable/disable the cart-based store per player account, synchronized in real-time with Firestore.
+  - Validated build pipeline using static typing check and application compilation.
+
+---
+
+## [v1.2.5-dev.1] — 2026-09-26
+
+### Engineering Actions
+- **Milestone Version Bump to v1.2.5 (`package.json`, `appConfig.ts`, `INDEX_ROADMAP.md`, `INDEX_AUDIT.md`)**:
+  - Incremented global application version to `1.2.5` (`v1.2.5-dev.1`).
+  - Initiated Milestone 1.2.5 focusing on `ShopView.tsx` (733 lines) architecture breakdown and single-responsibility modular subcomponent decomposition (`/src/components/shop/`).
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.12] — 2026-09-26
+
+### Engineering Actions
+- **Main View Top Spacing Doubled (`App.tsx`)**:
+  - Doubled top padding on `<main>` container from `pt-4 sm:pt-6 md:pt-8` (16px / 24px / 32px) to **`pt-8 sm:pt-12 md:pt-16`** (32px / 48px / 64px).
+  - Provides generous, polished layout breathing room beneath the pinned navigation bar for all major operational views (Boss Rush arena, Tycoon mining, Armory storefront, Lore book, and Rank stats).
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.11] — 2026-09-26
+
+### Engineering Actions
+- **Main View Top Spacing Adjustment (`App.tsx`)**:
+  - Added `pt-4 sm:pt-6 md:pt-8` top padding to the `<main>` container in `App.tsx`.
+  - Created clean spatial separation between the sticky global navigation header and top view components (Astral Gold / Tycoon bankroll, Store headers, Lore views, and Rank tables).
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.10] — 2026-09-26
+
+### Engineering Actions
+- **Global Navigation Bar Padding Adjustment (`App.tsx`)**:
+  - Updated `div:nth-of-type(2)` inside `header#global-navbar` from `py-1.5` to `pt-1.5 pb-3.5 sm:pb-4`, expanding bottom padding for cleaner spatial breathing room above view content.
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.9] — 2026-09-26
+
+### Engineering Actions
+- **Tiered Tour Onboarding Bonuses & Exploitation Prevention Engine (`types.ts`, `tourSteps.ts`, `TourModeChoiceCard.tsx`, `TourStepPopover.tsx`, `GuidedTour.tsx`, `App.tsx`)**:
+  - **Tiered Bounties Configured**:
+    - **⚡ Express 5-Step Tour**: Awarded **🪙 +1,000 Gold Coins** & **💎 +100 Gems**.
+    - **📜 Grand 20-Step Tour**: Awarded **🪙 +5,000 Gold Coins** & **💎 +500 Gems**.
+  - **Exploitation Guard & Single-Claim Tracking**:
+    - Added `completedTours?: { short?: boolean; full?: boolean };` to `GameState` schema and localStorage persistence.
+    - Guaranteed each mode's onboarding bounty is granted **strictly once per champion account**.
+  - **UI Indicators & Celebration Banners**:
+    - Updated `TourModeChoiceCard.tsx` with live reward badges (`🎁 Bonus Ready` vs `CheckCircle Claimed`).
+    - Added a celebration callout box on the final step in `TourStepPopover.tsx` with animated green claim button (`🎁 Claim Bonus & Finish`).
+    - Handled payout in `App.tsx` via `handleClaimTourBonus`, adding reward battle logs and updating user bankrolls.
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.8] — 2026-09-26
+
+### Engineering Actions
+- **GuidedTour Domain Decomposition (`GuidedTour.tsx`, `/src/data/tourSteps.ts`, `/src/components/tour/`)**:
+  - Extracted 360 lines of static walkthrough configuration data (`TourStep` interface, `SHORT_TOUR_STEPS`, `TOUR_STEPS`) into a dedicated configuration module (`/src/data/tourSteps.ts`).
+  - Created `/src/components/tour/` directory containing 3 single-responsibility subcomponents:
+    1. `TourModeChoiceCard.tsx` (105 lines) — Onboarding mode selection screen (Express 5-Step vs Grand 20-Step vs Skip).
+    2. `TourStepPopover.tsx` (128 lines) — Interactive step card with progress bar, category tags, title/description, spotlight hint callouts, keyboard tips (`← / →`), and Next/Prev/Skip control buttons.
+    3. `TourSpotlightOverlay.tsx` (48 lines) — Smooth element scrolling, spotlight beacon highlight (`.tour-spotlight-active`) & cleanup destructor observer.
+  - Refactored `GuidedTour.tsx` from 740 lines down to a **148-line orchestrator shell** (~80% reduction), achieving 100% compliance with NASA JPL Rule 4.
+  - Updated `/Docs/INDEX_AUDIT.md` and `/Docs/STRUCTURE.md`.
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.7] — 2026-09-26
+
+### Engineering Actions
+- **React Rules of Hooks Audit & Internal Static Flag Resolution (`BattleModal.tsx`)**:
+  - **Root Cause Resolution**: Identified conditional early return `if (!isOpen) return null;` placed on line 62 of `BattleModal.tsx` *before* `useRef(null)` and `useEffect(...)` hook declarations. In React 19 / Fiber reconciler, conditionally skipping hooks during unmounted/mounted state transitions corrupted internal Fiber static flags, throwing the runtime error: *"Internal React error: Expected static flag was missing."*
+  - **Fix Applied**: Moved `useRef` and `useEffect` hook declarations to top of component body before `if (!isOpen) return null;`, bringing `BattleModal.tsx` into 100% compliance with React Rules of Hooks.
+- **Verification Gate**:
+  - Executed `lint_applet` (`tsc --noEmit`): 0 warnings, 0 errors.
+  - Executed `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.6] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon Bankroll Card Z-Index Layer Elevation (`TycoonBankrollCard.tsx`, `BattleModal.tsx`)**:
+  - Elevated `id="tycoon-bankroll-card"` z-index from `z-40` to **`z-[150]`** so the real-time stat bar remains continuously visible and interactive above the Arena Combat Modal backdrop (`z-[100]`).
+  - Added bottom padding cushion (`pb-20 sm:pb-24`) to the outer `BattleModal` overlay container to prevent modal dialog content from being occluded by the fixed bottom stat bar.
+- **Verification Gate**:
+  - Executed `compile_applet`: Build succeeded cleanly with 0 type errors or warnings.
+
+---
+
+## [v1.2.4-dev.5] — 2026-09-26
+
+### Engineering Actions
+- **Combat Engine Modular Extraction (`/src/utils/combatEngine.ts`, `GameView.tsx`)**:
+  - Extracted core combat formulas, boss scaling curves (`getBossHP`, `getBossAttack`, `getBossPowerReq`), damage turn calculation engine (`calculateCombatTurn`), yield rate calculators (`getPassiveYield`), total combat attributes (`getTotalAttack`, `getTotalDefense`, `getTotalSpeed`, `getNormalMaxHP`, `getPowerScore`), and revive cost calculations (`getCurrentReviveCost`) into a dedicated `/src/utils/combatEngine.ts` utility module (145 lines).
+  - Streamlined `GameView.tsx` by delegating stat computations directly to `combatEngine.ts`.
+- **Persistent Player Health Synchronization Fix (`TycoonBankrollCard.tsx`, `GameView.tsx`)**:
+  - **Root Cause Resolution**: Identified that `TycoonBankrollCard` evaluated `isFighting ? livePlayerHP : normalHP`, causing the statbar to drop active damaged health values (e.g. `76/110 HP`) and revert to `max/max` (`110/110 HP`) as soon as combat turn loops paused or completed.
+  - **Fix Applied**: Updated `TycoonBankrollCard.tsx` to continuously render the actual `livePlayerHP` and `livePlayerMaxHP` state regardless of `isFighting` flag state.
+  - Added an automatic state synchronization `useEffect` in `GameView.tsx` to maintain accurate `livePlayerHP` (e.g. `76/110 HP`) across combat actions, damage logs, and revive/heal events.
+- **Verification Gate**:
+  - Executed `compile_applet`: Build succeeded cleanly with 0 type errors or warnings.
+
+---
+
+## [v1.2.4-dev.4] — 2026-09-26
+
+### Engineering Actions
+- **Admin Portal Sub-Tab Categorization & Deduplication (`AdminModal.tsx`, `AdminCartInspector.tsx`)**:
+  - Implemented top-level navigation sub-tabs in `AdminModal.tsx` to cleanly separate **🛒 Store Validation**, **⚙️ Adjustment Configs** (`AdminBalanceConfig`), and **👥 User Moderation & Stats** (`AdminUserModeration`).
+  - Added sub-pill filters within Store Validation (**All Tools**, **🔍 Reverse Inspector**, **🎫 Key Builder**, and **📋 Vault Records**).
+  - Deduplicated order reconstruction in `AdminCartInspector.tsx` by seamlessly delegating to the shared Key Builder payload state and `generateCustomCode` helper.
+- **Hero Baseline Centralization & Account Modal Polish (`data.ts`, `AdminBalanceConfig.tsx`, `AccountModal.tsx`)**:
+  - Centralized `DEFAULT_HERO_BASELINE` in `src/data.ts` for **Standard Starter** (`10 ATK / 10 DEF / 10 SPD` $\to$ **30 PS & 10 DEF**) vs **Absolute Zero** (`0 ATK / 0 DEF / 0 SPD` $\to$ **0 PS & 0 DEF**).
+  - Integrated custom base attribute inputs (`baseAttack`, `baseDefense`, `baseSpeed`) and 1-click baseline preset buttons in `AdminBalanceConfig.tsx`.
+  - Updated `AccountModal.tsx` to import `DEFAULT_HERO_BASELINE` for reset profiles and replaced text coin emojis with the metallic SVG `<CoinIcon />`.
+- **Tycoon Bankroll Stat Bar Reordering (`TycoonBankrollCard.tsx`)**:
+  - **Layer 1 (Portal Bar)**: Moved **Bosses Defeated** (`💀`) to the **1st position** of the list, and swapped **Gems** (`💎`) and **Coins** (`🪙`) so Gems appears before Gold Coins.
+  - **Layer 2 (Combat Attributes Bar)**: Moved **Health / HP** (`❤️`) to the **1st position** of the list, and updated display format to continuously show **`current / max`** HP (e.g., `110/110 HP` out of combat, and live `HP/MaxHP` in combat).
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build` / `compile_applet`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.3] — 2026-09-26
+
+### Engineering Actions
+- **User Account Wipe Presets (`AccountModal.tsx`)**:
+  - Integrated the two 1-click clean-slate presets into the user-facing Account modal (`AccountModal.tsx`) for all registered and guest players:
+    1. **⚡ Absolute Zero Slate**: Wipes raw stats to 0 ATK, 0 DEF (0 Armor), 0 SPD, 0 Coins, 0 Gems & 0 Nanites $\to$ **0 PS & 0 Armor**.
+    2. **🎮 Standard Starter Pack**: Restores starter allocation (2,000 Coins, 500 Gems, 2 Nanite Revives, 10 ATK / 5 DEF / 10 SPD $\to$ **29 PS & 5 Armor**).
+  - Added visual preview badges, distinct danger/success themed cards, and inline confirmation safeguards.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.2] — 2026-09-26
+
+### Engineering Actions
+- **Granular Character & Stat Wipe Architecture (`AdminModal.tsx`, `GameView.tsx`, `types.ts`)**:
+  - Identified baseline character mechanics ($10\text{ ATK} + 5\text{ DEF/Armor} + 10\text{ SPD} \to 29\text{ Base PS}$) and engineered support for dynamic `baseAttack`, `baseDefense`, and `baseSpeed` overrides in `GameState`.
+  - Upgraded the Admin Wipe confirmation modal with one-click presets and granular toggle switches:
+    1. **Preset 1 — Absolute Zero Slate**: Wipes raw stats to 0 ATK, 0 DEF (0 Armor), 0 SPD, 0 Coins, 0 Gems & 0 Nanites $\to$ **0 PS & 0 Armor**.
+    2. **Preset 2 — Standard Starter**: Re-initializes clean starter pack (2,000c, 500g, 2 Nanites, base 10 ATK / 5 DEF / 10 SPD $\to$ **29 PS & 5 Armor**).
+    3. **Granular Checkboxes**: Individual toggles for wiping starting bankroll to 0, wiping inherent base armor/stats to 0, wiping revive nanite packs, purging physical/cloud receipt vouchers, and purging leaderboard records.
+    4. **Live Target Preview**: Real-time 4-card matrix displaying resulting Power Score, Armor / DEF, Starting Gold, and Nanite Revives prior to execution.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.4-dev.1] — 2026-09-26
+
+### Engineering Actions
+- **Centralized Application Configuration Architecture (`src/config/appConfig.ts`)**:
+  - Created single source of truth configuration module `APP_CONFIG` defining canonical project metadata: `version` (`1.2.4`), `versionTag` (`v1.2.4`), `devVersionTag` (`v1.2.4-dev.1`), `releaseName` (`Boss Rush Tycoon`), `appName` (`Power-Up Armory`), `partner` URL & branding, and governance standards.
+  - Linked `src/components/Footer.tsx` and `src/components/AdminModal.tsx` directly to `APP_CONFIG`, removing hardcoded version strings so future version updates require modifying only `src/config/appConfig.ts` and `package.json`.
+- **AdminModal Modular Architecture & Single-Responsibility Decomposition (`AdminModal.tsx`, `/src/components/admin/`)**:
+  - Successfully decomposed the 1,478-line monolithic `AdminModal.tsx` into 5 clean, single-responsibility subcomponents meeting NASA JPL Rule 4 and modularity guidelines:
+    1. `src/components/admin/AdminCartInspector.tsx` (300 lines): Reverse Cart ID & receipt key inspector, order determination, itemization & cart reconstruction bridge.
+    2. `src/components/admin/AdminCodeGenerator.tsx` (168 lines): Custom receipt key generator with item payload queue & custom pricing.
+    3. `src/components/admin/AdminCodeTracking.tsx` (145 lines): Receipt key inventory, search/filter & redemption toggles.
+    4. `src/components/admin/AdminUserModeration.tsx` (178 lines): Player account moderation, leaderboard purge & stat resets.
+    5. `src/components/admin/AdminBalanceConfig.tsx` (202 lines): Game balance mechanics tuner, revival cost scaling & boss drop multipliers.
+  - Refactored `AdminModal.tsx` from 1,478 lines down to a clean 348-line orchestrator shell managing global state sync, Firestore operations, and confirmation modals.
+  - Added explicit `TempPayloadItem` interface to `src/types.ts` for clean type safety across subcomponents.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
+## [v1.2.3-dev.25] — 2026-09-26
+
+### Engineering Actions
+- **Tycoon & Armory Grid Universal Touch Tooltips (`GlobalTouchTooltip.tsx`, `TycoonGenerators.tsx`, `ShopView.tsx`)**:
+  - Upgraded `GlobalTouchTooltip` with structured multi-line card parsing (rendering title banner, rarity tags, descriptions, `✨ Effect:`, and `⚡ Special:` abilities).
+  - Replaced brittle CSS `opacity-0 group-hover:opacity-100` hover overlays in `TycoonGenerators.tsx` and `ShopView.tsx` with universal `data-tooltip` integrations.
+  - Added interactive `ⓘ` inspect chips and keyboard-accessible header buttons (`tabIndex={0}`, `role="button"`), enabling mobile users to touch-and-hold (200ms) or tap to inspect full item lore and abilities without clipping.
+- **Verification Gate**:
+  - `tsc --noEmit`: 0 errors.
+  - `vite build`: Build succeeded cleanly.
+
+---
+
 ## [v1.2.3-dev.24] — 2026-09-26
 
 ### Engineering Actions

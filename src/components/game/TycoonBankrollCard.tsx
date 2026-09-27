@@ -103,7 +103,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     <div 
       ref={cardRef}
       id="tycoon-bankroll-card" 
-      className="fixed left-0 right-0 z-40 bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] w-full pointer-events-auto will-change-[bottom]"
+      className="fixed left-0 right-0 z-[150] bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] w-full pointer-events-auto will-change-[bottom]"
       style={{ bottom: '0px' }}
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 box-border">
@@ -114,15 +114,15 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
           </span>
           
           <div className="flex items-center gap-1 sm:gap-1.5 justify-end ml-auto shrink-0">
-            {/* Coins */}
+            {/* Bosses Defeated */}
             <div
               tabIndex={0}
               role="button"
-              data-tooltip={`Gold Coins: ${Math.floor(coins).toLocaleString()} Gold`}
+              data-tooltip={`Bosses Defeated: ${totalBossesDefeated} Bosses Vanquished`}
               className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
             >
-              <CoinIcon className="w-3.5 h-3.5 drop-shadow shrink-0" />
-              <span className="font-mono text-[#f5e56b] font-extrabold">{formatCompact(coins)}</span>
+              <span className="text-xs sm:text-sm leading-none shrink-0">💀</span>
+              <span className="font-mono text-red-400 font-extrabold">{totalBossesDefeated}</span>
             </div>
 
             {/* Gems */}
@@ -136,6 +136,17 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               <span className="font-mono text-[#cb9df2] font-extrabold">{formatCompact(gems || 0)}</span>
             </div>
 
+            {/* Coins */}
+            <div
+              tabIndex={0}
+              role="button"
+              data-tooltip={`Gold Coins: ${Math.floor(coins).toLocaleString()} Gold`}
+              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
+            >
+              <CoinIcon className="w-3.5 h-3.5 drop-shadow shrink-0" />
+              <span className="font-mono text-[#f5e56b] font-extrabold">{formatCompact(coins)}</span>
+            </div>
+
             {/* Yield */}
             <div
               tabIndex={0}
@@ -145,17 +156,6 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
             >
               <span className="text-xs sm:text-sm leading-none shrink-0">⏱️</span>
               <span className="font-mono text-green-400 font-extrabold">{formatYield(passiveYield)}</span>
-            </div>
-
-            {/* Bosses Defeated */}
-            <div
-              tabIndex={0}
-              role="button"
-              data-tooltip={`Bosses Defeated: ${totalBossesDefeated} Bosses Vanquished`}
-              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
-            >
-              <span className="text-xs sm:text-sm leading-none shrink-0">💀</span>
-              <span className="font-mono text-red-400 font-extrabold">{totalBossesDefeated}</span>
             </div>
           </div>
         </div>
@@ -168,6 +168,25 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
           </span>
 
           <div className="flex items-center gap-1 sm:gap-1.5 justify-end ml-auto shrink-0">
+            {/* HP */}
+            <div
+              tabIndex={0}
+              role="button"
+              data-tooltip={isDead ? "Player Fallen: Revive in Lore Book or Store" : `Health Points: ${formatCompact(livePlayerHP)}/${formatCompact(livePlayerMaxHP)} HP`}
+              className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs flex items-center gap-1 shadow-sm transition active:scale-95 cursor-pointer select-none ${
+                isDead || livePlayerHP <= 0
+                  ? 'bg-red-950/80 border-2 border-red-500 text-red-200 animate-pulse'
+                  : 'bg-[#121c33] hover:bg-[#1a2948] border border-emerald-500/30 text-emerald-300 hover:border-emerald-400/60'
+              }`} 
+            >
+              <span className="text-xs leading-none shrink-0">{isDead || livePlayerHP <= 0 ? '💀' : '❤️'}</span>
+              <span className={`font-mono font-extrabold ${
+                isDead || livePlayerHP <= 0 ? 'text-red-300' : 'text-emerald-300'
+              }`}>
+                {isDead ? '0 (DEAD)' : `${formatCompact(livePlayerHP)}/${formatCompact(livePlayerMaxHP)}`}
+              </span>
+            </div>
+
             {/* ATK */}
             <div
               tabIndex={0}
@@ -188,25 +207,6 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
             >
               <span className="text-xs leading-none shrink-0">🛡️</span>
               <span className="font-mono text-blue-300 font-extrabold">{formatCompact(defense)}</span>
-            </div>
-
-            {/* HP */}
-            <div
-              tabIndex={0}
-              role="button"
-              data-tooltip={isDead ? "Player Fallen: Revive in Lore Book or Store" : `Health Points: ${isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : normalHP} HP`}
-              className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs flex items-center gap-1 shadow-sm transition active:scale-95 cursor-pointer select-none ${
-                isDead || (isFighting && livePlayerHP <= 0)
-                  ? 'bg-red-950/80 border-2 border-red-500 text-red-200 animate-pulse'
-                  : 'bg-[#121c33] hover:bg-[#1a2948] border border-emerald-500/30 text-emerald-300 hover:border-emerald-400/60'
-              }`} 
-            >
-              <span className="text-xs leading-none shrink-0">{isDead || (isFighting && livePlayerHP <= 0) ? '💀' : '❤️'}</span>
-              <span className={`font-mono font-extrabold ${
-                isDead || (isFighting && livePlayerHP <= 0) ? 'text-red-300' : 'text-emerald-300'
-              }`}>
-                {isDead ? '0 (DEAD)' : isFighting ? `${livePlayerHP}/${livePlayerMaxHP}` : `${formatCompact(normalHP)}`}
-              </span>
             </div>
 
             {/* SPD */}

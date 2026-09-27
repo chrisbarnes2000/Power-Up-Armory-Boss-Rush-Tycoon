@@ -6,7 +6,29 @@ export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
   goldDropChance: 70,
   gemDropChance: 35,
   goldMultiplier: 1.0,
-  gemMultiplier: 1.0
+  gemMultiplier: 1.0,
+  permUpgradeLimitPerFight: 3
+};
+
+export const DEFAULT_HERO_BASELINE = {
+  starter: {
+    baseAttack: 10,
+    baseDefense: 10,
+    baseSpeed: 10,
+    coins: 2000,
+    gems: 500,
+    revivePacks: 2,
+    powerScore: 35
+  },
+  absoluteZero: {
+    baseAttack: 0,
+    baseDefense: 0,
+    baseSpeed: 0,
+    coins: 0,
+    gems: 0,
+    revivePacks: 0,
+    powerScore: 0
+  }
 };
 
 export const POWERUPS: PowerUp[] = [
@@ -309,17 +331,33 @@ export const BOSSES: Boss[] = [
   { id: 'Star Eater', emoji: '⭐', baseHP: 5000, baseAttack: 200, reward: 5000, powerReq: 2500, special: 'Obliterate (30% instant kill)' }
 ];
 
-export function calculatePowerScore(gameState: { powerups: { id: string; owned: boolean; level: number; quantity: number }[]; totalBossesDefeated: number }): number {
-  let score = 0;
-  gameState.powerups.forEach(ps => {
-    if (ps.owned) {
-      const data = POWERUPS.find(p => p.id === ps.id);
+export function calculatePowerScore(gameState: { 
+  powerups: { id: string; owned: boolean; level: number; quantity: number }[]; 
+  totalBossesDefeated: number;
+  baseAttack?: number;
+  baseDefense?: number;
+  baseSpeed?: number;
+  damageBonusPercent?: number;
+}): number {
+  let atk = gameState.baseAttack !== undefined ? gameState.baseAttack : 10;
+  let def = gameState.baseDefense !== undefined ? gameState.baseDefense : 5;
+  let spd = gameState.baseSpeed !== undefined ? gameState.baseSpeed : 10;
+
+  (gameState.powerups || []).forEach(p => {
+    if (p.owned) {
+      const data = POWERUPS.find(pu => pu.id === p.id);
       if (data) {
-        const statScore = data.attack + Math.max(0, data.defense) + Math.max(0, data.speed);
-        score += statScore + (ps.level * 10) + (ps.quantity * 5);
+        atk += data.attack * p.quantity * p.level;
+        def += data.defense * p.quantity * p.level;
+        spd += data.speed * p.quantity * p.level;
       }
     }
   });
-  score += gameState.totalBossesDefeated * 25;
-  return Math.floor(score);
+
+  if (gameState.damageBonusPercent) {
+    atk = Math.floor(atk * (1 + (gameState.damageBonusPercent / 100)));
+  }
+
+  const score = Math.floor(atk * 1.5 + def * 1.2 + spd * 0.8);
+  return score;
 }

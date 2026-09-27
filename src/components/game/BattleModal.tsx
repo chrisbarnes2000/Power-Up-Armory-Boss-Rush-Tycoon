@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { CoinIcon } from '../CoinIcon';
 import { GameState, UserProfile, BattleLogEntry } from '../../types';
 import { BOSSES } from '../../data';
+import { PreFightCoinShop } from './PreFightCoinShop';
 
 export interface BattleModalProps {
   isOpen: boolean;
@@ -58,19 +59,20 @@ export const BattleModal: React.FC<BattleModalProps> = ({
   persistLogs = true,
   onTogglePersistLogs
 }) => {
-  if (!isOpen) return null;
-
-  const currentBoss = BOSSES.find(b => b.id === activeBossId);
   const modalLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (modalLogRef.current) {
+    if (isOpen && modalLogRef.current) {
       modalLogRef.current.scrollTop = 0;
     }
-  }, [battleLogs]);
+  }, [isOpen, battleLogs]);
+
+  if (!isOpen) return null;
+
+  const currentBoss = BOSSES.find(b => b.id === activeBossId);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 pb-20 sm:pb-24 animate-fadeIn">
       <div className="w-full max-w-2xl bg-[#0c1322] border-2 border-red-500/50 rounded-3xl shadow-[0_0_60px_rgba(239,68,68,0.3)] p-4 sm:p-6 flex flex-col gap-4 text-slate-200 max-h-[92vh] overflow-y-auto">
         
         {/* Modal Header */}
@@ -162,65 +164,13 @@ export const BattleModal: React.FC<BattleModalProps> = ({
         )}
 
         {/* Quick Pre-Fight Coin Boosts inside Modal */}
-        <div className="bg-[#141d30] border border-[#2a4060] rounded-2xl p-3.5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono text-[#f5e56b] font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-              <span>⚡</span>
-              <span>PRE-FIGHT GOLD BOOST SHOP</span>
-            </span>
-            <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1">
-              <span>Gold Balance:</span>
-              <span className="text-[#f5e56b]">{Math.floor(gameState.coins).toLocaleString()}</span>
-              <CoinIcon className="w-3.5 h-3.5" />
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              onClick={() => {
-                if (gameState.coins >= 250) {
-                  setGameState(prev => {
-                    const next = { ...prev, coins: prev.coins - 250, maxHpBonus: (prev.maxHpBonus || 0) + 25 };
-                    saveState(next);
-                    return next;
-                  });
-                  addLog(`💖 Purchased HP Shield (+25 Max HP Permanent)!`, 'log-heal');
-                } else {
-                  addLog(`❌ Need 250 Coins for HP Shield.`, 'log-defeat');
-                }
-              }}
-              className="px-3.5 py-2.5 rounded-xl bg-[#1c2944] hover:bg-[#25375c] border border-[#2a4060] text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer active:scale-95"
-            >
-              <span className="flex items-center gap-1">💖 Max HP Shield (+25 HP)</span>
-              <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
-                <span>250</span>
-                <CoinIcon className="w-3.5 h-3.5" />
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (gameState.coins >= 300) {
-                  setGameState(prev => {
-                    const next = { ...prev, coins: prev.coins - 300, damageBonusPercent: (prev.damageBonusPercent || 0) + 5 };
-                    saveState(next);
-                    return next;
-                  });
-                  addLog(`⚔️ Purchased Combat Tonic (+5% DMG Permanent)!`, 'log-buff');
-                } else {
-                  addLog(`❌ Need 300 Coins for Combat Tonic.`, 'log-defeat');
-                }
-              }}
-              className="px-3.5 py-2.5 rounded-xl bg-[#1c2944] hover:bg-[#25375c] border border-[#2a4060] text-xs font-bold text-slate-200 flex items-center justify-between transition cursor-pointer active:scale-95"
-            >
-              <span className="flex items-center gap-1">🔥 Combat Tonic (+5% DMG)</span>
-              <span className="text-[#f5e56b] font-mono font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
-                <span>300</span>
-                <CoinIcon className="w-3.5 h-3.5" />
-              </span>
-            </button>
-          </div>
-        </div>
+        <PreFightCoinShop
+          gameState={gameState}
+          setGameState={setGameState}
+          saveState={saveState}
+          addLog={addLog}
+          compact
+        />
 
         {/* Live Scrolling Battle Feed in Modal */}
         <div ref={modalLogRef} className="bg-[#080d18] border border-white/10 rounded-2xl p-3.5 h-44 overflow-y-auto space-y-1.5 font-mono text-xs shadow-inner">

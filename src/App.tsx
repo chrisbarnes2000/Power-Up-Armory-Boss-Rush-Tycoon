@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
@@ -8,6 +8,7 @@ import LoreBookView from './components/LoreBookView';
 import AdminModal from './components/AdminModal';
 import AccountModal from './components/AccountModal';
 import GuidedTour, { TourStep } from './components/GuidedTour';
+import { TOUR_BONUSES } from './data/tourSteps';
 import FontScaleControl from './components/FontScaleControl';
 import Footer from './components/Footer';
 import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
@@ -46,6 +47,13 @@ export default function App() {
   const [cloudLeaderboard, setCloudLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isSyncingLeaderboard, setIsSyncingLeaderboard] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Cloud Save Conflict & Auto-Save properties
+  const [cloudSaveConflict, setCloudSaveConflict] = useState<{
+    cloud: any;
+    local: GameState;
+  } | null>(null);
+  const lastCloudSaveTimeRef = useRef<number>(0);
 
   // --- GUIDED TOUR ENGINE (SHORT / FULL / SKIP) ---
   const [isTourActive, setIsTourActive] = useState(false);
@@ -86,6 +94,41 @@ export default function App() {
 
   const startTour = useCallback(() => {
     setIsTourActive(true);
+  }, []);
+
+  // One-time tour mode bonus claim handler
+  const handleClaimTourBonus = useCallback((mode: 'short' | 'full') => {
+    const bonus = TOUR_BONUSES[mode];
+    if (!bonus) return;
+
+    setGameState(prev => {
+      if (prev.completedTours?.[mode]) return prev; // Guard against duplicate payouts
+
+      const next: GameState = {
+        ...prev,
+        coins: prev.coins + bonus.coins,
+        gems: prev.gems + bonus.gems,
+        completedTours: {
+          ...prev.completedTours,
+          [mode]: true
+        },
+        battleLog: [
+          {
+            message: `🎁 ${bonus.title} Claimed! Received +${bonus.coins.toLocaleString()} Coins & +${bonus.gems.toLocaleString()} Gems!`,
+            className: 'log-reward'
+          },
+          ...prev.battleLog
+        ]
+      };
+
+      try {
+        localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save tour bonus state to localStorage:', e);
+      }
+
+      return next;
+    });
   }, []);
 
   // --- CHECK ISADMIN FLAG IN AUTH DETAILS OR FIRESTORE PROFILE ---
@@ -152,8 +195,111 @@ export default function App() {
               setGameState(prev => ({ ...prev, playerName: data.displayName }));
             }
           }
+
+          // Fetch Cloud Game Save Progress
+          const progressDocRef = doc(db, 'user_progress', user.uid);
+          const progressSnap = await getDoc(progressDocRef);
+          if (progressSnap.exists()) {
+            const cloudData = progressSnap.data();
+            
+            // Check if current local state is just the default starter
+            let localState = DEFAULT_STATE;
+            try {
+              const saved = localStorage.getItem('bossRushTycoon');
+              if (saved) {
+                localState = { ...DEFAULT_STATE, ...JSON.parse(saved) };
+              }
+            } catch (e) {
+              console.warn('Could not parse localState in auth listener:', e);
+            }
+
+            const isLocalDefault = 
+              localState.totalBossesDefeated === 0 && 
+              localState.coins <= 2005 && 
+              !(localState.powerups || []).some(p => p.owned);
+
+            if (isLocalDefault) {
+              // Automatically restore progress since local is pristine
+              const next: GameState = {
+                ...localState,
+                coins: cloudData.coins ?? localState.coins,
+                gems: cloudData.gems ?? localState.gems,
+                maxHpBonus: cloudData.maxHpBonus ?? localState.maxHpBonus,
+                damageBonusPercent: cloudData.damageBonusPercent ?? localState.damageBonusPercent,
+                powerups: (localState.powerups || []).map(p => {
+                  const cloudP = cloudData.powerups?.find((cp: any) => cp.id === p.id);
+                  return cloudP ? { ...p, ...cloudP } : p;
+                }),
+                bosses: (localState.bosses || []).map(b => {
+                  const cloudB = cloudData.bosses?.find((cb: any) => cb.id === b.id);
+                  return cloudB ? { ...b, ...cloudB } : b;
+                }),
+                totalBossesDefeated: cloudData.totalBossesDefeated ?? localState.totalBossesDefeated,
+                purchasedCodes: cloudData.purchasedCodes ?? localState.purchasedCodes,
+                bossKillStats: cloudData.bossKillStats ?? localState.bossKillStats,
+                bossDeathStats: cloudData.bossDeathStats ?? localState.bossDeathStats,
+                customStories: cloudData.customStories ?? localState.customStories,
+                reviveCount: cloudData.reviveCount ?? localState.reviveCount,
+                revivePacks: cloudData.revivePacks ?? localState.revivePacks,
+                completedTours: cloudData.completedTours ?? localState.completedTours,
+                baseAttack: cloudData.baseAttack ?? localState.baseAttack,
+                baseDefense: cloudData.baseDefense ?? localState.baseDefense,
+                baseSpeed: cloudData.baseSpeed ?? localState.baseSpeed
+              };
+              setGameState(next);
+              localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+            } else {
+              // Compare both to see if we should prompt
+              const isCoinsDiff = Math.abs((cloudData.coins || 0) - localState.coins) > 5;
+              const isBossesDiff = (cloudData.totalBossesDefeated || 0) !== localState.totalBossesDefeated;
+              
+              if (isCoinsDiff || isBossesDiff) {
+                setCloudSaveConflict({
+                  cloud: cloudData,
+                  local: localState
+                });
+              }
+            }
+          } else {
+            // First time log in with progress - push local progress to cloud backup
+            let localState = DEFAULT_STATE;
+            try {
+              const saved = localStorage.getItem('bossRushTycoon');
+              if (saved) {
+                localState = { ...DEFAULT_STATE, ...JSON.parse(saved) };
+              }
+            } catch {}
+            const isLocalDefault = 
+              localState.totalBossesDefeated === 0 && 
+              localState.coins <= 2005 && 
+              !(localState.powerups || []).some(p => p.owned);
+
+            if (!isLocalDefault) {
+              setDoc(doc(db, 'user_progress', user.uid), {
+                userId: user.uid,
+                coins: localState.coins,
+                gems: localState.gems,
+                maxHpBonus: localState.maxHpBonus,
+                damageBonusPercent: localState.damageBonusPercent,
+                powerups: localState.powerups || [],
+                bosses: localState.bosses || [],
+                totalBossesDefeated: localState.totalBossesDefeated || 0,
+                purchasedCodes: localState.purchasedCodes || [],
+                bossKillStats: localState.bossKillStats || {},
+                bossDeathStats: localState.bossDeathStats || {},
+                customStories: localState.customStories || [],
+                reviveCount: localState.reviveCount || 0,
+                revivePacks: localState.revivePacks || 0,
+                completedTours: localState.completedTours || {},
+                baseAttack: localState.baseAttack ?? 10,
+                baseDefense: localState.baseDefense ?? 5,
+                baseSpeed: localState.baseSpeed ?? 5,
+                updatedAt: new Date().toISOString()
+              }, { merge: true }).catch(err => console.warn('Push local state to cloud error:', err));
+            }
+          }
         } catch (err) {
-          console.warn('Error fetching user profile:', err);
+          console.warn('Error fetching user profile or cloud progress:', err);
         }
       } else {
         setUserProfile(null);
@@ -313,6 +459,30 @@ export default function App() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
+      // Write comprehensive progress backup
+      const progressDocRef = doc(db, 'user_progress', currentUser.uid);
+      await setDoc(progressDocRef, {
+        userId: currentUser.uid,
+        coins: gameState.coins,
+        gems: gameState.gems,
+        maxHpBonus: gameState.maxHpBonus,
+        damageBonusPercent: gameState.damageBonusPercent,
+        powerups: gameState.powerups || [],
+        bosses: gameState.bosses || [],
+        totalBossesDefeated: gameState.totalBossesDefeated || 0,
+        purchasedCodes: gameState.purchasedCodes || [],
+        bossKillStats: gameState.bossKillStats || {},
+        bossDeathStats: gameState.bossDeathStats || {},
+        customStories: gameState.customStories || [],
+        reviveCount: gameState.reviveCount || 0,
+        revivePacks: gameState.revivePacks || 0,
+        completedTours: gameState.completedTours || {},
+        baseAttack: gameState.baseAttack ?? 10,
+        baseDefense: gameState.baseDefense ?? 5,
+        baseSpeed: gameState.baseSpeed ?? 5,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
       setGameState(prev => ({ ...prev, powerScore: currentPowerScore }));
     } catch (err) {
       console.error('Error syncing leaderboard:', err);
@@ -321,6 +491,113 @@ export default function App() {
       setIsSyncingLeaderboard(false);
     }
   }, [currentUser, userProfile, gameState]);
+
+  // Apply Cloud Progress (Overwrite Local State)
+  const applyCloudProgress = (cloudData: any) => {
+    setGameState(prev => {
+      const next: GameState = {
+        ...prev,
+        coins: cloudData.coins ?? prev.coins,
+        gems: cloudData.gems ?? prev.gems,
+        maxHpBonus: cloudData.maxHpBonus ?? prev.maxHpBonus,
+        damageBonusPercent: cloudData.damageBonusPercent ?? prev.damageBonusPercent,
+        powerups: prev.powerups.map(p => {
+          const cloudP = cloudData.powerups?.find((cp: any) => cp.id === p.id);
+          return cloudP ? { ...p, ...cloudP } : p;
+        }),
+        bosses: prev.bosses.map(b => {
+          const cloudB = cloudData.bosses?.find((cb: any) => cb.id === b.id);
+          return cloudB ? { ...b, ...cloudB } : b;
+        }),
+        totalBossesDefeated: cloudData.totalBossesDefeated ?? prev.totalBossesDefeated,
+        purchasedCodes: cloudData.purchasedCodes ?? prev.purchasedCodes,
+        bossKillStats: cloudData.bossKillStats ?? prev.bossKillStats,
+        bossDeathStats: cloudData.bossDeathStats ?? prev.bossDeathStats,
+        customStories: cloudData.customStories ?? prev.customStories,
+        reviveCount: cloudData.reviveCount ?? prev.reviveCount,
+        revivePacks: cloudData.revivePacks ?? prev.revivePacks,
+        completedTours: cloudData.completedTours ?? prev.completedTours,
+        baseAttack: cloudData.baseAttack ?? prev.baseAttack,
+        baseDefense: cloudData.baseDefense ?? prev.baseDefense,
+        baseSpeed: cloudData.baseSpeed ?? prev.baseSpeed
+      };
+      localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+      return next;
+    });
+    setCloudSaveConflict(null);
+  };
+
+  // Overwrite Cloud Save with Local State
+  const resolveWithLocalProgress = async () => {
+    if (!currentUser || !cloudSaveConflict) return;
+    try {
+      const progressDocRef = doc(db, 'user_progress', currentUser.uid);
+      const localState = cloudSaveConflict.local;
+      await setDoc(progressDocRef, {
+        userId: currentUser.uid,
+        coins: localState.coins,
+        gems: localState.gems,
+        maxHpBonus: localState.maxHpBonus,
+        damageBonusPercent: localState.damageBonusPercent,
+        powerups: localState.powerups || [],
+        bosses: localState.bosses || [],
+        totalBossesDefeated: localState.totalBossesDefeated || 0,
+        purchasedCodes: localState.purchasedCodes || [],
+        bossKillStats: localState.bossKillStats || {},
+        bossDeathStats: localState.bossDeathStats || {},
+        customStories: localState.customStories || [],
+        reviveCount: localState.reviveCount || 0,
+        revivePacks: localState.revivePacks || 0,
+        completedTours: localState.completedTours || {},
+        baseAttack: localState.baseAttack ?? 10,
+        baseDefense: localState.baseDefense ?? 5,
+        baseSpeed: localState.baseSpeed ?? 5,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Could not force local save to cloud:', err);
+    }
+    setCloudSaveConflict(null);
+  };
+
+  // --- AUTOMATIC CLOUD AUTO-SAVE THROTTLED TO 30 SECONDS ---
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Skip if default starter profile
+    const isDefault = 
+      gameState.totalBossesDefeated === 0 && 
+      gameState.coins <= 2005 && 
+      !gameState.powerups.some(p => p.owned);
+    if (isDefault) return;
+
+    const now = Date.now();
+    if (now - lastCloudSaveTimeRef.current >= 30000) {
+      lastCloudSaveTimeRef.current = now;
+
+      setDoc(doc(db, 'user_progress', currentUser.uid), {
+        userId: currentUser.uid,
+        coins: gameState.coins,
+        gems: gameState.gems,
+        maxHpBonus: gameState.maxHpBonus,
+        damageBonusPercent: gameState.damageBonusPercent,
+        powerups: gameState.powerups || [],
+        bosses: gameState.bosses || [],
+        totalBossesDefeated: gameState.totalBossesDefeated || 0,
+        purchasedCodes: gameState.purchasedCodes || [],
+        bossKillStats: gameState.bossKillStats || {},
+        bossDeathStats: gameState.bossDeathStats || {},
+        customStories: gameState.customStories || [],
+        reviveCount: gameState.reviveCount || 0,
+        revivePacks: gameState.revivePacks || 0,
+        completedTours: gameState.completedTours || {},
+        baseAttack: gameState.baseAttack ?? 10,
+        baseDefense: gameState.baseDefense ?? 5,
+        baseSpeed: gameState.baseSpeed ?? 5,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => console.warn('Auto-save error:', err));
+    }
+  }, [gameState.totalBossesDefeated, gameState.gems, gameState.powerups, gameState.isDead, currentUser]);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#d0e0ff] flex flex-col font-sans select-none w-full max-w-full overflow-x-clip box-border" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}>
@@ -411,7 +688,7 @@ export default function App() {
         </div>
 
         {/* Tier 2: Primary Navigation System (Pinned smoothly and fully opaque) */}
-        <div className="w-full flex items-center justify-center px-2 sm:px-6 py-1.5 bg-[#0b101d] border-t border-white/5 shadow-inner">
+        <div className="w-full flex items-center justify-center px-2 sm:px-6 pt-1.5 pb-3.5 sm:pb-4 bg-[#0b101d] border-t border-white/5 shadow-inner">
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center max-w-full">
             <div className="flex bg-[#121c30] border border-[#2a4060] rounded-full p-0.5 shadow-inner">
               <button 
@@ -425,22 +702,43 @@ export default function App() {
                 <span className="hidden xs:inline">Lore Book</span>
                 <span className="xs:hidden">Lore</span>
               </button>
-              <button 
-                id="nav-tab-shop"
-                onClick={() => setActiveView('Shop')} 
-                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                  activeView === 'Shop' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-xs">🏪</span>
-                <span className="hidden xs:inline">Armory Store</span>
-                <span className="xs:hidden">Store</span>
-              </button>
+              {(isAdmin || userProfile?.isArmoryStoreEnabled === true) && (
+                <button 
+                  id="nav-tab-armory-store"
+                  onClick={() => setActiveView('Shop')} 
+                  className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                    activeView === 'Shop' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-xs">🛒</span>
+                  <span className="hidden xs:inline">Armory Store</span>
+                  <span className="xs:hidden">Armory</span>
+                </button>
+              )}
+              {userProfile?.isArmoryStoreEnabled !== true && (
+                <button 
+                  id="nav-tab-shop"
+                  onClick={() => {
+                    setActiveView('Game');
+                    setControlledGameTab('tycoon');
+                  }} 
+                  className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
+                    activeView === 'Game' && controlledGameTab === 'tycoon' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-xs">🏪</span>
+                  <span className="hidden xs:inline">Tycoon Shop</span>
+                  <span className="xs:hidden">Shop</span>
+                </button>
+              )}
               <button 
                 id="nav-tab-game"
-                onClick={() => setActiveView('Game')} 
+                onClick={() => {
+                  setActiveView('Game');
+                  setControlledGameTab('bosses');
+                }} 
                 className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                  activeView === 'Game' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                  activeView === 'Game' && controlledGameTab === 'bosses' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <span className="text-xs">🎮</span>
@@ -490,8 +788,8 @@ export default function App() {
       </header>
 
       {/* RENDER VIEW - EXPANDED WIDTH CONTAINER */}
-      <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-16 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto box-border">
-        {activeView === 'Shop' && (
+      <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-16 pt-8 sm:pt-12 md:pt-16 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto box-border">
+        {activeView === 'Shop' && (isAdmin || userProfile?.isArmoryStoreEnabled === true) ? (
           <ShopView
             gameState={gameState}
             setGameState={setGameState}
@@ -500,7 +798,24 @@ export default function App() {
             openCartDrawer={isShopCartDrawerOpen}
             onOpenLoreBook={() => setActiveView('Lore')}
           />
-        )}
+        ) : activeView === 'Shop' ? (
+          <div className="text-center py-20 font-mono space-y-4 max-w-lg mx-auto bg-[#0d1322] border border-[#2a4060]/30 rounded-3xl p-8 my-10 shadow-2xl shadow-black/80">
+            <span className="text-5xl block animate-bounce mb-2">🔒</span>
+            <h2 className="text-lg sm:text-xl font-black text-red-400 uppercase tracking-widest">ARMORY STORE RESTRICTED</h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Access to the checkout-based Armory Store is classified. Ask a Root Administrator in the leaderboard to authorize access for your Champion ID.
+            </p>
+            <button
+              onClick={() => {
+                setActiveView('Game');
+                setControlledGameTab('tycoon');
+              }}
+              className="mt-4 px-5 py-2.5 bg-[#172238] hover:bg-[#203050] text-[#7ae0ff] border border-[#2a4060] rounded-xl text-xs font-mono font-bold transition cursor-pointer"
+            >
+              ← Jump back to Tycoon Shop
+            </button>
+          </div>
+        ) : null}
         {activeView === 'Game' && (
           <GameView
             gameState={gameState}
@@ -563,6 +878,9 @@ export default function App() {
         gameState={gameState} 
         setGameState={setGameState} 
         cloudLeaderboard={cloudLeaderboard}
+        currentUser={currentUser}
+        userProfile={userProfile}
+        setUserProfile={setUserProfile}
       />
 
       {/* ACCOUNT & FIREBASE AUTH MODAL */}
@@ -582,7 +900,96 @@ export default function App() {
         isActive={isTourActive}
         onClose={() => setIsTourActive(false)}
         onStepChange={handleTourStepChange}
+        completedTours={gameState.completedTours}
+        onClaimBonus={handleClaimTourBonus}
       />
+
+      {/* CLOUD SAVE CONFLICT OVERLAY MODAL */}
+      {cloudSaveConflict && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-[100] animate-fadeIn">
+          <div className="w-full max-w-[550px] bg-linear-to-b from-[#111827] via-[#0d1322] to-[#070b14] border-2 border-cyan-500/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 text-center">
+            <div className="w-16 h-16 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-3xl">
+              ☁️
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-xl font-black uppercase tracking-wider text-cyan-400 font-mono">
+                Cloud Save Found!
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+                We detected a saved progress profile on your cloud account that differs from your current local browser progress. Choose which state you would like to keep.
+              </p>
+            </div>
+
+            {/* Cloud vs Local Stats Grid */}
+            <div className="grid grid-cols-2 gap-4 text-left">
+              {/* Cloud Saved Progress Info */}
+              <div className="bg-[#0b1322] border border-cyan-500/20 rounded-2xl p-4 flex flex-col justify-between space-y-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-full uppercase tracking-wider text-center">
+                    Cloud Progress
+                  </span>
+                </div>
+                <div className="space-y-1.5 font-mono text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Defeats:</span>
+                    <span className="text-white font-black">🏆 {cloudSaveConflict.cloud.totalBossesDefeated || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Coins:</span>
+                    <span className="text-yellow-400 font-bold">{Math.floor(cloudSaveConflict.cloud.coins || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Gems:</span>
+                    <span className="text-sky-300 font-bold">💎 {cloudSaveConflict.cloud.gems || 0}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => applyCloudProgress(cloudSaveConflict.cloud)}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black font-mono text-xs rounded-xl cursor-pointer transition uppercase tracking-wider shadow-md shadow-cyan-500/20"
+                >
+                  Sync From Cloud
+                </button>
+              </div>
+
+              {/* Local Saved Progress Info */}
+              <div className="bg-slate-900/60 border border-slate-700/30 rounded-2xl p-4 flex flex-col justify-between space-y-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full uppercase tracking-wider text-center">
+                    Local Progress
+                  </span>
+                </div>
+                <div className="space-y-1.5 font-mono text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Defeats:</span>
+                    <span className="text-white font-black">🏆 {cloudSaveConflict.local.totalBossesDefeated || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Coins:</span>
+                    <span className="text-yellow-400 font-bold">{Math.floor(cloudSaveConflict.local.coins || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Gems:</span>
+                    <span className="text-sky-300 font-bold">💎 {cloudSaveConflict.local.gems || 0}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={resolveWithLocalProgress}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-black font-mono text-xs rounded-xl cursor-pointer transition uppercase tracking-wider border border-slate-700"
+                >
+                  Keep Local
+                </button>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-500 font-mono italic">
+              Warning: Choosing an option will overwrite the alternate progress storage.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* UNIVERSAL MOBILE TOUCH & DESKTOP HOVER TOOLTIP ENGINE */}
       <GlobalTouchTooltip />

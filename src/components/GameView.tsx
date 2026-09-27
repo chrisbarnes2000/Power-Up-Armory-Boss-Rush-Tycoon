@@ -5,6 +5,22 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
 
+// Combat Engine & Stat Calculation Utilities
+import {
+  getPowerupData,
+  getBossData,
+  getBossHP as getBossHPEngine,
+  getBossAttack as getBossAttackEngine,
+  getBossPowerReq as getBossPowerReqEngine,
+  getPassiveYield as getPassiveYieldEngine,
+  getTotalAttack as getTotalAttackEngine,
+  getTotalDefense as getTotalDefenseEngine,
+  getTotalSpeed as getTotalSpeedEngine,
+  getNormalMaxHP as getNormalMaxHPEngine,
+  getPowerScore as getPowerScoreEngine,
+  getCurrentReviveCost as getCurrentReviveCostEngine
+} from '../utils/combatEngine';
+
 // Modular Subcomponents
 import { TycoonBankrollCard } from './game/TycoonBankrollCard';
 import { BattleModal } from './game/BattleModal';
@@ -209,81 +225,29 @@ export function GameView({
     }
   };
 
-  // --- STATS & COMPUTATIONS ---
-  const getPowerupData = (id: string): PowerUp | undefined => POWERUPS.find(p => p.id === id);
-  const getBossData = (id: string): Boss | undefined => BOSSES.find(b => b.id === id);
+  // --- STATS & COMPUTATIONS (Delegated to combatEngine utility) ---
   const getBossState = (id: string): GameBossState | undefined => gameState.bosses.find(b => b.id === id);
 
-  const getBossHP = (bossId: string) => {
-    const boss = getBossData(bossId);
-    if (!boss) return 100;
-    return Math.floor(boss.baseHP + (gameState.totalBossesDefeated * 25));
-  };
+  const getBossHP = (bossId: string) => getBossHPEngine(bossId, gameState.totalBossesDefeated);
+  const getBossAttack = (bossId: string) => getBossAttackEngine(bossId, gameState.totalBossesDefeated);
+  const getBossPowerReq = (bossId: string) => getBossPowerReqEngine(bossId, gameState.totalBossesDefeated);
+  const getPassiveYield = () => getPassiveYieldEngine(gameState);
+  const getTotalAttack = () => getTotalAttackEngine(gameState);
+  const getTotalDefense = () => getTotalDefenseEngine(gameState);
+  const getTotalSpeed = () => getTotalSpeedEngine(gameState);
+  const getPowerScore = () => getPowerScoreEngine(gameState);
+  const getCurrentReviveCost = () => getCurrentReviveCostEngine(gameState);
 
-  const getBossAttack = (bossId: string) => {
-    const boss = getBossData(bossId);
-    if (!boss) return 10;
-    return Math.floor(boss.baseAttack + (gameState.totalBossesDefeated * 3));
-  };
-
-  const getBossPowerReq = (bossId: string) => {
-    const boss = getBossData(bossId);
-    if (!boss) return 0;
-    return Math.floor(boss.powerReq + (gameState.totalBossesDefeated * 10));
-  };
-
-  const getPassiveYield = () => {
-    let yieldPerSec = 0;
-    gameState.powerups.forEach(p => {
-      if (p.owned) {
-        const data = getPowerupData(p.id);
-        if (data) {
-          yieldPerSec += data.baseRate * p.quantity * (1 + (p.level - 1) * 0.5);
-        }
-      }
+  // Synchronize live player max HP & live player HP across state updates
+  const normalHP = getNormalMaxHPEngine(gameState);
+  useEffect(() => {
+    setLivePlayerMaxHP(normalHP);
+    setLivePlayerHP(prev => {
+      if (gameState.isDead) return 0;
+      if (prev === 0 || prev > normalHP) return normalHP;
+      return prev; // Retain current damaged HP (e.g. 76)
     });
-    return yieldPerSec;
-  };
-
-  const getTotalAttack = () => {
-    let atk = 10;
-    gameState.powerups.forEach(p => {
-      if (p.owned) {
-        const data = getPowerupData(p.id);
-        if (data) atk += data.attack * p.quantity * p.level;
-      }
-    });
-    if (gameState.damageBonusPercent) {
-      atk = Math.floor(atk * (1 + (gameState.damageBonusPercent / 100)));
-    }
-    return atk;
-  };
-
-  const getTotalDefense = () => {
-    let def = 5;
-    gameState.powerups.forEach(p => {
-      if (p.owned) {
-        const data = getPowerupData(p.id);
-        if (data) def += data.defense * p.quantity * p.level;
-      }
-    });
-    return def;
-  };
-
-  const getTotalSpeed = () => {
-    let spd = 10;
-    gameState.powerups.forEach(p => {
-      if (p.owned) {
-        const data = getPowerupData(p.id);
-        if (data) spd += data.speed * p.quantity * p.level;
-      }
-    });
-    return spd;
-  };
-
-  const getPowerScore = () => {
-    return Math.floor(getTotalAttack() * 1.5 + getTotalDefense() * 1.2 + getTotalSpeed() * 0.8);
-  };
+  }, [normalHP, gameState.isDead]);
 
   const getPackUnits = (itemId: string, packType: string): number => {
     if (packType.includes('10')) return 10;
@@ -391,20 +355,6 @@ export function GameView({
     addLog(`⚡ Upgraded ${data.emoji} ${data.id} to Level ${ps.level + 1}!`, 'log-buff');
   };
 
-  // --- GAME BALANCE & REVIVE HELPERS ---
-  const getCurrentReviveCost = () => {
-    const config = gameState.balanceConfig || {
-      baseReviveCost: 100,
-      reviveCostMultiplier: 1.5,
-      goldDropChance: 70,
-      gemDropChance: 35,
-      goldMultiplier: 1.0,
-      gemMultiplier: 1.0
-    };
-    const revives = gameState.reviveCount || 0;
-    return Math.floor(config.baseReviveCost * Math.pow(config.reviveCostMultiplier, revives));
-  };
-
   // --- BATTLE CYCLE ---
   const fightBoss = (bossId: string) => {
     if (isFighting) return;
@@ -433,6 +383,17 @@ export function GameView({
     setIsFighting(true);
     setActiveBossId(bossId);
     setIsBattleModalOpen(true);
+
+    // Reset pre-fight upgrade counters for the new fight round
+    setGameState(prev => {
+      const next = {
+        ...prev,
+        hpUpgradesInCurrentFightCount: 0,
+        dmgUpgradesInCurrentFightCount: 0
+      };
+      saveState(next);
+      return next;
+    });
 
     let bossHP = getBossHP(bossId);
     const bossAtk = getBossAttack(bossId);

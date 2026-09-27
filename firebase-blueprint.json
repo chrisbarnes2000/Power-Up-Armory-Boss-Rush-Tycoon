@@ -46,6 +46,10 @@
           "type": "boolean",
           "description": "Whether the player has administrator access privileges."
         },
+        "isArmoryStoreEnabled": {
+          "type": "boolean",
+          "description": "Whether the player has custom enablement/access to the checkout-based Armory Store."
+        },
         "updatedAt": {
           "type": "string",
           "description": "Last updated timestamp."
@@ -96,6 +100,74 @@
         }
       },
       "required": ["userId", "name", "score", "bosses", "coins"]
+    },
+    "UserProgress": {
+      "title": "User Progress",
+      "description": "Complete player progress backup, currency ledger, active power-up loadouts, and defeat logs.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The owner's Firebase Auth UID.",
+          "maxLength": 128
+        },
+        "coins": {
+          "type": "number"
+        },
+        "gems": {
+          "type": "number"
+        },
+        "maxHpBonus": {
+          "type": "number"
+        },
+        "damageBonusPercent": {
+          "type": "number"
+        },
+        "powerups": {
+          "type": "array"
+        },
+        "bosses": {
+          "type": "array"
+        },
+        "totalBossesDefeated": {
+          "type": "number"
+        },
+        "purchasedCodes": {
+          "type": "array"
+        },
+        "bossKillStats": {
+          "type": "object"
+        },
+        "bossDeathStats": {
+          "type": "object"
+        },
+        "customStories": {
+          "type": "array"
+        },
+        "reviveCount": {
+          "type": "number"
+        },
+        "revivePacks": {
+          "type": "number"
+        },
+        "completedTours": {
+          "type": "object"
+        },
+        "baseAttack": {
+          "type": "number"
+        },
+        "baseDefense": {
+          "type": "number"
+        },
+        "baseSpeed": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId"]
     }
   },
   "firestore": {
@@ -106,6 +178,10 @@
     "/leaderboard/{userId}": {
       "schema": "LeaderboardEntry",
       "description": "Global Hall of Champions records viewable by everyone and updatable by the authenticated player."
+    },
+    "/user_progress/{userId}": {
+      "schema": "UserProgress",
+      "description": "Comprehensive private progress backup, providing cross-device synchronization and safety backups."
     }
   }
 }

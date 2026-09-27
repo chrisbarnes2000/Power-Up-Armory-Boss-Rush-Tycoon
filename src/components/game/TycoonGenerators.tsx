@@ -123,32 +123,29 @@ export const TycoonGenerators: React.FC<TycoonGeneratorsProps> = ({
               const nextUpgradeCost = Math.floor(data.upgradeCost * ps.level * 1.5);
               const nextBuyCostGems = Math.max(15, Math.floor(((data.upgradeCost * (1 + (ps.quantity * 0.25))) / 10) * 3));
               const unlockCostGems = Math.max(15, Math.floor((data.upgradeCost / 10) * 3));
+              const itemTooltipText = `✦ ${data.id} [${data.rarity}]\n"${data.description}"\n✨ Effect: ${data.effect}${data.special ? `\n⚡ Special: ${data.special}` : ''}`;
 
               return (
                 <div 
                   key={ps.id} 
-                  className="group relative overflow-visible bg-linear-to-b from-[#1a2440] to-[#111a2e] border border-[#2a3d60] rounded-2xl p-4.5 shadow-lg flex flex-col justify-between hover:border-blue-500/40 transition"
+                  className="relative overflow-visible bg-linear-to-b from-[#1a2440] to-[#111a2e] border border-[#2a3d60] rounded-2xl p-4.5 shadow-lg flex flex-col justify-between hover:border-blue-500/40 transition"
                 >
-                  {/* Tooltip on Hover */}
-                  <div className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 scale-90 bg-linear-to-b from-[#121c32] to-[#0c1322] border border-[#304d7c] rounded-2xl p-4 w-72 text-[#b0c8e8] text-xs leading-relaxed shadow-[0_12px_40px_rgba(0,0,0,0.85),inset_0_0_0_1px_#2a4068] opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-[100] text-center">
-                    <div className="font-mono text-xs text-[#f5e56b] font-extrabold uppercase tracking-wider mb-1.5">✦ {data.id}</div>
-                    <span 
-                      className="text-xs uppercase font-bold tracking-widest block mb-1.5" 
-                      style={{ color: RARITY_COLORS[data.rarity] || '#8a9aaa' }}
-                    >
-                      {data.rarity}
-                    </span>
-                    <p className="text-slate-300 italic mb-2">"{data.description}"</p>
-                    <div className="border-t border-white/5 pt-1.5 mt-1.5 text-left space-y-1">
-                      <div><span className="text-white font-bold">✨ Effect:</span> {data.effect}</div>
-                      {data.special && <div><span className="text-amber-400 font-bold">⚡ Special:</span> {data.special}</div>}
-                    </div>
-                  </div>
-
                   <div>
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <span className="text-3xl">{data.emoji}</span>
-                      <span className="text-sm font-extrabold text-[#d0e0ff] truncate">{ps.owned ? ps.id : '🔒 Locked'}</span>
+                    <div 
+                      tabIndex={0}
+                      role="button"
+                      data-tooltip={itemTooltipText}
+                      className="flex items-center justify-between gap-2 mb-2.5 cursor-help group/header select-none outline-none focus:ring-1 focus:ring-blue-400 rounded-lg p-0.5"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-3xl shrink-0">{data.emoji}</span>
+                        <span className="text-sm font-extrabold text-[#d0e0ff] truncate group-hover/header:text-[#7ae0ff] transition-colors">
+                          {ps.owned ? ps.id : '🔒 Locked'}
+                        </span>
+                      </div>
+                      <span className="text-slate-400 group-hover/header:text-amber-300 text-xs shrink-0 font-bold px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10" title="Inspect Item">
+                        ⓘ
+                      </span>
                     </div>
 
                     <div className="text-xs text-slate-300 space-y-1.5 mb-4">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GameState, PurchaseRecord } from '../../types';
 import { POWERUPS } from '../../data';
 import { CoinIcon } from '../CoinIcon';
-import { getPackUnits } from '../ShopView';
+import { getPackUnits } from '../../utils/shopUtils';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 

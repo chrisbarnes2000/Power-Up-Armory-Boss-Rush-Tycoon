@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExternalLink, ShieldCheck, Sparkles, Terminal, FileText, Globe, Heart } from 'lucide-react';
+import { APP_CONFIG } from '../config/appConfig';
 
 interface FooterProps {
   onNavigate: (view: 'Shop' | 'Game' | 'Stats' | 'Lore') => void;
@@ -32,22 +33,22 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Proud Partner of RapportVerse
+                  Proud Partner of {APP_CONFIG.partner.name}
                 </span>
                 <span className="text-[10px] font-mono text-indigo-300 bg-indigo-900/60 px-2 py-0.5 rounded border border-indigo-400/30">
                   Affiliated
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 leading-normal">
-                Visual human relationship mapping, qualitative trust topology, and neurodiversity-affirming connection architecture.
+                {APP_CONFIG.partner.description}
               </p>
               <a
-                href="https://rapprt.space"
+                href={APP_CONFIG.partner.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors w-fit group"
               >
-                <span>Visit RapportVerse (rapprt.space)</span>
+                <span>Visit {APP_CONFIG.partner.name} ({APP_CONFIG.partner.url.replace(/^https?:\/\//, '')})</span>
                 <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
             </div>
@@ -228,18 +229,18 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
         <div className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-center sm:text-left">
             <span>
-              &copy; {currentYear} <strong>Power-Up Armory</strong>. All rights reserved.
+              &copy; {currentYear} <strong>{APP_CONFIG.appName}</strong>. All rights reserved.
             </span>
             <span className="hidden sm:inline text-slate-600">|</span>
             <span>
               Affiliated & Powered by{' '}
               <a
-                href="https://rapprt.space"
+                href={APP_CONFIG.partner.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 transition"
               >
-                RapportVerse (https://rapprt.space)
+                {APP_CONFIG.partner.name} ({APP_CONFIG.partner.url})
               </a>
             </span>
           </div>
@@ -249,7 +250,7 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount }: Footer
               Built with <Heart className="w-3 h-3 text-red-500 inline fill-red-500" /> for Champions
             </span>
             <span className="text-slate-600">•</span>
-            <span className="font-mono text-[11px] text-slate-400">v1.2.3</span>
+            <span className="font-mono text-[11px] text-slate-400">{APP_CONFIG.versionTag}</span>
           </div>
         </div>
       </div>

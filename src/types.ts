@@ -38,6 +38,14 @@ export interface PurchaseItem {
   emoji: string;
 }
 
+export interface TempPayloadItem {
+  id: string;
+  qty: number;
+  emoji: string;
+  pack?: string;
+  price?: number;
+}
+
 export interface PurchaseRecord {
   code: string;
   items: PurchaseItem[];
@@ -80,6 +88,7 @@ export interface UserProfile {
   totalBossesDefeated?: number;
   coins?: number;
   isAdmin?: boolean;
+  isArmoryStoreEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -108,6 +117,7 @@ export interface GameBalanceConfig {
   gemDropChance: number;        // Chance % for boss to drop gems (0 - 100)
   goldMultiplier: number;       // Gold yield multiplier (e.g. 1.0)
   gemMultiplier: number;        // Gem yield multiplier (e.g. 1.0)
+  permUpgradeLimitPerFight?: number; // Limit of each perm upgrade between fights (e.g. 3)
 }
 
 export interface GameState {
@@ -132,4 +142,19 @@ export interface GameState {
   reviveCount?: number;
   revivePacks?: number;
   balanceConfig?: GameBalanceConfig;
+
+  // Completed Tour Rewards Tracking (One-time payouts)
+  completedTours?: {
+    short?: boolean;
+    full?: boolean;
+  };
+
+  // Pre-fight upgrade counters (Tracked between boss fights)
+  hpUpgradesInCurrentFightCount?: number;
+  dmgUpgradesInCurrentFightCount?: number;
+
+  // Base Character Stats Override (allows true 0 PS / 0 Armor resets)
+  baseAttack?: number;
+  baseDefense?: number;
+  baseSpeed?: number;
 }

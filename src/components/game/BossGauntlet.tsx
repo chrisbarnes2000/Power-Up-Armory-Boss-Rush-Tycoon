@@ -2,6 +2,7 @@ import React from 'react';
 import { CoinIcon } from '../CoinIcon';
 import { GameState, Boss, GameBossState, BattleLogEntry } from '../../types';
 import { BOSSES } from '../../data';
+import { PreFightCoinShop } from './PreFightCoinShop';
 
 export interface BossGauntletProps {
   gameState: GameState;
@@ -213,69 +214,12 @@ export const BossGauntlet: React.FC<BossGauntletProps> = ({
       <div className="lg:col-span-4 flex flex-col gap-4">
         
         {/* PRE-FIGHT COIN BOOSTS STORE */}
-        <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 flex flex-col">
-          <h3 className="font-mono text-xs text-[#f5e56b] uppercase font-bold tracking-wider mb-2 border-b border-white/5 pb-2 flex items-center gap-1.5">⚡ PRE-FIGHT COIN SHOP</h3>
-          <p className="text-xs text-slate-400 mb-3 leading-relaxed">Upgrade your health or acquire one-off combat boosts using Gold!</p>
-          
-          <div className="space-y-2">
-            <button
-              onClick={() => {
-                if (gameState.coins >= 250) {
-                  setGameState(prev => {
-                    const next = {
-                      ...prev,
-                      coins: prev.coins - 250,
-                      maxHpBonus: (prev.maxHpBonus || 0) + 25
-                    };
-                    saveState(next);
-                    return next;
-                  });
-                  addLog(`💖 Purchased HP Shield (+25 Max HP Permanent)! Current Bonus: +${(gameState.maxHpBonus || 0) + 25} HP`, 'log-heal');
-                } else {
-                  addLog(`❌ Not enough coins! HP Shield costs 250 Coins.`, 'log-defeat');
-                }
-              }}
-              className="w-full flex items-center justify-between p-2 rounded-lg bg-[#141c30] hover:bg-[#1a2a4c] border border-[#2a4060] transition cursor-pointer text-left text-xs text-slate-200"
-            >
-              <span>💖 Max HP Shield (+25 HP)</span>
-              <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
-                <span>250</span>
-                <CoinIcon className="w-3.5 h-3.5" />
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (gameState.coins >= 300) {
-                  setGameState(prev => {
-                    const next = {
-                      ...prev,
-                      coins: prev.coins - 300,
-                      damageBonusPercent: (prev.damageBonusPercent || 0) + 5
-                    };
-                    saveState(next);
-                    return next;
-                  });
-                  addLog(`⚔️ Purchased Combat Tonic (+5% DMG Permanent)! Current Bonus: +${(gameState.damageBonusPercent || 0) + 5}% DMG`, 'log-buff');
-                } else {
-                  addLog(`❌ Not enough coins! Combat Tonic costs 300 Coins.`, 'log-defeat');
-                }
-              }}
-              className="w-full flex items-center justify-between p-2 rounded-lg bg-[#141c30] hover:bg-[#1a2a4c] border border-[#2a4060] transition cursor-pointer text-left text-xs text-slate-200"
-            >
-              <span>🔥 Combat Tonic (+5% Damage)</span>
-              <span className="font-mono text-[#f5e56b] font-extrabold bg-[#0a0f1d] px-2 py-0.5 rounded border border-[#f5e56b]/20 flex items-center gap-1">
-                <span>300</span>
-                <CoinIcon className="w-3.5 h-3.5" />
-              </span>
-            </button>
-          </div>
-
-          <div className="flex gap-2 justify-between border-t border-white/5 pt-2 mt-3 text-xs font-mono text-slate-400">
-            <span>🛡️ HP Boost: +{gameState.maxHpBonus || 0}</span>
-            <span>⚔️ DMG Boost: +{gameState.damageBonusPercent || 0}%</span>
-          </div>
-        </div>
+        <PreFightCoinShop
+          gameState={gameState}
+          setGameState={setGameState}
+          saveState={saveState}
+          addLog={addLog}
+        />
 
         {/* BATTLE RECORD CONTAINER */}
         <div id="boss-combat-log" className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 flex flex-col justify-between h-[380px]">

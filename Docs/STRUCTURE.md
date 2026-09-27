@@ -38,18 +38,29 @@ Power-Up Armory & RapportVerse Ecosystem Architecture
 │   ├── 404.html                # Standalone Not Found error page
 │   └── 500.html                # Standalone Server Error page
 ├── /src/
+│   ├── /config/
+│   │   └── appConfig.ts        # Centralized application configuration (version, release, branding, partnership)
+│   ├── /data/
+│   │   └── tourSteps.ts        # Express 5-Step & Grand 20-Step walkthrough step configurations
 │   ├── /components/            # UI Components and views
-│   │   ├── ShopView.tsx        # Armory Storefront, bulk pack discounts & dynamic checkout
+│   │   ├── /admin/             # Modular admin console subcomponents
+│   │   ├── /game/              # Boss Rush gauntlet, tycoon & leaderboard subcomponents
+│   │   ├── /tour/              # Interactive onboarding walkthrough subcomponents
+│   │   ├── /account/           # Modular profile stats, guest auth & local data reset options
+│   │   ├── /shop/              # Modular shopping carts, navigation bars, and item card subcomponents
+│   │   ├── ShopView.tsx        # Armory Storefront orchestrator, coordinating cart and grids
 │   │   ├── GameView.tsx        # Real-time Boss Rush gauntlet, tycoon mining & key redemption
 │   │   ├── LoreBookView.tsx    # Interactive Lore Book, boss profiles & gear compendium
 │   │   ├── AdminModal.tsx      # Admin panel for debugging, score resets & telemetry
-│   │   ├── AccountModal.tsx    # Firebase Auth, login/register & cloud sync modal
-│   │   ├── GuidedTour.tsx      # 20-Step comprehensive interactive system walkthrough
+│   │   ├── AccountModal.tsx    # Profile coordinator orchestrating logins and cloud data syncing
+│   │   ├── GuidedTour.tsx      # Interactive walkthrough orchestrator shell
 │   │   ├── FontScaleControl.tsx# Accessibility font scalar controls
 │   │   └── Footer.tsx          # Global ecosystem footer with RapportVerse partnership & copyright
 │   ├── /lib/
 │   │   └── firebase.ts         # Firebase Auth and Firestore configuration & error handlers
 │   ├── /utils/
+│   │   ├── combatEngine.ts     # Centralized combat turn, damage mitigation & boss scaling calculators
+│   │   ├── shopUtils.ts        # Shared pack calculators, greedy optimizations, and bridge key encoders
 │   │   ├── generateDocs.ts     # Automated static lore book markdown generator
 │   │   └── markdownExporter.ts # Markdown builders & client-side ZIP packaging engine
 │   ├── App.tsx                 # Central React entry point, auth listener & route switcher
@@ -58,10 +69,10 @@ Power-Up Armory & RapportVerse Ecosystem Architecture
 │   ├── types.ts                # TypeScript domain types, models & interfaces
 │   ├── main.tsx                # React DOM render root
 │   └── index.css               # Global Tailwind CSS imports
-├── index.html                  # HTML5 entry with favicons, OpenGraph & JSON-LD
-├── package.json                # Project script configuration & dependencies
-├── vite.config.ts              # Vite bundling configuration
-├── tsconfig.json               # TypeScript strict compiler options
-├── firestore.rules             # Cloud Firestore security rules
+│   index.html                  # HTML5 entry with favicons, OpenGraph & JSON-LD
+│   package.json                # Project script configuration & dependencies
+│   vite.config.ts              # Vite bundling configuration
+│   tsconfig.json               # TypeScript strict compiler options
+│   firestore.rules             # Cloud Firestore security rules
 └── metadata.json               # Platform metadata and frame permissions
 ```

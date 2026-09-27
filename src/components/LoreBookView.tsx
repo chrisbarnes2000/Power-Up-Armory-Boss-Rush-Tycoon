@@ -218,25 +218,16 @@ export default function LoreBookView({
           </div>
         </div>
 
-        {/* Quick action buttons to jump back into game/shop & download Markdown */}
+        {/* Quick action buttons to jump back into game/shop */}
         <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-          <button
-            onClick={handleDownloadAllZip}
-            disabled={isExportingZip}
-            className="text-xs text-amber-300 font-bold uppercase tracking-wider bg-amber-950/40 border border-amber-500/40 px-3.5 py-1.5 rounded-[30px] hover:bg-amber-900/60 hover:border-amber-400 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-            title="Download the entire Lore Book and Item Compendium as a zip of Markdown (.md) files"
-          >
-            <span>{isExportingZip ? '⏳' : '📥'}</span>
-            <span>{isExportingZip ? 'Bundling...' : 'Download Markdown Site (.zip)'}</span>
-          </button>
-
-          {onNavigateToShop && (
+          {onNavigateToGame && (
             <button
-              onClick={onNavigateToShop}
+              onClick={() => onNavigateToGame('tycoon')}
               className="text-xs text-[#7ae0ff] font-bold uppercase tracking-wider bg-[#141c30] border border-[#2a4060] px-3 py-1.5 rounded-[30px] hover:bg-[#1a2a4c] transition cursor-pointer flex items-center gap-1"
+              title="Navigate to Tycoon upgrades and mining"
             >
               <span>🏪</span>
-              <span>Shop</span>
+              <span>Tycoon Shop</span>
             </button>
           )}
           {onNavigateToGame && (
@@ -975,16 +966,6 @@ export default function LoreBookView({
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={handleDownloadAllZip}
-                disabled={isExportingZip}
-                className="text-xs font-bold text-amber-300 bg-amber-950/40 border border-amber-500/40 hover:bg-amber-900/60 px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0"
-                title="Download all items and lore documents as a Markdown zip"
-              >
-                <span>📥</span>
-                <span>Export Markdown Site</span>
-              </button>
-
               <input
                 type="text"
                 value={compendiumSearch}
@@ -1202,6 +1183,23 @@ export default function LoreBookView({
                   Edit <code className="text-white bg-black/40 px-1 py-0.5 rounded">src/loreData.ts</code> in the <code className="text-cyan-300">ITEM_LORES</code> array to modify ancient mythos, forging logs, and boss tactical counters.
                 </p>
               </div>
+            </div>
+
+            {/* RELOCATED ZIP DOWNLOAD TRIGGER */}
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span className="text-white font-bold block text-xs sm:text-sm">📥 Export All Item Lore & Chronicles</span>
+                <span className="text-slate-400 text-[11px] sm:text-xs">Bundle the entire structured Markdown Tome into a single offline-compatible zip archive.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDownloadAllZip}
+                disabled={isExportingZip}
+                className="px-4 py-2 bg-linear-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-md inline-flex items-center gap-1.5 shrink-0"
+              >
+                <span>{isExportingZip ? '⏳' : '📦'}</span>
+                <span>{isExportingZip ? 'Exporting...' : 'Download Markdown Site (.zip)'}</span>
+              </button>
             </div>
           </div>
 

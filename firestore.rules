@@ -43,7 +43,8 @@ service cloud.firestore {
         (!('powerScore' in data) || (data.powerScore is number)) &&
         (!('totalBossesDefeated' in data) || (data.totalBossesDefeated is number)) &&
         (!('coins' in data) || (data.coins is number)) &&
-        (!('isAdmin' in data) || (data.isAdmin is bool));
+        (!('isAdmin' in data) || (data.isAdmin is bool)) &&
+        (!('isArmoryStoreEnabled' in data) || (data.isArmoryStoreEnabled is bool));
     }
 
     function isValidLeaderboard(data, userId) {
@@ -60,12 +61,43 @@ service cloud.firestore {
         (!('title' in data) || (data.title is string && data.title.size() <= 64));
     }
 
+    function isValidProgress(data, userId) {
+      return data.userId == userId &&
+        (!('coins' in data) || (data.coins is number)) &&
+        (!('gems' in data) || (data.gems is number)) &&
+        (!('maxHpBonus' in data) || (data.maxHpBonus is number)) &&
+        (!('damageBonusPercent' in data) || (data.damageBonusPercent is number)) &&
+        (!('powerups' in data) || (data.powerups is list)) &&
+        (!('bosses' in data) || (data.bosses is list)) &&
+        (!('totalBossesDefeated' in data) || (data.totalBossesDefeated is number)) &&
+        (!('purchasedCodes' in data) || (data.purchasedCodes is list)) &&
+        (!('bossKillStats' in data) || (data.bossKillStats is map)) &&
+        (!('bossDeathStats' in data) || (data.bossDeathStats is map)) &&
+        (!('customStories' in data) || (data.customStories is list)) &&
+        (!('reviveCount' in data) || (data.reviveCount is number)) &&
+        (!('revivePacks' in data) || (data.revivePacks is number)) &&
+        (!('completedTours' in data) || (data.completedTours is map)) &&
+        (!('baseAttack' in data) || (data.baseAttack is number)) &&
+        (!('baseDefense' in data) || (data.baseDefense is number)) &&
+        (!('baseSpeed' in data) || (data.baseSpeed is number)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
     // User Profile Documents
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidUser(incoming(), userId);
       allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidUser(incoming(), userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // User Game Progress
+    match /user_progress/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidProgress(incoming(), userId);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidProgress(incoming(), userId);
       allow delete: if isOwner(userId) || isAdmin();
     }
 
