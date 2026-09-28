@@ -17,6 +17,9 @@ import { GameState, LeaderboardEntry, UserProfile } from './types';
 import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore, DEFAULT_STARTER_BASELINE_STATE, clearAllLocalUserData } from './data';
 import { initAnalytics, trackPageView, trackUserIdentify, trackUserLogout, trackEvent, isDevWorkspace } from './lib/analytics';
 import CookieConsentBanner from './components/common/CookieConsentBanner';
+import ChangelogModal from './components/ChangelogModal';
+import { APP_VERSION } from './version';
+import { getIsBetaTester, setBetaTesterMode } from './lib/remoteConfig';
 
 const DEFAULT_STATE: GameState = DEFAULT_STARTER_BASELINE_STATE;
 
@@ -63,11 +66,27 @@ export default function App() {
   const [isTourActive, setIsTourActive] = useState(false);
 
   // Controlled sub-tabs across pages
-  const [controlledLoreTab, setControlledLoreTab] = useState<'compendium' | 'bosses' | 'systems' | 'calculator' | 'story'>('compendium');
+  const [controlledLoreTab, setControlledLoreTab] = useState<'compendium' | 'chronicles' | 'legend' | 'bestiary'>('compendium');
+  const [initialLoreChronicleMode, setInitialLoreChronicleMode] = useState<'canonical' | 'living'>('canonical');
   const [controlledShopCategory, setControlledShopCategory] = useState<'weapons' | 'defense' | 'utility' | 'mystic'>('weapons');
   const [controlledGameTab, setControlledGameTab] = useState<'tycoon' | 'bosses' | 'stats'>('tycoon');
   const [isShopCartDrawerOpen, setIsShopCartDrawerOpen] = useState(false);
   const [isPWAInstallOpen, setIsPWAInstallOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isBeta, setIsBeta] = useState(getIsBetaTester());
+
+  // Automatically prompt changelog if version has changed
+  useEffect(() => {
+    const lastSeenVersion = localStorage.getItem('armory_last_seen_version');
+    if (lastSeenVersion !== APP_VERSION) {
+      // Small delay to let the initial view settle
+      const timer = setTimeout(() => {
+        setIsChangelogOpen(true);
+        localStorage.setItem('armory_last_seen_version', APP_VERSION);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Synchronize active view and sub tabs to a given tour step
   const handleTourStepChange = useCallback((step: TourStep) => {
@@ -849,7 +868,7 @@ export default function App() {
       {/* GLOBAL NAVBAR - STICKY 2-TIER HEADER */}
       <header 
         id="global-navbar" 
-        className="sticky top-0 z-50 flex flex-col border-b border-white/10 bg-[#0a0e1a] shadow-2xl shadow-black/80 w-full max-w-full box-border"
+        className="sticky top-0 z-mid flex flex-col border-b border-white/10 bg-[#0a0e1a] shadow-2xl shadow-black/80 w-full max-w-full box-border"
       >
         {/* Tier 1: Brand & Top Utility Controls (Accessibility, Tour, Account, Admin, Cloud Status) */}
         <div className="w-full flex items-center justify-between px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 border-b border-white/5 bg-[#0a0e1a]">
@@ -1036,6 +1055,20 @@ export default function App() {
                   <span>⚔️</span>
                   <span>Bosses</span>
                 </button>
+                <button 
+                  id="game-tab-saga"
+                  onClick={() => {
+                    setActiveView('Lore');
+                    setControlledLoreTab('chronicles');
+                    setInitialLoreChronicleMode('living');
+                  }}
+                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                    controlledLoreTab === 'chronicles' ? 'bg-purple-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                  }`}
+                >
+                  <span>📜</span>
+                  <span>Living Saga</span>
+                </button>
               </div>
             )}
           </div>
@@ -1112,6 +1145,7 @@ export default function App() {
               setActiveView(tab === 'stats' ? 'Stats' : 'Game');
               if (tab) setControlledGameTab(tab);
             }}
+            initialChronicleMode={initialLoreChronicleMode}
           />
         )}
       </main>
@@ -1125,6 +1159,20 @@ export default function App() {
         onOpenTour={startTour}
         onOpenAccount={() => setIsAccountOpen(true)}
         onOpenInstall={() => setIsPWAInstallOpen(true)}
+        onOpenChangelog={() => setIsChangelogOpen(true)}
+      />
+
+      {/* DYNAMIC CHANGELOG & UPDATES */}
+      <ChangelogModal
+        isOpen={isChangelogOpen}
+        onClose={() => setIsChangelogOpen(false)}
+        isAdmin={isAdmin}
+        user={currentUser}
+        isBeta={isBeta}
+        onToggleBeta={(enabled) => {
+          setIsBeta(enabled);
+          setBetaTesterMode(enabled);
+        }}
       />
 
       {/* ADMINISTRATIVE OVERLAY */}

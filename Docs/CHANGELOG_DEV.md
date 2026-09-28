@@ -4,6 +4,21 @@
 
 ---
 
+## [v1.3.1-dev.1] — 2026-09-27
+
+### Engineering Actions
+- **Roadmap & Analytics Integration (`src/components/ChangelogModal.tsx`, `src/lib/analytics.ts`)**:
+    - Integrated `trackEvent` for roadmap voting and feedback submission.
+    - Implemented `trackPageView` for modal tab navigation (Public, Dev, Roadmap, Beta).
+    - Bumped roadmap storage key to `v4` for definitive cross-user vote reset and cache clearing.
+- **Architectural Cleanup & Security (`src/components/ChangelogModal.tsx`, `src/vite-env.d.ts`)**:
+    - Implemented strict opt-in gating for the "Dev Logs" tab via the "Tester Mode" beta flag.
+    - Suppressed redundant `404` network broadcast errors in the Admin Nexus to reduce UI console noise.
+    - Added `vite-env.d.ts` with global raw module declarations to resolve TypeScript import errors for `.md?raw` files.
+- **UI Component Refinement (`src/components/changelog/`)**:
+    - Synchronized feedback chips with project milestones: `Co-Op Mode`, `Elemental Weapons`, `World Bosses`, `Achievements`, and `The Forge`.
+    - Applied high-fidelity glassmorphism and interactive glows to roadmap card components.
+
 ## [v1.3.0-dev.7] — 2026-09-27
 
 ### Engineering Actions

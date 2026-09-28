@@ -33,7 +33,7 @@ export const StatWarningModal: React.FC<StatWarningModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div className="bg-linear-to-b from-[#1c1220] via-[#141829] to-[#0c101d] border-2 border-amber-500/60 rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] relative text-white space-y-5 overflow-hidden">
         
         {/* Top Glow Background */}

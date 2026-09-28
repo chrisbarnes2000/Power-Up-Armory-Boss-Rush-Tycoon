@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CoinIcon } from '../CoinIcon';
 import { GameState, PowerUp } from '../../types';
 
@@ -68,8 +68,95 @@ export const TycoonGenerators: React.FC<TycoonGeneratorsProps> = ({
   onBuyPowerupInGame,
   getPowerupData
 }) => {
+  // Track failed attempts per item action: format `upgrade-${ps.id}` or `buy-${ps.id}`
+  const [failedAttempts, setFailedAttempts] = useState<Record<string, number>>({});
+  
+  // Track toasts
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'coins' | 'gems' }[]>([]);
+
+  // Show a toast message and automatically dismiss it after 4 seconds
+  const triggerToast = (message: string, type: 'coins' | 'gems') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const handleUpgradeClick = (id: string, name: string, emoji: string, cost: number) => {
+    const key = `upgrade-${id}`;
+    const attempts = failedAttempts[key] || 0;
+    
+    if (attempts >= 3) {
+      triggerToast(`⚠️ Button disabled! Maximum failed upgrade attempts (3) reached for ${emoji} ${name}.`, 'coins');
+      return;
+    }
+
+    if (gameState.coins < cost) {
+      const nextAttempts = attempts + 1;
+      setFailedAttempts(prev => ({ ...prev, [key]: nextAttempts }));
+      triggerToast(`❌ Insufficient Coins! ${emoji} ${name} Level Up costs ${cost} Coins. (Attempt ${nextAttempts}/3)`, 'coins');
+      return;
+    }
+
+    // Success! Clear attempts if any, then run action
+    if (attempts > 0) {
+      setFailedAttempts(prev => ({ ...prev, [key]: 0 }));
+    }
+    onUpgradePowerupLevel(id);
+  };
+
+  const handleBuyClick = (id: string, name: string, emoji: string, cost: number) => {
+    const key = `buy-${id}`;
+    const attempts = failedAttempts[key] || 0;
+    
+    if (attempts >= 3) {
+      triggerToast(`⚠️ Button disabled! Maximum failed purchase attempts (3) reached for ${emoji} ${name}.`, 'gems');
+      return;
+    }
+
+    if ((gameState.gems || 0) < cost) {
+      const nextAttempts = attempts + 1;
+      setFailedAttempts(prev => ({ ...prev, [key]: nextAttempts }));
+      triggerToast(`❌ Insufficient Gems! ${emoji} ${name} costs ${cost} Gems 💎. (Attempt ${nextAttempts}/3)`, 'gems');
+      return;
+    }
+
+    // Success! Clear attempts if any, then run action
+    if (attempts > 0) {
+      setFailedAttempts(prev => ({ ...prev, [key]: 0 }));
+    }
+    onBuyPowerupInGame(id);
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Dynamic Toast Notifications Overlays */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto p-4 rounded-xl border shadow-2xl flex items-center gap-3 animate-bounce transition-all duration-300 ${
+              toast.type === 'coins'
+                ? 'bg-[#1e1515] border-red-500/40 text-red-200'
+                : 'bg-[#151724] border-purple-500/40 text-purple-200'
+            }`}
+          >
+            <span className="text-lg">{toast.type === 'coins' ? '🪙' : '💎'}</span>
+            <div className="flex-1 text-xs font-semibold leading-relaxed">
+              {toast.message}
+            </div>
+            <button
+              onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+              className="text-white/40 hover:text-white transition ml-auto text-sm shrink-0 font-bold p-1 hover:bg-white/10 rounded cursor-pointer"
+              title="Close notification"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* MANUAL MINING & ACTIVE ORE CLICKER */}
       <div id="tycoon-mine-container" className="bg-linear-to-r from-[#142038] via-[#1a2b4c] to-[#121c32] border border-[#2a4570] rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
         <div className="space-y-1">
@@ -166,12 +253,14 @@ export const TycoonGenerators: React.FC<TycoonGeneratorsProps> = ({
                     {ps.owned ? (
                       <>
                         <button 
-                          disabled={ps.level >= data.maxLevel}
-                          onClick={() => onUpgradePowerupLevel(ps.id)}
-                          className="w-full text-xs py-2 rounded-lg border border-[#2a4060] bg-black/40 text-[#aac0e0] font-bold hover:bg-[#2a4060] hover:text-white transition disabled:opacity-30 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                          disabled={ps.level >= data.maxLevel || (failedAttempts[`upgrade-${ps.id}`] || 0) >= 3}
+                          onClick={() => handleUpgradeClick(ps.id, data.id, data.emoji, nextUpgradeCost)}
+                          className="w-full text-xs py-2 rounded-lg border border-[#2a4060] bg-black/40 text-[#aac0e0] font-bold hover:bg-[#2a4060] hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                         >
                           {ps.level >= data.maxLevel ? (
                             <span>MAX LEVEL</span>
+                          ) : (failedAttempts[`upgrade-${ps.id}`] || 0) >= 3 ? (
+                            <span className="text-red-400 font-extrabold uppercase tracking-wide">BLOCKED (3 FAILS)</span>
                           ) : (
                             <span className="flex items-center gap-1">
                               <span>Lv. Up ({nextUpgradeCost}</span>
@@ -181,19 +270,29 @@ export const TycoonGenerators: React.FC<TycoonGeneratorsProps> = ({
                           )}
                         </button>
                         <button 
-                          onClick={() => onBuyPowerupInGame(ps.id)}
-                          className="w-full text-xs py-2 rounded-lg bg-orange-600 hover:bg-orange-500 font-bold text-white transition cursor-pointer"
+                          disabled={(failedAttempts[`buy-${ps.id}`] || 0) >= 3}
+                          onClick={() => handleBuyClick(ps.id, data.id, data.emoji, nextBuyCostGems)}
+                          className="w-full text-xs py-2 rounded-lg bg-orange-600 hover:bg-orange-500 font-bold text-white transition disabled:opacity-30 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          +1 Copy (${nextBuyCostGems} 💎)
+                          {(failedAttempts[`buy-${ps.id}`] || 0) >= 3 ? (
+                            <span className="text-slate-500 font-extrabold uppercase tracking-wide">BLOCKED (3 FAILS)</span>
+                          ) : (
+                            <span>+1 Copy (${nextBuyCostGems} 💎)</span>
+                          )}
                         </button>
                         <div className="text-xs text-center text-slate-300 font-bold">x{ps.quantity} Owned • Level {ps.level}</div>
                       </>
                     ) : (
                       <button 
-                        onClick={() => onBuyPowerupInGame(ps.id)}
-                        className="w-full text-xs py-2 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 font-bold text-[#cb9df2] transition cursor-pointer"
+                        disabled={(failedAttempts[`buy-${ps.id}`] || 0) >= 3}
+                        onClick={() => handleBuyClick(ps.id, data.id, data.emoji, unlockCostGems)}
+                        className="w-full text-xs py-2 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 font-bold text-[#cb9df2] transition disabled:opacity-30 disabled:text-slate-500 disabled:border-slate-800 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        Unlock (${unlockCostGems} 💎)
+                        {(failedAttempts[`buy-${ps.id}`] || 0) >= 3 ? (
+                          <span className="text-slate-500 font-extrabold uppercase tracking-wide">BLOCKED (3 FAILS)</span>
+                        ) : (
+                          <span>Unlock (${unlockCostGems} 💎)</span>
+                        )}
                       </button>
                     )}
                   </div>

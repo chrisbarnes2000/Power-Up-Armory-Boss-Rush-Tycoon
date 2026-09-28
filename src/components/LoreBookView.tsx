@@ -17,6 +17,7 @@ interface LoreBookViewProps {
   onNavigateToGame?: (tab?: 'tycoon' | 'bosses' | 'stats') => void;
   controlledTab?: 'chronicles' | 'legend' | 'compendium' | 'bestiary';
   onTabChange?: (tab: 'chronicles' | 'legend' | 'compendium' | 'bestiary') => void;
+  initialChronicleMode?: 'canonical' | 'living';
 }
 
 const ALL_LORE_PAGES = ['compendium', 'chronicles', 'bestiary', 'legend'];
@@ -26,7 +27,8 @@ export default function LoreBookView({
   setGameState,
   onNavigateToGame,
   controlledTab,
-  onTabChange
+  onTabChange,
+  initialChronicleMode
 }: LoreBookViewProps) {
   // Primary Navigation tabs
   const [activeTab, setActiveTab] = useState<'chronicles' | 'legend' | 'compendium' | 'bestiary'>(controlledTab || 'compendium');
@@ -311,6 +313,7 @@ export default function LoreBookView({
             setGameState={setGameState}
             onOpenWeaver={() => setSubMode('weaver')}
             onDeleteStory={handleDeleteStory}
+            initialMode={initialChronicleMode}
           />
         )}
 

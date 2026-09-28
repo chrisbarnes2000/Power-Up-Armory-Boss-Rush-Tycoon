@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameState } from '../../types';
 import { BOSSES } from '../../data';
 import { CANONICAL_CHAPTERS, BOSS_DOSSIERS, CanonicalChapter } from '../../loreData';
@@ -8,14 +8,21 @@ interface ChroniclesTabProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   onOpenWeaver: () => void;
   onDeleteStory: (storyId: string) => void;
+  initialMode?: 'canonical' | 'living';
 }
 
 export const ChroniclesTab: React.FC<ChroniclesTabProps> = ({
   gameState,
   onOpenWeaver,
-  onDeleteStory
+  onDeleteStory,
+  initialMode = 'canonical'
 }) => {
-  const [chronicleMode, setChronicleMode] = useState<'canonical' | 'living'>('canonical');
+  const [chronicleMode, setChronicleMode] = useState<'canonical' | 'living'>(initialMode);
+  
+  useEffect(() => {
+    setChronicleMode(initialMode);
+  }, [initialMode]);
+
   const [selectedChapter, setSelectedChapter] = useState<CanonicalChapter>(CANONICAL_CHAPTERS[0]);
 
   // Calculations for Living War Saga

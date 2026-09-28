@@ -3,6 +3,15 @@
 @theme {
   --font-sans: "Helvetica", "Arial", sans-serif;
   
+  /* --- Z-INDEX STACKING CONTEXT --- */
+  --z-base: 0;
+  --z-low: 10;
+  --z-mid: 40; /* Lower than before */
+  --z-high: 80;
+  --z-modal: 500; /* Increased */
+  --z-overlay: 1000; /* Increased */
+  --z-toast: 2000; /* Increased */
+  
   /* --- ENHANCED MEDIA BREAKPOINTS --- */
   --breakpoint-xs: 480px;
   --breakpoint-sm: 640px;

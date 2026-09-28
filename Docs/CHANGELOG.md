@@ -4,6 +4,19 @@
 
 ---
 
+## [v1.3.1] — 2026-09-27
+
+### 🚀 What's New in v1.3.1
+- **Interactive Roadmap Portal**: Replaced the generic feedback system with a high-fidelity Roadmap dashboard tracking project-specific milestones like *Co-Op Horde Assaults* and *Elemental Affinities*.
+- **Community Engagement Engine**: Added the ability to vote on upcoming features, with real-time counters and interactive visual feedback.
+- **Advanced Feedback Loop**: Updated feedback channels to focus on core project pillars (Bosses, Weapons, Balance, Mechanics).
+- **Style Hardening**: Refined the updates UI with glassmorphism effects, interactive glows, and optimized typography for better legibility across all champion scales.
+
+### 🛠️ Polish & Performance
+- **Navigation Clarification**: Renamed the "Feedback" tab to "Roadmap" to better reflect the collaborative nature of the project's evolution.
+- **UI Diagnostics**: Updated the "Preview Build" status indicator to an amber theme, distinguishing pre-release environments from system errors.
+- **Historical Backlog**: Fully bundled the historical record of all releases directly into the app for offline reference and deep transparency.
+
 ## [v1.3.0] — 2026-09-27
 
 ### 🚀 What's New in v1.3.0

@@ -103,7 +103,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     <div 
       ref={cardRef}
       id="tycoon-bankroll-card" 
-      className="fixed left-0 right-0 z-[150] bg-linear-to-r from-[#121c32]/98 via-[#0c1322]/98 to-[#0a101d]/98 backdrop-blur-3xl border-t border-cyan-500/40 px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-12px_45px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(122,224,255,0.25)] w-full pointer-events-auto will-change-[bottom] transition-colors"
+      className="fixed left-0 right-0 z-mid bg-linear-to-r from-[#121c32]/98 via-[#0c1322]/98 to-[#0a101d]/98 backdrop-blur-3xl border-t border-cyan-500/40 px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-12px_45px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(122,224,255,0.25)] w-full pointer-events-auto will-change-[bottom] transition-colors"
       style={{ bottom: '0px' }}
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 box-border">
@@ -121,7 +121,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               data-tooltip={`Bosses Defeated: ${totalBossesDefeated} Bosses Vanquished`}
               className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
             >
-              <span className="text-xs sm:text-sm leading-none shrink-0">💀</span>
+              <span className="text-xs sm:text-sm leading-none shrink-0 pl-3">💀</span>
               <span className="font-mono text-red-400 font-extrabold">{totalBossesDefeated}</span>
             </div>
 
@@ -132,7 +132,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               data-tooltip={`Gems: ${Math.floor(gems || 0).toLocaleString()} Gems`}
               className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
             >
-              <span className="text-xs sm:text-sm leading-none shrink-0">💎</span>
+              <span className="text-xs sm:text-sm leading-none shrink-0 pl-3">💎</span>
               <span className="font-mono text-[#cb9df2] font-extrabold">{formatCompact(gems || 0)}</span>
             </div>
 

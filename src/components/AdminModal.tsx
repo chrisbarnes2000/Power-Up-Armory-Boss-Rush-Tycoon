@@ -347,6 +347,22 @@ export default function AdminModal({
     }
   };
 
+  const handleDeleteUser = async (userId: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete user account "${name}" (ID: ${userId})?\n\nThis action cannot be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      await deleteDoc(doc(db, 'leaderboard', userId));
+      await deleteDoc(doc(db, 'user_progress', userId));
+      
+      setPlayerList(prev => prev.filter(p => p.userId !== userId));
+      setWipeNotice(`💀 Account for "${name}" has been permanently deleted.`);
+      setTimeout(() => setWipeNotice(null), 4000);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setWipeNotice(`Could not delete account for "${name}".`);
+    }
+  };
+
   const addToPayload = () => {
     const item = POWERUPS.find(p => p.id === selectedItemId);
     if (!item) return;
@@ -542,7 +558,7 @@ export default function AdminModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-modal">
       <div 
         id="admin-panel-container"
         className="w-full max-w-[880px] bg-linear-to-b from-[#111827] via-[#0d1322] to-[#070b14] border-2 border-red-500/40 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.2)] max-h-[92vh] flex flex-col"
@@ -774,6 +790,7 @@ export default function AdminModal({
               handleGrantRevivesToUser={handleGrantRevivesToUser}
               handleClearDeathForUser={handleClearDeathForUser}
               handleResetRevivesForUser={handleResetRevivesForUser}
+              handleDeleteUser={handleDeleteUser}
             />
           )}
         </div>
@@ -790,7 +807,7 @@ export default function AdminModal({
 
       {/* CUSTOM CONFIRMATION WIPE MODAL WITH GRANULAR OPTIONS */}
       {confirmWipeOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-overlay">
           <div className="w-full max-w-[540px] bg-linear-to-b from-[#1e1313] via-[#140c0c] to-[#0a0505] border-2 border-red-500/60 rounded-3xl p-6 shadow-[0_0_90px_rgba(220,38,38,0.3)] space-y-5 text-left max-h-[92vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-red-500/20 pb-3.5">
@@ -1018,7 +1035,7 @@ export default function AdminModal({
 
       {/* CUSTOM SUCCESS ALERT MODAL */}
       {showSuccessAlert && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-overlay">
           <div className="w-full max-w-[420px] bg-linear-to-b from-[#111c16] to-[#0a120e] border-2 border-emerald-500/50 rounded-3xl p-6 shadow-[0_0_80px_rgba(16,185,129,0.25)] space-y-5 text-center">
             <div className="w-16 h-16 bg-emerald-950/60 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl">
               ✅

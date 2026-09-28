@@ -26,5 +26,21 @@
       "type": "image/svg+xml",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Share Stats",
+      "short_name": "Stats",
+      "description": "Share your leaderboard stats",
+      "url": "/?view=stats",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Invite Friends",
+      "short_name": "Invite",
+      "description": "Share squad referral link",
+      "url": "/?account=true",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
   ]
 }

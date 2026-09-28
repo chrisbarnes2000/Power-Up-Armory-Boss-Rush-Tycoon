@@ -67,7 +67,7 @@ export default function CookieConsentBanner({ onConsentChange }: CookieConsentBa
           id="cookie-consent-banner"
           role="region"
           aria-label="Cookie and Privacy Consent"
-          className="fixed bottom-0 inset-x-0 z-[9999] p-4 sm:p-6 bg-[#0a0e1a]/95 backdrop-blur-md border-t border-[#1e2d4a] shadow-2xl transition-all animate-fade-in"
+          className="fixed bottom-0 inset-x-0 z-high p-4 sm:p-6 bg-[#0a0e1a]/95 backdrop-blur-md border-t border-[#1e2d4a] shadow-2xl transition-all animate-fade-in"
         >
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start space-x-3 max-w-3xl">
@@ -127,7 +127,7 @@ export default function CookieConsentBanner({ onConsentChange }: CookieConsentBa
 
       {/* Detailed Cookie Preferences Settings Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div
             ref={modalRef}
             role="dialog"

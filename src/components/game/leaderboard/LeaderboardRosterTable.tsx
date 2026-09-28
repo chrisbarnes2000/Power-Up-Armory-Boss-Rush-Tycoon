@@ -15,84 +15,9 @@ export const LeaderboardRosterTable: React.FC<LeaderboardRosterTableProps> = ({
   activeCategory,
   currentUser
 }) => {
-  // Built-in challenger base entries if leaderboard has few entries
-  const fallbackChallengers: LeaderboardEntry[] = [
-    {
-      userId: 'challenger-1',
-      name: 'ZeusBlade',
-      score: 3850,
-      bosses: 18,
-      coins: 145000,
-      gems: 850,
-      maxDamage: 1250,
-      totalDodges: 48,
-      totalSpecials: 32,
-      totalDeaths: 12,
-      avatar: '⚡',
-      title: 'Grand Champion'
-    },
-    {
-      userId: 'challenger-2',
-      name: 'ConcentratedFocus',
-      score: 3100,
-      bosses: 14,
-      coins: 98000,
-      gems: 620,
-      maxDamage: 980,
-      totalDodges: 62,
-      totalSpecials: 28,
-      totalDeaths: 8,
-      avatar: '🔮',
-      title: 'Arcane Adept'
-    },
-    {
-      userId: 'challenger-3',
-      name: 'ShadowWraith',
-      score: 2450,
-      bosses: 9,
-      coins: 54000,
-      gems: 410,
-      maxDamage: 720,
-      totalDodges: 85,
-      totalSpecials: 19,
-      totalDeaths: 22,
-      avatar: '🐉',
-      title: 'Void Stalker'
-    },
-    {
-      userId: 'challenger-4',
-      name: 'IroncladVanguard',
-      score: 1850,
-      bosses: 6,
-      coins: 28000,
-      gems: 240,
-      maxDamage: 540,
-      totalDodges: 24,
-      totalSpecials: 14,
-      totalDeaths: 35,
-      avatar: '🛡️',
-      title: 'Ironclad Sentinel'
-    },
-    {
-      userId: 'challenger-5',
-      name: 'PhoenixRebirth',
-      score: 1250,
-      bosses: 4,
-      coins: 14000,
-      gems: 150,
-      maxDamage: 380,
-      totalDodges: 18,
-      totalSpecials: 11,
-      totalDeaths: 15,
-      avatar: '🔥',
-      title: 'Flame Adept'
-    }
-  ];
-
   // Merge cloud entries with fallbacks (avoiding duplicate userIds)
   const entriesMap = new Map<string, LeaderboardEntry>();
   
-  fallbackChallengers.forEach(e => entriesMap.set(e.userId || e.name, e));
   cloudLeaderboard.forEach(e => entriesMap.set(e.userId || e.name, e));
 
   // Ensure current user is in the list

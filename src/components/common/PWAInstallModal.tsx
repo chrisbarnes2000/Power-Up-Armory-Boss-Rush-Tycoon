@@ -196,122 +196,126 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
             </div>
           )}
 
-          {/* OS Switcher Tabs */}
-          <div className="flex bg-[#121c30] border border-[#2a4060] rounded-xl p-1 shrink-0">
-            <button
-              onClick={() => setActiveTab('chromium')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition font-mono ${
-                activeTab === 'chromium' ? 'bg-cyan-600 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Chrome className="w-4 h-4" />
-              <span>Chromium / Android</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('safari')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition font-mono ${
-                activeTab === 'safari' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              <span>Safari / iOS</span>
-            </button>
-          </div>
-
-          {/* Tab 1: Chromium / Desktop / Android */}
-          {activeTab === 'chromium' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
-                <h4 className="text-xs font-black uppercase font-mono text-cyan-400 flex items-center gap-2 border-b border-white/5 pb-2">
-                  <Laptop className="w-4 h-4" />
-                  <span>Desktop (Chrome, Edge, Opera)</span>
-                </h4>
-                <ol className="text-xs text-slate-300 space-y-2 font-mono list-decimal pl-4 leading-relaxed">
-                  <li>Open the game in a Chromium browser (<strong className="text-white">Google Chrome</strong> or <strong className="text-white">Microsoft Edge</strong>).</li>
-                  <li>Click the **Install Icon (🖥️📥)** in the rightmost corner of the URL address bar.</li>
-                  <li>Alternatively, click the menu button **(⋮)** and select <strong className="text-cyan-400">"Save and share" → "Install app"</strong>.</li>
-                  <li>Confirm the installation to pin the Armory shortcut directly to your computer desktop!</li>
-                </ol>
-              </div>
-
-              <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
-                <h4 className="text-xs font-black uppercase font-mono text-cyan-400 flex items-center gap-2 border-b border-white/5 pb-2">
-                  <Smartphone className="w-4 h-4" />
-                  <span>Android (Chrome)</span>
-                </h4>
-                <ol className="text-xs text-slate-300 space-y-2 font-mono list-decimal pl-4 leading-relaxed">
-                  <li>Launch Google Chrome on your Android mobile device.</li>
-                  <li>Tap the browser options menu **(⋮)** in the top-right corner.</li>
-                  <li>Select <strong className="text-cyan-400">"Add to Home Screen"</strong> or <strong className="text-cyan-400">"Install app"</strong>.</li>
-                  <li>Confirm to place the application icon on your mobile home screen with a dedicated splash screen!</li>
-                </ol>
-              </div>
-
-              {/* Native Install Button Trigger */}
-              {deferredPrompt ? (
+          {!isStandalone && (
+            <>
+              {/* OS Switcher Tabs */}
+              <div className="flex bg-[#121c30] border border-[#2a4060] rounded-xl p-1 shrink-0">
                 <button
-                  type="button"
-                  onClick={handleNativeInstall}
-                  className="w-full py-3 rounded-xl bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black font-mono text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-95 transition flex items-center justify-center gap-2"
+                  onClick={() => setActiveTab('chromium')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition font-mono ${
+                    activeTab === 'chromium' ? 'bg-cyan-600 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
+                  }`}
                 >
-                  <span>📥 INSTALL APP NOW (ONE-TAP)</span>
+                  <Chrome className="w-4 h-4" />
+                  <span>Chromium / Android</span>
                 </button>
-              ) : (
-                <div className="p-3 bg-slate-900/40 border border-slate-700/30 rounded-xl text-[10px] text-slate-400 font-mono text-center flex items-center gap-2 justify-center">
-                  <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>Automatic one-tap prompt is ready when Chrome triggers it. If missing, use the browser menu above!</span>
-                </div>
-              )}
-            </div>
-          )}
+                <button
+                  onClick={() => setActiveTab('safari')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition font-mono ${
+                    activeTab === 'safari' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Safari / iOS</span>
+                </button>
+              </div>
 
-          {/* Tab 2: Safari on iOS (iPhone & iPad) */}
-          {activeTab === 'safari' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <h4 className="text-xs font-black uppercase font-mono text-amber-400 flex items-center gap-2">
-                    <Smartphone className="w-4 h-4" />
-                    <span>iOS Safari Step-by-Step</span>
-                  </h4>
-                  {isSafari && (
-                    <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950 border border-amber-500/30 px-1.5 py-0.2 rounded-full uppercase animate-pulse">
-                      Compatible Safari
-                    </span>
+              {/* Tab 1: Chromium / Desktop / Android */}
+              {activeTab === 'chromium' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
+                    <h4 className="text-xs font-black uppercase font-mono text-cyan-400 flex items-center gap-2 border-b border-white/5 pb-2">
+                      <Laptop className="w-4 h-4" />
+                      <span>Desktop (Chrome, Edge, Opera)</span>
+                    </h4>
+                    <ol className="text-xs text-slate-300 space-y-2 font-mono list-decimal pl-4 leading-relaxed">
+                      <li>Open the game in a Chromium browser (<strong className="text-white">Google Chrome</strong> or <strong className="text-white">Microsoft Edge</strong>).</li>
+                      <li>Click the **Install Icon (🖥️📥)** in the rightmost corner of the URL address bar.</li>
+                      <li>Alternatively, click the menu button **(⋮)** and select <strong className="text-cyan-400">"Save and share" → "Install app"</strong>.</li>
+                      <li>Confirm the installation to pin the Armory shortcut directly to your computer desktop!</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
+                    <h4 className="text-xs font-black uppercase font-mono text-cyan-400 flex items-center gap-2 border-b border-white/5 pb-2">
+                      <Smartphone className="w-4 h-4" />
+                      <span>Android (Chrome)</span>
+                    </h4>
+                    <ol className="text-xs text-slate-300 space-y-2 font-mono list-decimal pl-4 leading-relaxed">
+                      <li>Launch Google Chrome on your Android mobile device.</li>
+                      <li>Tap the browser options menu **(⋮)** in the top-right corner.</li>
+                      <li>Select <strong className="text-cyan-400">"Add to Home Screen"</strong> or <strong className="text-cyan-400">"Install app"</strong>.</li>
+                      <li>Confirm to place the application icon on your mobile home screen with a dedicated splash screen!</li>
+                    </ol>
+                  </div>
+
+                  {/* Native Install Button Trigger */}
+                  {deferredPrompt ? (
+                    <button
+                      type="button"
+                      onClick={handleNativeInstall}
+                      className="w-full py-3 rounded-xl bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black font-mono text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-95 transition flex items-center justify-center gap-2"
+                    >
+                      <span>📥 INSTALL APP NOW (ONE-TAP)</span>
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-slate-900/40 border border-slate-700/30 rounded-xl text-[10px] text-slate-400 font-mono text-center flex items-center gap-2 justify-center">
+                      <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span>Automatic one-tap prompt is ready when Chrome triggers it. If missing, use the browser menu above!</span>
+                    </div>
                   )}
                 </div>
-                
-                <ol className="text-xs text-slate-300 space-y-2.5 font-mono list-decimal pl-4 leading-relaxed">
-                  <li>
-                    Launch <strong className="text-white">Safari Browser</strong> on your iPhone or iPad. Other iOS browsers (Chrome/Firefox) do not support home screen installations.
-                  </li>
-                  <li>
-                    Tap the native iOS <strong className="text-amber-400 flex items-center gap-1.5 inline-flex">Share Button <Share className="w-3.5 h-3.5 text-amber-400 inline" /></strong> on the Safari bottom navigation bar.
-                  </li>
-                  <li>
-                    Scroll down through the share options list and select <strong className="text-white">"Add to Home Screen" (➕)</strong>.
-                  </li>
-                  <li>
-                    Customize the display name if desired and tap <strong className="text-amber-400">"Add"</strong> in the top-right corner to complete!
-                  </li>
-                </ol>
-              </div>
+              )}
 
-              {/* iOS Deep Link Trigger / Native Share sheet caller */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={handleIOSShareTrigger}
-                  className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black font-mono text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2"
-                >
-                  <Share className="w-4 h-4" />
-                  <span>📤 OPEN SAFARI SHARE SHEET NOW</span>
-                </button>
-                <p className="text-[9px] text-slate-500 font-mono text-center leading-normal">
-                  💡 Clicking above opens iOS native sharing. In Safari, select **"Add to Home Screen"** to save!
-                </p>
-              </div>
-            </div>
+              {/* Tab 2: Safari on iOS (iPhone & iPad) */}
+              {activeTab === 'safari' && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 space-y-3.5">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <h4 className="text-xs font-black uppercase font-mono text-amber-400 flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        <span>iOS Safari Step-by-Step</span>
+                      </h4>
+                      {isSafari && (
+                        <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950 border border-amber-500/30 px-1.5 py-0.2 rounded-full uppercase animate-pulse">
+                          Compatible Safari
+                        </span>
+                      )}
+                    </div>
+                    
+                    <ol className="text-xs text-slate-300 space-y-2.5 font-mono list-decimal pl-4 leading-relaxed">
+                      <li>
+                        Launch <strong className="text-white">Safari Browser</strong> on your iPhone or iPad. Other iOS browsers (Chrome/Firefox) do not support home screen installations.
+                      </li>
+                      <li>
+                        Tap the native iOS <strong className="text-amber-400 flex items-center gap-1.5 inline-flex">Share Button <Share className="w-3.5 h-3.5 text-amber-400 inline" /></strong> on the Safari bottom navigation bar.
+                      </li>
+                      <li>
+                        Scroll down through the share options list and select <strong className="text-white">"Add to Home Screen" (➕)</strong>.
+                      </li>
+                      <li>
+                        Customize the display name if desired and tap <strong className="text-amber-400">"Add"</strong> in the top-right corner to complete!
+                      </li>
+                    </ol>
+                  </div>
+
+                  {/* iOS Deep Link Trigger / Native Share sheet caller */}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleIOSShareTrigger}
+                      className="w-full py-3 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black font-mono text-xs uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2"
+                    >
+                      <Share className="w-4 h-4" />
+                      <span>📤 OPEN SAFARI SHARE SHEET NOW</span>
+                    </button>
+                    <p className="text-[9px] text-slate-500 font-mono text-center leading-normal">
+                      💡 Clicking above opens iOS native sharing. In Safari, select **"Add to Home Screen"** to save!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
         </div>

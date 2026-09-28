@@ -24,6 +24,7 @@ interface AdminUserModerationProps {
   handleGrantRevivesToUser?: (userId: string, name: string) => Promise<void>;
   handleClearDeathForUser?: (userId: string, name: string) => Promise<void>;
   handleResetRevivesForUser?: (userId: string, name: string) => Promise<void>;
+  handleDeleteUser?: (userId: string, name: string) => Promise<void>;
 }
 
 export default function AdminUserModeration({
@@ -47,7 +48,8 @@ export default function AdminUserModeration({
   handleSyncGodConfigToUser,
   handleGrantRevivesToUser,
   handleClearDeathForUser,
-  handleResetRevivesForUser
+  handleResetRevivesForUser,
+  handleDeleteUser
 }: AdminUserModerationProps) {
   const [activeMoreMenuUserId, setActiveMoreMenuUserId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -193,7 +195,7 @@ export default function AdminUserModeration({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-1.5 relative">
+                    <div className="flex flex-wrap items-center gap-1.5 relative">
                     
                     {/* dropdown button for 4 quick applies */}
                     <div className="relative">
@@ -211,7 +213,7 @@ export default function AdminUserModeration({
                       {activeMoreMenuUserId === player.userId && (
                         <div 
                           ref={dropdownRef}
-                          className="absolute left-0 md:right-0 md:left-auto mt-1.5 w-56 bg-[#111827] border border-[#2a4060] rounded-xl shadow-2xl p-1.5 z-50 space-y-1 animate-fade-in"
+                          className="absolute left-0 md:right-0 md:left-auto mt-1.5 w-56 bg-[#111827] border border-[#2a4060] rounded-xl shadow-2xl p-1.5 z-[999] space-y-1 animate-fade-in"
                         >
                           <button
                             type="button"
@@ -223,6 +225,15 @@ export default function AdminUserModeration({
                           >
                             <span>🧬</span>
                             <span>Sync God Config</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-emerald-400 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer border-b border-white/5 pb-2 mb-1"
+                            title="Auto-Sync Leaderboard (Premium Only)"
+                          >
+                            <span>☁️</span>
+                            <span>Sync Stats to Leaderboard</span>
                           </button>
 
                           <button
@@ -260,6 +271,36 @@ export default function AdminUserModeration({
                             <span>🔄</span>
                             <span>Reset Death Scaling Counter</span>
                           </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setConfirmWipeUser({ userId: player.userId, action: 'leaderboard', name: player.name })}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-red-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer border-t border-white/5 mt-1 pt-2"
+                          >
+                            <span>🚩</span>
+                            <span>Wipe Rank</span>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => setConfirmWipeUser({ userId: player.userId, action: 'account', name: player.name })}
+                            className="w-full text-left px-2.5 py-2 hover:bg-[#1f2937] text-xs font-bold text-amber-300 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <span>♻️</span>
+                            <span>Reset Stats</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleDeleteUser?.(player.userId, player.name);
+                              setActiveMoreMenuUserId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-2 hover:bg-red-900/50 text-xs font-bold text-red-400 hover:text-white rounded-lg transition flex items-center gap-2 cursor-pointer border-t border-red-500/20 mt-1 pt-2"
+                          >
+                            <span>💀</span>
+                            <span>Delete User Account</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -276,23 +317,16 @@ export default function AdminUserModeration({
                     >
                       🛒 {userStoreStatuses[player.userId] ? 'Store: ON' : 'Store: OFF'}
                     </button>
+                    
                     <button
                       type="button"
-                      onClick={() => setConfirmWipeUser({ userId: player.userId, action: 'leaderboard', name: player.name })}
-                      className="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-white border border-red-500/30 rounded-lg text-xs font-mono font-bold transition cursor-pointer"
-                      title="Remove from Leaderboard rankings"
+                      className="px-2.5 py-1.5 bg-slate-900/60 border border-slate-700/40 text-slate-500 rounded-lg text-xs font-mono font-bold cursor-not-allowed opacity-70"
+                      title="Auto-Sync Leaderboard (Premium Only)"
                     >
-                      Wipe Rank
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmWipeUser({ userId: player.userId, action: 'account', name: player.name })}
-                      className="px-2.5 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 hover:text-white border border-amber-500/30 rounded-lg text-xs font-mono font-bold transition cursor-pointer"
-                      title="Reset powerScore, bosses, and coins to 0"
-                    >
-                      Reset Stats
+                      🔒 Auto-Sync: Premium
                     </button>
                   </div>
+
                 )}
               </div>
             </div>
