@@ -38,6 +38,7 @@
 #### 🛡️ Cloud Synchronizer Stability Guardrails
 - **Undefined Field Prevention**: Built an automatic payload filter (`sanitizeForFirestore`) that sanitizes cloud data arrays and nested structures before saving. This solves a rare Google Firestore exception where state properties might carry an unexpected `undefined` value.
 - **Boss Respawn Time Recovery**: Resolved an issue in the auto-respawn timer that passed `undefined` properties to the database on champion resurrection, ensuring uninterrupted offline/online synchronization.
+- **Analytics Spam Reduction**: Debounced user identification calls in `trackUserIdentify` to prevent redundant identification and `updateUser` spam when Auth state changes rapidly.
 
 #### ⚔️ Strategic Combat Speed Tuning & Arena Visuals
 - **Slower, More Dramatic Battle Rates**: Slowed down combat simulation turn timeouts from `500ms` to `1400ms`. Each attack, hit, and critical swipe is now distinct, allowing players to fully experience the battle action—laying the foundation for premium high-fidelity 3D animated view overlays later.

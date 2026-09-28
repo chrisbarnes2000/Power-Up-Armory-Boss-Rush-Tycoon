@@ -17,6 +17,7 @@ RapportVerse and Power-Up Armory bring together high-performance qualitative rel
 - [Public Customer Changelog](./CHANGELOG.md) — Customer-facing milestone release notes and release cuts.
 - [System Roadmap Index](./Roadmaps/INDEX_ROADMAP.md) — Active horizon goals and archived milestone deliverables.
 - [System Quality Audit Hub](./Audits/INDEX_AUDIT.md) — NASA JPL Power of 10 scorecards, WCAG AA compliance & modularity checks.
+- [Analytics Conversion Funnels & Telemetry Architecture Guide](./ANALYTICS_FUNNELS_GUIDE.md) — Complete 20+ event telemetry dictionary, multi-platform funnel configurations (Vemetric, GA4, Firebase), and container isolation architecture.
 - [Ecosystem Marketing & Social Index](./PublicRelations/INDEX_MARKETING.md) — Strategic social broadcast copy, FeedHive distribution & RapportVerse trust topology.
 - [Proud Partner of RapportVerse](./PublicRelations/RapportVersePartnership.md) — Partnership statement, affiliation links, and badge integration (`https://rapprt.space`).
 - [Power-Up Boss Tycoon Partnership & Sponsor Kit](./PublicRelations/PowerUpBossTycoonPartnership.md) — Official affiliate, partner, and sponsor integration one-sheet kit.

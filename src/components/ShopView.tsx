@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { POWERUPS } from '../data';
 import { GameState, PurchaseItem, PurchaseRecord } from '../types';
 import { CoinIcon } from './CoinIcon';
+import { trackEvent, trackPageView } from '../lib/analytics';
 
 // Import decoupled subcomponents and utilities
 import { ShopCartDrawer } from './shop/ShopCartDrawer';
@@ -52,6 +53,7 @@ export default function ShopView({
   const handleCategorySelect = (key: ShopCategoryKey) => {
     setActiveCategory(key);
     onCategoryChange?.(key);
+    trackPageView(`Armory Store - ${key}`, `/shop/${key}`);
   };
 
   const copyToClipboard = () => {
@@ -198,6 +200,26 @@ export default function ShopView({
     } catch (e) {
       console.warn('Firestore purchase sync failed:', e);
     }
+
+    // Track purchase telemetry in Google Analytics & Vemetric
+    trackEvent('purchase', {
+      transaction_id: code,
+      value: cartTotal,
+      currency: 'USD',
+      items_count: cartCount,
+      items: cartItems.map(item => ({
+        item_id: item.id,
+        item_name: item.id,
+        price: item.price,
+        quantity: item.qty
+      }))
+    });
+
+    trackEvent('armory_checkout_code_generated', {
+      code,
+      total_value: cartTotal,
+      item_count: cartCount
+    });
 
     setGeneratedCode(code);
     setCart({}); // clear cart on success

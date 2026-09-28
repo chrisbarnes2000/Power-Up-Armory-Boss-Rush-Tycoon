@@ -1,4 +1,4 @@
-import { PowerUp, Boss, GameBalanceConfig } from './types';
+import { PowerUp, Boss, GameBalanceConfig, GameState } from './types';
 
 export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
   baseReviveCost: 100,
@@ -377,4 +377,58 @@ export function calculatePowerScore(gameState: {
   }
 
   return Math.floor(baseScore * multiplier);
+}
+
+export const DEFAULT_STARTER_BASELINE_STATE: GameState = {
+  coins: 2000,
+  gems: 500,
+  maxHpBonus: 0,
+  damageBonusPercent: 0,
+  powerups: POWERUPS.map(p => ({ id: p.id, owned: false, level: 1, quantity: 0 })),
+  bosses: BOSSES.map(b => ({ id: b.id, defeated: false })),
+  powerScore: 35,
+  totalBossesDefeated: 0,
+  playerName: 'Champion',
+  battleLog: [{ message: '⚔️ Welcome, Champion! Defeat bosses to earn rewards.', className: '' }],
+  leaderboard: [],
+  purchasedCodes: [],
+  bossKillStats: {},
+  bossDeathStats: {},
+  customStories: [],
+  isDead: false,
+  reviveCount: 0,
+  revivePacks: 2,
+  baseAttack: 10,
+  baseDefense: 10,
+  baseSpeed: 10,
+  balanceConfig: DEFAULT_BALANCE_CONFIG
+};
+
+/**
+ * Clears all local storage user progress, battle logs, attribution, and analytics IDs on logout.
+ * Resets local game state to clean starter baseline so new logins cannot quick-sync or exploit prior scores.
+ */
+export function clearAllLocalUserData(): GameState {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('bossRushTycoon');
+      localStorage.removeItem('powerupArmory_save');
+      localStorage.removeItem('powerupArmory_saved_combat_logs');
+      localStorage.removeItem('powerupArmory_log_showTimestamps');
+      localStorage.removeItem('powerupArmory_log_persistLogs');
+      localStorage.removeItem('armory_user_id');
+      localStorage.removeItem('armory_anon_uid');
+      localStorage.removeItem('armory_device_client_id');
+      localStorage.removeItem('armory_inward_attribution');
+      sessionStorage.removeItem('powerup_tour_prompted');
+      sessionStorage.removeItem('_vmId');
+      sessionStorage.removeItem('_vmDn');
+      sessionStorage.removeItem('_vmCtx');
+      // Save pristine starter baseline state to bossRushTycoon so subsequent reads get clean starter
+      localStorage.setItem('bossRushTycoon', JSON.stringify(DEFAULT_STARTER_BASELINE_STATE));
+    } catch (e) {
+      console.warn('Error clearing localStorage on logout:', e);
+    }
+  }
+  return DEFAULT_STARTER_BASELINE_STATE;
 }

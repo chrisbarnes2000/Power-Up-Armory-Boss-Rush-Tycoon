@@ -179,6 +179,13 @@ export interface GameState {
   killStreak?: number;
   deathStreak?: number;
 
+  // Lore Book Progression & Reward Tracking
+  loreBookRewards?: {
+    firstOpenClaimed?: boolean;
+    pagesCompleted?: string[];
+    loreMasterClaimed?: boolean;
+  };
+
   // Completed Tour Rewards Tracking (One-time payouts)
   completedTours?: {
     short?: boolean;

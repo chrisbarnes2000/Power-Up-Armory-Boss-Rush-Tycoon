@@ -80,7 +80,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     };
   }, []);
 
-  const normalHP = 100 + defense + maxHpBonus;
+  const normalHP = Math.max(10, 100 + defense + maxHpBonus);
 
   // Compact number formatting for constrained single-line mobile rendering
   const formatCompact = (num: number): string => {
@@ -103,7 +103,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     <div 
       ref={cardRef}
       id="tycoon-bankroll-card" 
-      className="fixed left-0 right-0 z-[150] bg-linear-to-r from-[#1a2540]/99 via-[#131d33]/99 to-[#0f182a]/99 backdrop-blur-2xl border-t border-[#2a4060] px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-10px_40px_rgba(0,0,0,0.95)] w-full pointer-events-auto will-change-[bottom]"
+      className="fixed left-0 right-0 z-[150] bg-linear-to-r from-[#121c32]/98 via-[#0c1322]/98 to-[#0a101d]/98 backdrop-blur-3xl border-t border-cyan-500/40 px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-12px_45px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(122,224,255,0.25)] w-full pointer-events-auto will-change-[bottom] transition-colors"
       style={{ bottom: '0px' }}
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 box-border">
@@ -202,11 +202,15 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
             <div
               tabIndex={0}
               role="button"
-              data-tooltip={`Defense Rating: ${defense} DEF`}
-              className="bg-[#121c33] hover:bg-[#1a2948] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-blue-500/30 text-[11px] sm:text-xs flex items-center gap-1 shadow-sm hover:border-blue-400/60 transition cursor-pointer select-none" 
+              data-tooltip={defense < 0 ? `⚠️ Glass Cannon Build: ${defense} DEF (Fragile! High Damage Taken)` : `Defense Rating: ${defense} DEF`}
+              className={`px-2 sm:px-2.5 py-0.5 rounded-full border text-[11px] sm:text-xs flex items-center gap-1 shadow-sm transition cursor-pointer select-none ${
+                defense < 0 
+                  ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 animate-pulse hover:bg-amber-900/90' 
+                  : 'bg-[#121c33] hover:bg-[#1a2948] border-blue-500/30 text-blue-300 hover:border-blue-400/60'
+              }`} 
             >
-              <span className="text-xs leading-none shrink-0">🛡️</span>
-              <span className="font-mono text-blue-300 font-extrabold">{formatCompact(defense)}</span>
+              <span className="text-xs leading-none shrink-0">{defense < 0 ? '⚠️' : '🛡️'}</span>
+              <span className={`font-mono font-extrabold ${defense < 0 ? 'text-amber-300' : 'text-blue-300'}`}>{formatCompact(defense)}</span>
             </div>
 
             {/* SPD */}

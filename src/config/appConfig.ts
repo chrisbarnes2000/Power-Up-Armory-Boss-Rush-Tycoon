@@ -33,7 +33,7 @@ export const APP_CONFIG: AppConfig = {
   year: 2026,
   analytics: {
     googleAnalyticsMeasurementId: 'G-YX5LPMCNB8',
-    vemetricProjectId: 'K9lVIvd4pe2UmylV'
+    vemetricProjectId: 'noe2otBcUczGyZJF'
   },
   partner: {
     name: 'RapportVerse',

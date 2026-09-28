@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, Copy, Check, Share2, Sparkles, Shield, Gift, AlertCircle, ArrowRight } from 'lucide-react';
 import { GameState, UserProfile } from '../../types';
 import { CoinIcon } from '../CoinIcon';
+import { trackSquadInvite } from '../../lib/analytics';
 
 interface SquadRecruitSectionProps {
   gameState: GameState;
@@ -30,7 +31,13 @@ export const SquadRecruitSection: React.FC<SquadRecruitSectionProps> = ({
   const recruitsCount = gameState.squadRecruitsCount || userProfile?.squadRecruitsCount || 0;
   const hasBeenInvited = !!gameState.invitedByCode || !!userProfile?.invitedByCode;
 
+  const getInviteUrl = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://rapprt.space';
+    return `${origin}/?invite=${myInviteCode}&utm_source=squad_invite&utm_medium=p2p_share&utm_campaign=squad_recruitment&ref=${myInviteCode}`;
+  };
+
   const handleCopyCode = async () => {
+    const inviteUrl = getInviteUrl();
     try {
       await navigator.clipboard.writeText(myInviteCode);
       setCopied(true);
@@ -40,16 +47,28 @@ export const SquadRecruitSection: React.FC<SquadRecruitSectionProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
+
+    trackSquadInvite('shared', myInviteCode, {
+      method: 'clipboard',
+      invite_url: inviteUrl
+    });
   };
 
   const handleShareInvite = async () => {
+    const inviteUrl = getInviteUrl();
     const shareText = `⚔️ Join my Raid Squad on Power-Up Armory! Use my invite code [${myInviteCode}] to claim +3,000 Coins & +150 Gems bonus!`;
+
+    trackSquadInvite('shared', myInviteCode, {
+      method: 'native_share',
+      invite_url: inviteUrl
+    });
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'Power-Up Armory Raid Squad Invite',
           text: shareText,
-          url: window.location.origin
+          url: inviteUrl
         });
       } catch (err) {
         console.log('Share dismissed:', err);

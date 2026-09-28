@@ -1,6 +1,7 @@
 import React from 'react';
-import { ExternalLink, ShieldCheck, Sparkles, Terminal, FileText, Globe, Heart } from 'lucide-react';
+import { ExternalLink, ShieldCheck, Sparkles, Terminal, FileText, Globe, Heart, Users } from 'lucide-react';
 import { APP_CONFIG } from '../config/appConfig';
+import { buildOutboundPartnerUrl, trackOutboundPartnerClick } from '../lib/analytics';
 
 interface FooterProps {
   onNavigate: (view: 'Shop' | 'Game' | 'Stats' | 'Lore') => void;
@@ -11,6 +12,19 @@ interface FooterProps {
 
 export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenInstall }: FooterProps) {
   const currentYear = new Date().getFullYear();
+
+  // Outbound UTM-tagged partner links
+  const rapportVerseUrl = buildOutboundPartnerUrl(APP_CONFIG.partner.url, {
+    utm_medium: 'partner_footer',
+    utm_campaign: 'rapportverse_ecosystem',
+    utm_content: 'footer_partnership_card'
+  });
+
+  const miniBarnMasterUrl = buildOutboundPartnerUrl('https://minibarnmaster.com', {
+    utm_medium: 'creator_spotlight',
+    utm_campaign: 'barn_crossplay',
+    utm_content: 'footer_creator_alliance'
+  });
 
   return (
     <footer id="app-global-footer" className="relative z-30 w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
@@ -44,13 +58,40 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenIn
                 {APP_CONFIG.partner.description}
               </p>
               <a
-                href={APP_CONFIG.partner.url}
+                href={rapportVerseUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackOutboundPartnerClick(APP_CONFIG.partner.name, rapportVerseUrl, 'footer_partnership_card')}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors w-fit group"
               >
                 <span>Visit {APP_CONFIG.partner.name} ({APP_CONFIG.partner.url.replace(/^https?:\/\//, '')})</span>
                 <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+            </div>
+
+            {/* Creator Alliance: MiniBarnMaster Spotlight */}
+            <div className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-950/30 to-teal-950/30 border border-emerald-500/20 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
+                  <span>🌾</span>
+                  <span>MiniBarnMaster Alliance</span>
+                </span>
+                <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                  Promo: MINIBARN
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Cross-game tycoon progression, creator codes, and reciprocal player exchange loops.
+              </p>
+              <a
+                href={miniBarnMasterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackOutboundPartnerClick('MiniBarnMaster', miniBarnMasterUrl, 'footer_creator_alliance')}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors w-fit"
+              >
+                <span>Explore MiniBarnMaster Network</span>
+                <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </div>
@@ -224,6 +265,22 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenIn
                 <span className="text-slate-300 font-medium">IEEE 830 SRS / FSD Spec</span>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-cookie-preferences'));
+                }
+              }}
+              className="mt-1 text-xs bg-[#10192a] hover:bg-[#16243d] border border-slate-700 text-slate-300 py-1.5 px-3 rounded-lg flex items-center justify-between cursor-pointer transition"
+            >
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Privacy & Cookie Preferences</span>
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.2 rounded">GDPR</span>
+            </button>
 
             {onOpenAccount && (
               <button

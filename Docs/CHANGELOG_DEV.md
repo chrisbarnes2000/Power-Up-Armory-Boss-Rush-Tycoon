@@ -4,6 +4,51 @@
 
 ---
 
+## [v1.3.0-dev.7] — 2026-09-27
+
+### Engineering Actions
+- **Vemetric Protocol Hardening & Anonymous User Stitching (`src/lib/analytics.ts`, `index.html`)**:
+  - **Embedded Official Vemetric Script Tag**: Injected `<script id="vmtrc-scr" defer src="https://cdn.vemetric.com/main.js" ... data-allow-localhost="true" data-allow-cookies="true">` in `index.html` with explicit configuration tokens to ensure immediate SDK readiness without depending on delayed asynchronous script injection.
+  - **Correct Object Signature for `identify`**: Aligned internal client calling convention with Vemetric CDN `main.js` specification (`identify({ identifier, displayName, avatarUrl, data, allowCookies: true })`), writing `_vmId` and `_vmDn` to `sessionStorage` so Vemetric's internal identifier resolver `h()` accurately identifies the user on every subsequent event instead of defaulting to anonymous.
+  - **Comprehensive `updateUser` Implementation**: Formatted user updates according to the official Vemetric specification (`{ displayName, avatarUrl, set, setOnce, unset }`), forwarding directly to `window.vmtrc('updateUser')` and backing up with direct HTTP POST requests to `https://hub.vemetric.com/u`.
+  - **Direct HTTP Ingestion Fallback**: Created `sendHubVemetricRequest(endpoint, payload)` to ensure identify (`/i`), updateUser (`/u`), event tracking (`/e`), and session resets (`/r`) succeed with credentialed headers even in restricted container environments or when browser extensions intercept CDN scripts.
+- **Logout Data Purging & Anti-Exploit Baseline Reversion (`src/data.ts`, `src/App.tsx`, `src/components/AccountModal.tsx`)**:
+  - **Centralized `clearAllLocalUserData()` Engine**: Built a standardized local storage cleaner in `src/data.ts` that purges all progress, battle history, log flags, and tracking keys (`bossRushTycoon`, `powerupArmory_save`, `powerupArmory_saved_combat_logs`, `powerupArmory_log_showTimestamps`, `powerupArmory_log_persistLogs`, `armory_user_id`, `armory_anon_uid`, `armory_device_client_id`, `armory_inward_attribution`, `_vmId`, `_vmDn`, `_vmCtx`).
+  - **TycoonBankrollCard Baseline Reset**: On user sign-out (both in `AccountModal` and across `onAuthStateChanged` auth transitions), in-memory `gameState` immediately resets to `DEFAULT_STARTER_BASELINE_STATE` (2,000 Coins, 500 Gems, 0 Defeated, 10 ATK / 10 DEF / 10 SPD, 35 Power Score, +0/s Yield, 110 HP).
+  - **Leaderboard Score Exploit Shield**: Ensured that logging out of an advanced account leaves behind zero residual game state, preventing subsequent new account logins from auto-uploading previous high scores or uncommitted coins to the cloud database.
+  - **Analytics Session Flush**: `trackUserLogout()` clears Google Analytics `user_id`, sets `is_anonymous: true`, and invokes `vmtrc('resetUser')` alongside `POST https://hub.vemetric.com/r`.
+
+---
+
+## [v1.3.0-dev.6] — 2026-09-27
+
+### Engineering Actions
+- **Vemetric Anonymous User Merging & `updateUser` Specification (`src/lib/analytics.ts`, `src/App.tsx`, `src/components/AccountModal.tsx`)**:
+  - **Eliminated Artificial Device ID Premature Identification**: Removed startup fallback that assigned client device hashes to `vemetric.identify()`, allowing Vemetric to maintain genuine anonymous sessions for pre-login activity and automatically merge those actions once the user authenticates.
+  - **Implemented `updateUser` API**: Supported Vemetric's `vemetric.updateUser({ displayName, avatarUrl, set, setOnce, unset })` specification, ensuring user profiles display full display names (`Chris Barnes` / `[DEV/BETA] Chris Barnes`) and emails rather than being classified as "anon".
+  - **Dual Sync on Login & Leaderboard Synchronization**: Wired `trackUserIdentify` and `trackUserUpdate` into `onAuthStateChanged`, Google Sign-In, Email Registration, Profile Editing, and both manual and automatic Leaderboard score synchronization.
+- **Inward UTM Attribution Engine & Campaign Tracking (`src/lib/analytics.ts`, `src/App.tsx`)**:
+  - **Inbound Query Capture (`captureInwardAttribution`)**: Implemented parsing of `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `ref`, `creator`, and `squad`/`invite` on page load, storing persistent attribution under `armory_inward_attribution` in `localStorage`.
+  - **Automated Event Parameter Enrichment**: All subsequent telemetry events across Vemetric, GA4, and Firebase now automatically receive `attr_source`, `attr_medium`, `attr_campaign`, `attr_creator`, and `attr_squad_invite`.
+  - **Attribution Telemetry (`campaign_attribution_captured`)**: Emits dedicated arrival event tracking referral sources (e.g. `creator_referral`, `squad_invite`, `partner_network`).
+- **Outward UTM Tagging & Partner Synergies (`src/lib/analytics.ts`, `src/components/Footer.tsx`)**:
+  - **Standard Outbound URL Builder (`buildOutboundPartnerUrl`)**: Generates standardized partner referral links with `utm_source=powerup_armory`.
+  - **RapportVerse & MiniBarnMaster Outbound Tagging**: Linked RapportVerse (`https://rapprt.space/?utm_source=powerup_armory&utm_medium=partner_footer&utm_campaign=rapportverse_ecosystem`) and MiniBarnMaster (`https://minibarnmaster.com/?utm_source=powerup_armory&utm_medium=creator_spotlight&utm_campaign=barn_crossplay`) in the footer.
+  - **Outbound Click Telemetry (`outbound_partner_click`)**: Dispatches click events with destination URL, partner name, and UI placement when external links are clicked.
+- **Inward Deep Linking & State Routing Architecture (`src/App.tsx`)**:
+  - **View & Sub-Tab Deep Linking**: Automatically routes arrival URLs to target top-level views (`?view=shop|game|lore|stats`), sub-categories (`?category=weapons|defense|utility|mystic`), lore sub-tabs (`?lore=compendium|bosses|systems|calculator|story`), and game tabs (`?tab=tycoon|bosses|stats`).
+  - **Modal Deep Links**: Instantly activates the onboarding tour (`?tour=true`), PWA install modal (`?install=true`), or account/squad desk (`?account=true`, `?invite=ARMORY-XXXXX`, `?squad=...`).
+- **Social Media Sharing & Leaderboard Brag Cards (`HeroAttributeSummary.tsx`, `SquadRecruitSection.tsx`, `AccountModal.tsx`)**:
+  - **Multi-Platform Brag Station**: Added Native Web Share API, Twitter / X, Bluesky, and Reddit share triggers with pre-formatted brag text, custom hashtags, and UTM-tagged deep links.
+  - **Formatted ASCII Combat Card**: One-click clipboard copy of stylized champion combat scorecard with Power Score, K/D ratio, peak critical strike damage, and squad invite link.
+  - **Social & Squad Telemetry**: Dispatched `leaderboard_shared` with platform and score stats, `squad_invite_shared` with UTM recruitment link, and `squad_invite_redeemed` supporting partner creator codes (`MINIBARN-MASTER`, `RAPPORT-VERSE`).
+- **Comprehensive Telemetry & Analytics Funnels Architecture Guide (`/Docs/ANALYTICS_FUNNELS_GUIDE.md`, `/Docs/README.md`)**:
+  - **Complete 25+ Telemetry Event Dictionary**: Authored exhaustive documentation for all tracked telemetry points across Navigation, Guided Tour onboarding, Tycoon progression, Gauntlet combat, Lore compendium quests, E-commerce checkout, User account lifecycle, Campaign attribution, and Social sharing.
+  - **8 Core Conversion Funnels**: Added Funnel 7 (*Creator & Partner Inward Referral to Boss Conquest*) and Funnel 8 (*Social Leaderboard Brag Viral Referral Loop*) alongside existing onboarding, tycoon, shop, and lore funnels.
+  - **Central Docs Registry Update**: Linked the expanded guide in `/Docs/README.md`.
+
+---
+
 ## [v1.3.0-dev.5] — 2026-09-27
 
 ### Engineering Actions
@@ -15,6 +60,40 @@
   - **Vemetric Analytics Integration**: Added public Vemetric project ID (`K9lVIvd4pe2UmylV`) to app configuration and wired dynamic script initialization with page view and custom event tracking.
   - **Google Analytics Integration**: Configured GA measurement ID (`G-YX5LPMCNB8`) in `firebase-applet-config.json` and `appConfig.ts`, dispatching `gtag.js` telemetry for page views and game events.
   - **App Lifecycle Telemetry**: Invoked `initAnalytics()` on application mount and bound `trackPageView(activeView)` to tab navigation switches in `src/App.tsx`.
+  - **Auth State User Identity Bridge**: Wired `trackUserIdentify(user.uid, traits)` inside Firebase `onAuthStateChanged` in `App.tsx` to automatically identify authenticated user sessions across Vemetric and Google Analytics, and clear identity on logout.
+  - **GDPR Cookie & Privacy Consent Banner (`CookieConsentBanner.tsx`, `useFocusTrap.ts`)**: Built a GDPR-compliant bottom banner and modal dialog allowing users to Accept All, select Essential Only, or customize Analytics (Firebase & Vemetric) and Marketing (Google Tag GTG) preferences, accessible anytime via the global footer.
+  - **Granular Game Telemetry & Event Tracking (`ShopView.tsx`, `GameView.tsx`, `LoreBookView.tsx`)**:
+    - **Sub-Page View Telemetry**: Bound `trackPageView` to sub-category navigation in Shop (`/shop/weapons`, `/shop/mystic`, etc.), Tycoon Arena (`/game/tycoon`, `/game/bosses`, `/game/stats`), and Lore Book (`/lore/compendium`, `/lore/chronicles`, etc.).
+    - **Armory Store Purchases**: Dispatched `purchase` and `armory_checkout_code_generated` telemetry events with item IDs, item counts, transaction value, and code details when checkout codes are generated in `ShopView.tsx`.
+    - **Tycoon Purchases & Upgrades**: Dispatched `tycoon_powerup_purchased` (gem license unlocks) and `tycoon_powerup_upgraded` (coin level upgrades) in `GameView.tsx`.
+    - **Boss Fight Combat Telemetry**: Injected `boss_battle_started` and `trackBossBattle(bossId, outcome, details)` for Victory / Defeat results with turn counts, damage, and rewards in `GameView.tsx`.
+    - **Leaderboard Sync Telemetry**: Dispatched `leaderboard_synced` with `power_score`, `bosses_defeated`, `coins`, `gems`, `max_damage`, `total_dodges`, and `total_specials` whenever a user syncs their stats to the cloud in `App.tsx`.
+- **Lore Book Progression Rewards & Expanded Telemetry Engine (`LoreBookView.tsx`, `GuidedTour.tsx`, `StatsLeaderboard.tsx`, `App.tsx`, `types.ts`)**:
+  - **First-Time Lore Scholar Bonus (+200 Coins & +10 Gems)**: Awarded automatically upon opening the Lore Book for the first time, emitting `dev_lore_first_open_reward_claimed`.
+  - **Per-Page Completion Reward (+100 Coins & +5 Gems per page)**: Rewards players whenever they explore a new page/tab (`Item Compendium`, `Canonical Chronicles`, `Boss Bestiary`, `Veiled Ledger`), emitting `dev_lore_page_completed`.
+  - **Lore Master Grand Completion Bonus (+1,000 Coins & +50 Gems)**: Unlocked when the player explores all 4 pages in the Lore Book, emitting `dev_lore_book_completed`.
+  - **Comprehensive Tour Telemetry (`GuidedTour.tsx`, `App.tsx`)**: Injected rich tracking for tour initiation (`dev_tour_started`), step transitions (`dev_tour_step_viewed`), skips (`dev_tour_skipped`), and tour completion bonus payouts (`dev_tour_completed`).
+  - **Bonus Payout Telemetry (`App.tsx`, `StatsLeaderboard.tsx`)**: Added structured telemetry dispatches for `dev_pwa_bonus_claimed` (+5,000 Coins & +250 Gems) and `dev_seasonal_reward_claimed` (monthly/yearly prize milestones).
+- **Negative Stat Balance Safeguards & Item Build Strategy Guide (`combatEngine.ts`, `GameView.tsx`, `StatWarningModal.tsx`, `ITEM_BUILD_STRATEGIES.md`)**:
+  - **10 HP Hard Floor Enforced (`combatEngine.ts`, `TycoonBankrollCard.tsx`, `GameView.tsx`)**: Fixed the negative HP lockout bug where purchasing items with negative defense (e.g., Shield Breaker, Void Orb) dropped champion health to `-10/-10 HP`. Max HP is now protected with a `Math.max(10, 100 + Total Defense + maxHpBonus)` floor, ensuring players are never dead or gated on spawn.
+  - **Extreme Stat Offset Warning Modal (`StatWarningModal.tsx`, `GameView.tsx`)**: Intercepts pack purchases or receipt key redemptions that reduce Defense below `0` or Max HP below `50 HP`. Displays a confirmation modal detailing current vs. new stats (`310 ATK`, `-110 DEF`, `10 HP Floor`) with Glass Cannon combat warnings before finalizing transactions.
+  - **Glass Cannon UI Badge (`TycoonBankrollCard.tsx`)**: Highlighted negative defense ratings in blinking amber with interactive tooltips explaining fragile defensive trade-offs.
+  - **Dev-Only Item Build Strategy Reference (`/Docs/ITEM_BUILD_STRATEGIES.md`)**: Created comprehensive developer documentation covering item taxonomy, stat scaling formulas, Glass Cannon / Titan Wall / Evasion build archetypes, safeguards, and admin balance commands.
+  - **Admin Stat Purity Restructure Tool (`AdminBalanceConfig.tsx`)**: Added `[🛡️ Stat Purity Restructure]` dev button to instantly clear negative defense multipliers and restore baseline Defense to 10 DEF during balance testing.
+  - **Firebase Auth Race Condition & Anonymous Session Splitting Fix**:
+    - **Removed `trackUserLogout()` from `onAuthStateChanged`**: Prevented `onAuthStateChanged` from wiping `armory_user_id` from `localStorage` during initial async auth resolution on mount.
+    - **Immediate Init Identity Binding**: Configured `initAnalytics()` to immediately bind `user_id` (`armory_user_id` or `armory_device_client_id`) and `client_id` to `gtag` and `vemetric` right on load before the first pageview event dispatches.
+    - **Guaranteed Active UID Parameter**: Ensured every event parameter payload carries a non-null `user_id` and `client_id` fallback (`activeUid = registeredUid || deviceId`) so no events emit as `null`/`anon` during page startup.
+  - **Persistent Device Client ID (`getDeviceId`)**: Generated a persistent device ID (`armory_device_client_id`) in `localStorage` so unauthenticated/guest sessions map consistently to a single user identity across page reloads.
+  - **`dev_` Prefix Automation**: Configured `getTaggedEventName()` to automatically prepend `dev_` to all event names (`dev_boss_battle_started`, `dev_page_view`, `dev_purchase`, `dev_leaderboard_synced`) emitted from AI Studio preview containers (`ais-dev-*.run.app`).
+  - **Environment Parameter Injection**: Injected `environment: 'dev_beta'`, `environment_tag: 'dev/beta'`, `is_dev_preview: true`, and `app_channel: 'dev_workspace_preview'` into parameter payloads across Vemetric, GA4, and Firebase Analytics.
+  - **User Profile Tagging**: Appended `[DEV/BETA]` tag to player display names in `trackUserIdentify` during dev workspace preview sessions.
+- **Analytics Payload Enrichment & User Identification Fix (`analytics.ts`, `App.tsx`, `AccountModal.tsx`)**:
+  - **Global Event Auto-Enrichment**: Configured `trackEvent` to automatically inject `user_id`, `user_email`, `player_name`, `registered_user` boolean, `page_location`, `page_path`, and `timestamp` into every single event payload sent to Vemetric and GA4.
+  - **Persistent User ID Storage**: Saved `armory_user_id` to `localStorage` upon authentication so subsequent events maintain registered user context even across browser refreshes or reloads.
+  - **Session Reset on Logout (`trackUserLogout`)**: Implemented explicit session reset during logout that clears `armory_user_id` from `localStorage`, resets `user_id` to `null` in GA4, triggers `reset()` / `logout` in Vemetric, and dispatches a `user_logged_out` telemetry event.
+  - **Firestore Profile Trait Sync**: Re-triggered `trackUserIdentify` with full `UserProfile` traits (`displayName`, `email`, `title`, `avatar`, `powerScore`) immediately when Firestore document fetching finishes in `App.tsx` and after Google/Email sign in/signup in `AccountModal.tsx`.
+  - **Direct HTTP Beacon Fallback (`sendVemetricBeacon`)**: Added `navigator.sendBeacon` and `fetch` fallbacks to ensure full JSON event payloads with user parameters reach Vemetric's ingestion servers regardless of script loading delays.
 
 ## [v1.3.0-dev.4] — 2026-09-27
 

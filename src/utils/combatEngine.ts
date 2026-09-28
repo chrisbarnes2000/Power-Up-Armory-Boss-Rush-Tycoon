@@ -72,7 +72,7 @@ export const getTotalSpeed = (gameState: GameState): number => {
 };
 
 export const getNormalMaxHP = (gameState: GameState): number => {
-  return 100 + getTotalDefense(gameState) + (gameState.maxHpBonus || 0);
+  return Math.max(10, 100 + getTotalDefense(gameState) + (gameState.maxHpBonus || 0));
 };
 
 export const getPowerScore = (gameState: GameState): number => {

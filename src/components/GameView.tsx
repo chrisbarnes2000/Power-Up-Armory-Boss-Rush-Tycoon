@@ -4,6 +4,7 @@ import { POWERUPS, BOSSES } from '../data';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
+import { trackEvent, trackPageView, trackBossBattle } from '../lib/analytics';
 
 // Combat Engine & Stat Calculation Utilities
 import {
@@ -28,6 +29,8 @@ import { StatsLeaderboard } from './game/StatsLeaderboard';
 import { KeyRedemptionCard } from './game/KeyRedemptionCard';
 import { TycoonGenerators } from './game/TycoonGenerators';
 import { BossGauntlet } from './game/BossGauntlet';
+
+import { StatWarningModal } from './game/StatWarningModal';
 
 export interface GameViewProps {
   initialTab?: 'tycoon' | 'bosses' | 'stats';
@@ -72,6 +75,7 @@ export function GameView({
   const handleTabChange = (tab: 'tycoon' | 'bosses' | 'stats') => {
     setActiveTab(tab);
     if (onTabChange) onTabChange(tab);
+    trackPageView(`Tycoon Arena - ${tab}`, `/game/${tab}`);
   };
 
   // Modal & Battle Arena simulation state
@@ -83,6 +87,18 @@ export function GameView({
   const [liveBossHP, setLiveBossHP] = useState(100);
   const [liveBossMaxHP, setLiveBossMaxHP] = useState(100);
   const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+
+  // Extreme Stat Offset Warning Confirmation State
+  const [pendingStatWarning, setPendingStatWarning] = useState<{
+    itemName: string;
+    itemEmoji: string;
+    currentDefense: number;
+    newDefense: number;
+    currentMaxHP: number;
+    newMaxHP: number;
+    actionType: 'purchase' | 'redemption';
+    onConfirm: () => void;
+  } | null>(null);
 
   // Manual mining clicker mechanics
   const [miningCombo, setMiningCombo] = useState<number>(1);
@@ -293,7 +309,7 @@ export function GameView({
   };
 
   // --- POWERUP PURCHASING & UPGRADES ---
-  const buyPowerupInGame = (powerupId: string) => {
+  const commitBuyPowerupInGame = (powerupId: string) => {
     const data = getPowerupData(powerupId);
     if (!data) return;
     const ps = gameState.powerups.find(p => p.id === powerupId);
@@ -323,6 +339,43 @@ export function GameView({
     });
 
     addLog(`💎 Acquired +1 ${data.emoji} ${data.id} for ${gemCost} Gems!`, 'log-reward');
+    trackEvent('tycoon_powerup_purchased', {
+      item_id: powerupId,
+      item_name: data.id,
+      gem_cost: gemCost,
+      new_quantity: ps.quantity + 1
+    });
+  };
+
+  const buyPowerupInGame = (powerupId: string) => {
+    const data = getPowerupData(powerupId);
+    if (!data) return;
+
+    if (data.defense < 0) {
+      const currentDef = getTotalDefense();
+      const newDef = currentDef + data.defense;
+      const currentMaxHP = getNormalMaxHPEngine(gameState);
+      const newMaxHP = Math.max(10, 100 + newDef + (gameState.maxHpBonus || 0));
+
+      if (newDef < 0 || newMaxHP < 50) {
+        setPendingStatWarning({
+          itemName: data.id,
+          itemEmoji: data.emoji,
+          currentDefense: currentDef,
+          newDefense: newDef,
+          currentMaxHP: currentMaxHP,
+          newMaxHP: newMaxHP,
+          actionType: 'purchase',
+          onConfirm: () => {
+            commitBuyPowerupInGame(powerupId);
+            setPendingStatWarning(null);
+          }
+        });
+        return;
+      }
+    }
+
+    commitBuyPowerupInGame(powerupId);
   };
 
   const upgradePowerupLevel = (powerupId: string) => {
@@ -357,6 +410,12 @@ export function GameView({
     });
 
     addLog(`⚡ Upgraded ${data.emoji} ${data.id} to Level ${ps.level + 1}!`, 'log-buff');
+    trackEvent('tycoon_powerup_upgraded', {
+      item_id: powerupId,
+      item_name: data.id,
+      new_level: ps.level + 1,
+      coin_cost: upgradeCost
+    });
   };
 
   // --- BATTLE CYCLE ---
@@ -401,7 +460,7 @@ export function GameView({
 
     let bossHP = getBossHP(bossId);
     const bossAtk = getBossAttack(bossId);
-    let playerHP = 100 + getTotalDefense() + (gameState.maxHpBonus || 0);
+    let playerHP = Math.max(10, 100 + getTotalDefense() + (gameState.maxHpBonus || 0));
     const playerAtk = getTotalAttack();
     
     setLivePlayerMaxHP(playerHP);
@@ -410,6 +469,12 @@ export function GameView({
     setLiveBossHP(bossHP);
 
     addLog(`⚔️ BATTLE START: Challenging ${boss.emoji} ${boss.id} (HP: ${bossHP})`, 'log-special');
+    trackEvent('boss_battle_started', {
+      boss_id: bossId,
+      boss_name: boss.id,
+      player_hp: playerHP,
+      player_atk: playerAtk
+    });
 
     let turn = 0;
     const maxTurns = 60;
@@ -469,6 +534,12 @@ export function GameView({
         }
 
         addLog(`🏆 VICTORY! Defeated ${boss.emoji} ${boss.id}! ${dropMsg}`, 'log-victory');
+        trackBossBattle(bossId, 'victory', {
+          boss_name: boss.id,
+          turns: turn,
+          reward_coins: reward,
+          reward_gems: gemReward
+        });
         setIsFighting(false);
         setActiveBossId(null);
         return;
@@ -495,6 +566,11 @@ export function GameView({
 
         const currentCost = getCurrentReviveCost();
         addLog(`💀 Defeated by ${boss.emoji} ${boss.id}! Revive for ${currentCost} Coins or consume 1 Revive Pack!`, 'log-defeat');
+        trackBossBattle(bossId, 'defeat', {
+          boss_name: boss.id,
+          turns: turn,
+          boss_hp_remaining: bossHP
+        });
         setIsFighting(false);
         setActiveBossId(null);
         return;
@@ -862,6 +938,22 @@ export function GameView({
         onFightBoss={fightBoss}
         powerScore={getPowerScore()}
       />
+
+      {/* EXTREME STAT OFFSET WARNING MODAL */}
+      {pendingStatWarning && (
+        <StatWarningModal
+          isOpen={true}
+          onClose={() => setPendingStatWarning(null)}
+          onConfirm={pendingStatWarning.onConfirm}
+          itemName={pendingStatWarning.itemName}
+          itemEmoji={pendingStatWarning.itemEmoji}
+          currentDefense={pendingStatWarning.currentDefense}
+          newDefense={pendingStatWarning.newDefense}
+          currentMaxHP={pendingStatWarning.currentMaxHP}
+          newMaxHP={pendingStatWarning.newMaxHP}
+          actionType={pendingStatWarning.actionType}
+        />
+      )}
     </div>
   );
 }

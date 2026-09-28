@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GameState, LeaderboardEntry, UserProfile, SeasonalRewardTier } from '../../types';
 import { User as FirebaseUser } from 'firebase/auth';
+import { trackEvent } from '../../lib/analytics';
 
 // Modular Leaderboard Subcomponents
 import { LeaderboardSeasonHeader, SeasonMode } from './leaderboard/LeaderboardSeasonHeader';
@@ -84,6 +85,14 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
   }).length;
 
   const handleClaimReward = (tier: SeasonalRewardTier) => {
+    trackEvent('seasonal_reward_claimed', {
+      reward_id: tier.id,
+      reward_title: tier.title,
+      category: tier.category,
+      coins: tier.coinsReward,
+      gems: tier.gemsReward
+    });
+
     if (onClaimReward) {
       onClaimReward(tier);
       return;

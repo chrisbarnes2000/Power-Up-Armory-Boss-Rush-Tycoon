@@ -11,7 +11,8 @@ import {
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../lib/firebase';
 import { GameState, UserProfile } from '../types';
-import { POWERUPS, BOSSES, DEFAULT_HERO_BASELINE, calculatePowerScore } from '../data';
+import { POWERUPS, BOSSES, DEFAULT_HERO_BASELINE, calculatePowerScore, clearAllLocalUserData } from '../data';
+import { trackUserIdentify, trackUserLogout, trackSquadInvite } from '../lib/analytics';
 import { X, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 
 // Import newly decomposed modular account subcomponents
@@ -121,6 +122,18 @@ export default function AccountModal({
       return { success: false, message: 'You have already redeemed a squad invite code!' };
     }
 
+    const isPartnerCode = ['MINIBARN-MASTER', 'MINIBARN', 'RAPPORT-VERSE', 'RAPPORTVERSE', 'RAPPRT'].includes(cleanCode);
+    const partnerName = isPartnerCode 
+      ? (cleanCode.includes('BARN') ? 'MiniBarnMaster' : 'RapportVerse') 
+      : undefined;
+
+    trackSquadInvite('redeemed', cleanCode, {
+      is_partner_creator: isPartnerCode,
+      ...(partnerName ? { creator_name: partnerName } : {}),
+      reward_coins: 3000,
+      reward_gems: 150
+    });
+
     // Grant bonus: +3,000 Coins and +150 Gems
     const updatedState: GameState = {
       ...gameState,
@@ -129,10 +142,12 @@ export default function AccountModal({
       invitedByCode: cleanCode,
       inviteCode: myCode,
       squadRecruitsCount: (gameState.squadRecruitsCount || 0) + 1,
-      squadMembers: [...(gameState.squadMembers || []), `Recruited via ${cleanCode}`],
+      squadMembers: [...(gameState.squadMembers || []), isPartnerCode ? `Partner Recruit: ${partnerName}` : `Recruited via ${cleanCode}`],
       battleLog: [
         {
-          message: `👥 Squad Invite Redeemed (${cleanCode})! Received +3,000 Coins & +150 Gems bonus!`,
+          message: isPartnerCode 
+            ? `🤝 ${partnerName} Partner Bonus Activated (${cleanCode})! Received +3,000 Coins & +150 Gems!`
+            : `👥 Squad Invite Redeemed (${cleanCode})! Received +3,000 Coins & +150 Gems bonus!`,
           className: 'log-reward'
         },
         ...gameState.battleLog
@@ -255,6 +270,16 @@ export default function AccountModal({
       }
 
       setUserProfile(freshProfile);
+      trackUserIdentify(freshProfile.userId, {
+        email: freshProfile.email,
+        displayName: freshProfile.displayName,
+        title: freshProfile.title,
+        avatar: freshProfile.avatar,
+        powerScore: freshProfile.powerScore,
+        totalBossesDefeated: freshProfile.totalBossesDefeated,
+        coins: freshProfile.coins,
+        gems: gameState.gems || 0
+      });
       setGameState(prev => ({
         ...prev,
         playerName: freshProfile.displayName
@@ -320,6 +345,18 @@ export default function AccountModal({
       }
 
       setUserProfile(profile);
+      if (profile) {
+        trackUserIdentify(profile.userId, {
+          email: profile.email,
+          displayName: profile.displayName,
+          title: profile.title,
+          avatar: profile.avatar,
+          powerScore: profile.powerScore,
+          totalBossesDefeated: profile.totalBossesDefeated,
+          coins: profile.coins,
+          gems: gameState.gems || 0
+        });
+      }
       setGameState(prev => ({
         ...prev,
         playerName: profile?.displayName || prev.playerName
@@ -383,6 +420,16 @@ export default function AccountModal({
       }
 
       setUserProfile(newProfile);
+      trackUserIdentify(newProfile.userId, {
+        email: newProfile.email,
+        displayName: newProfile.displayName,
+        title: newProfile.title,
+        avatar: newProfile.avatar,
+        powerScore: newProfile.powerScore,
+        totalBossesDefeated: newProfile.totalBossesDefeated,
+        coins: newProfile.coins,
+        gems: gameState.gems || 0
+      });
       setGameState(prev => ({ ...prev, playerName: chosenName }));
       await onSyncLeaderboard(newProfile);
       setAuthSuccess('Account created and registered to the Hall of Champions!');
@@ -421,9 +468,15 @@ export default function AccountModal({
   const handleSignOut = async () => {
     setLoading(true);
     try {
+      trackUserLogout(currentUser?.uid);
       await signOut(auth);
       setUserProfile(null);
-      setAuthSuccess('Signed out successfully.');
+
+      // Cleanse local storage to prevent data bleed into new account sessions or exploit syncs
+      const baselineState = clearAllLocalUserData();
+      setGameState(baselineState);
+
+      setAuthSuccess('Signed out successfully. Combat stats reset to new user baseline.');
     } catch (err) {
       console.error('Sign out error:', err);
     } finally {
@@ -461,6 +514,19 @@ export default function AccountModal({
       setUserProfile(prev => prev ? { ...prev, ...updated } : null);
       setGameState(prev => ({ ...prev, playerName: updatedDisplayName }));
 
+      // Refresh identified profile in Vemetric & GA4
+      trackUserIdentify(currentUser.uid, {
+        email: currentUser.email || undefined,
+        displayName: updatedDisplayName,
+        avatarUrl: currentUser.photoURL || undefined,
+        avatar: selectedAvatar,
+        title: selectedTitle,
+        powerScore: calculatePowerScore(gameState),
+        totalBossesDefeated: gameState.totalBossesDefeated,
+        coins: Math.floor(gameState.coins),
+        gems: gameState.gems || 0
+      });
+
       // Synchronize updated name and avatar to Leaderboard entry
       await onSyncLeaderboard({
         ...(userProfile || {
@@ -490,6 +556,19 @@ export default function AccountModal({
   const handleManualSync = async () => {
     setSyncingScore(true);
     try {
+      if (currentUser) {
+        trackUserIdentify(currentUser.uid, {
+          email: currentUser.email || undefined,
+          displayName: userProfile?.displayName || gameState.playerName || 'Champion',
+          avatarUrl: currentUser.photoURL || undefined,
+          avatar: userProfile?.avatar || '⚔️',
+          title: userProfile?.title || 'Grand Champion',
+          powerScore: calculatePowerScore(gameState),
+          totalBossesDefeated: gameState.totalBossesDefeated,
+          coins: Math.floor(gameState.coins),
+          gems: gameState.gems || 0
+        });
+      }
       await onSyncLeaderboard(userProfile || undefined);
       setProfileMessage('Leaderboard entry updated successfully with current battle stats!');
     } catch (err) {

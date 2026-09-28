@@ -3,6 +3,7 @@ import { TourStep, SHORT_TOUR_STEPS, TOUR_STEPS } from '../data/tourSteps';
 import { TourModeChoiceCard } from './tour/TourModeChoiceCard';
 import { TourStepPopover } from './tour/TourStepPopover';
 import { TourSpotlightOverlay } from './tour/TourSpotlightOverlay';
+import { trackEvent } from '../lib/analytics';
 
 export type { TourStep } from '../data/tourSteps';
 
@@ -48,16 +49,43 @@ export default function GuidedTour({
   const totalSteps = activeSteps.length;
   const progressPercent = Math.round(((stepIndex + 1) / totalSteps) * 100);
 
-  // Notify parent component on step change
+  // Notify parent component on step change & dispatch step telemetry
   useEffect(() => {
-    if (isActive && tourMode !== 'choice' && currentStep && onStepChange) {
-      onStepChange(currentStep);
+    if (isActive && tourMode !== 'choice' && currentStep) {
+      if (onStepChange) {
+        onStepChange(currentStep);
+      }
+      trackEvent('tour_step_viewed', {
+        tour_mode: tourMode,
+        step_index: stepIndex + 1,
+        total_steps: totalSteps,
+        step_id: currentStep.id,
+        step_title: currentStep.title,
+        page: currentStep.page,
+        sub_tab: currentStep.subTab
+      });
     }
-  }, [isActive, tourMode, stepIndex, currentStep, onStepChange]);
+  }, [isActive, tourMode, stepIndex, currentStep, totalSteps, onStepChange]);
 
   const handleSelectMode = (mode: 'short' | 'full') => {
     setTourMode(mode);
     setInternalStepIndex(0);
+    const stepsCount = mode === 'short' ? SHORT_TOUR_STEPS.length : TOUR_STEPS.length;
+    trackEvent('tour_started', {
+      tour_mode: mode,
+      total_steps: stepsCount
+    });
+  };
+
+  const handleCloseTour = () => {
+    if (tourMode !== 'choice' && stepIndex < totalSteps - 1) {
+      trackEvent('tour_skipped', {
+        tour_mode: tourMode,
+        step_index: stepIndex + 1,
+        total_steps: totalSteps
+      });
+    }
+    onClose();
   };
 
   const handleNext = () => {
@@ -117,7 +145,7 @@ export default function GuidedTour({
         handlePrev();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        handleCloseTour();
       }
     };
 
@@ -149,7 +177,7 @@ export default function GuidedTour({
             <TourModeChoiceCard 
               completedTours={completedTours}
               onSelectMode={handleSelectMode}
-              onClose={onClose}
+              onClose={handleCloseTour}
             />
           ) : (
             <TourStepPopover 

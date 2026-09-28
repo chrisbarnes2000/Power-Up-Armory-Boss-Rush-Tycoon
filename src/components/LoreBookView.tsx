@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameState } from '../types';
 import { downloadLoreBookZip } from '../utils/markdownExporter';
+import { trackPageView, trackEvent } from '../lib/analytics';
 
 // Import newly decomposed modular tab components
 import { ChroniclesTab } from './lore/ChroniclesTab';
@@ -18,6 +19,8 @@ interface LoreBookViewProps {
   onTabChange?: (tab: 'chronicles' | 'legend' | 'compendium' | 'bestiary') => void;
 }
 
+const ALL_LORE_PAGES = ['compendium', 'chronicles', 'bestiary', 'legend'];
+
 export default function LoreBookView({
   gameState,
   setGameState,
@@ -32,6 +35,7 @@ export default function LoreBookView({
   const [exportSuccessMsg, setExportSuccessMsg] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // Sync controlled tab
   useEffect(() => {
     if (controlledTab) {
       setActiveTab(controlledTab);
@@ -39,10 +43,99 @@ export default function LoreBookView({
     }
   }, [controlledTab]);
 
+  // --- LORE BOOK REWARDS & TELEMETRY ENGINE ---
+  useEffect(() => {
+    trackEvent('lore_book_opened', { initial_tab: activeTab });
+
+    setGameState(prev => {
+      const rewardsState = prev.loreBookRewards || { firstOpenClaimed: false, pagesCompleted: [], loreMasterClaimed: false };
+      let coinsToAdd = 0;
+      let gemsToAdd = 0;
+      let isUpdated = false;
+      let logMsg = '';
+
+      // 1. First Time Lore Scholar Bonus (+200 Coins, +10 Gems)
+      let firstClaimed = rewardsState.firstOpenClaimed;
+      if (!firstClaimed) {
+        firstClaimed = true;
+        coinsToAdd += 200;
+        gemsToAdd += 10;
+        isUpdated = true;
+        logMsg = '📖 First-Time Lore Scholar Bonus Claimed! Received +200 Coins & +10 Gems!';
+        trackEvent('lore_first_open_reward_claimed', { reward_coins: 200, reward_gems: 10 });
+      }
+
+      // 2. Per-Page Completion Bonus (+100 Coins, +5 Gems per page)
+      const currentPages = new Set(rewardsState.pagesCompleted || []);
+      if (!currentPages.has(activeTab)) {
+        currentPages.add(activeTab);
+        coinsToAdd += 100;
+        gemsToAdd += 5;
+        isUpdated = true;
+        logMsg = logMsg 
+          ? `${logMsg} | 📜 Lore Page Explored (${activeTab.toUpperCase()}): +100 Coins & +5 Gems!` 
+          : `📜 Lore Page Explored (${activeTab.toUpperCase()})! Received +100 Coins & +5 Gems!`;
+        trackEvent('lore_page_completed', { 
+          page_id: activeTab, 
+          reward_coins: 100, 
+          reward_gems: 5, 
+          total_pages_completed: currentPages.size 
+        });
+      }
+
+      // 3. Grand Lore Master Bonus (+1,000 Coins, +50 Gems when all 4 pages are completed)
+      let grandClaimed = rewardsState.loreMasterClaimed;
+      const pagesCompletedArr = Array.from(currentPages);
+      const hasCompletedAll = ALL_LORE_PAGES.every(p => currentPages.has(p));
+
+      if (hasCompletedAll && !grandClaimed) {
+        grandClaimed = true;
+        coinsToAdd += 1000;
+        gemsToAdd += 50;
+        isUpdated = true;
+        logMsg = `👑 LORE MASTER GRAND BONUS UNLOCKED! Earned +1,000 Coins & +50 Gems for mastering the entire Lore Book!`;
+        trackEvent('lore_book_completed', { 
+          reward_coins: 1000, 
+          reward_gems: 50, 
+          all_pages: pagesCompletedArr 
+        });
+      }
+
+      if (!isUpdated) return prev;
+
+      setSuccessToast(logMsg);
+      setTimeout(() => setSuccessToast(null), 5000);
+
+      const next: GameState = {
+        ...prev,
+        coins: prev.coins + coinsToAdd,
+        gems: (prev.gems || 0) + gemsToAdd,
+        loreBookRewards: {
+          firstOpenClaimed: firstClaimed,
+          pagesCompleted: pagesCompletedArr,
+          loreMasterClaimed: grandClaimed
+        },
+        battleLog: [
+          { message: `📖 ${logMsg}`, className: 'log-reward' },
+          ...prev.battleLog
+        ]
+      };
+
+      try {
+        localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save lore rewards to localStorage:', e);
+      }
+
+      return next;
+    });
+  }, [activeTab]);
+
   const handleTabChange = (tab: 'chronicles' | 'legend' | 'compendium' | 'bestiary') => {
     setActiveTab(tab);
     setSubMode('view');
     onTabChange?.(tab);
+    trackPageView(`Lore Book - ${tab}`, `/lore/${tab}`);
   };
 
   const handleDownloadAllZip = async () => {

@@ -96,6 +96,36 @@ export default function AdminBalanceConfig({
                 type="button"
                 onClick={() => {
                   setGameState(prev => {
+                    // Clear negative defense items (e.g. Shield Breaker, Void Orb) and restore base defense
+                    const resetPowerups = prev.powerups.map(p => {
+                      const data = POWERUPS.find(pu => pu.id === p.id);
+                      if (data && data.defense < 0) {
+                        return { ...p, quantity: 0, owned: false };
+                      }
+                      return p;
+                    });
+
+                    const next = { 
+                      ...prev, 
+                      baseDefense: Math.max(10, prev.baseDefense || 10),
+                      maxHpBonus: Math.max(0, prev.maxHpBonus || 0),
+                      powerups: resetPowerups,
+                      isDead: false
+                    };
+                    saveState(next);
+                    return next;
+                  });
+                }}
+                className="px-2.5 py-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 text-[11px] font-mono font-bold rounded transition cursor-pointer"
+                title="Clears negative defense items and restores champion baseline to 10 DEF"
+              >
+                🛡️ Stat Purity Restructure (Clear Negatives)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setGameState(prev => {
                     const next = { 
                       ...prev, 
                       baseAttack: DEFAULT_HERO_BASELINE.absoluteZero.baseAttack, 

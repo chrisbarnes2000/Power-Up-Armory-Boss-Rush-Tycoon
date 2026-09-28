@@ -14,30 +14,11 @@ import Footer from './components/Footer';
 import { PWAInstallModal } from './components/common/PWAInstallModal';
 import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
-import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore } from './data';
-import { initAnalytics, trackPageView } from './lib/analytics';
+import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore, DEFAULT_STARTER_BASELINE_STATE, clearAllLocalUserData } from './data';
+import { initAnalytics, trackPageView, trackUserIdentify, trackUserLogout, trackEvent, isDevWorkspace } from './lib/analytics';
+import CookieConsentBanner from './components/common/CookieConsentBanner';
 
-const DEFAULT_STATE: GameState = {
-  coins: 2000,
-  gems: 500,
-  maxHpBonus: 0,
-  damageBonusPercent: 0,
-  powerups: POWERUPS.map(p => ({ id: p.id, owned: false, level: 1, quantity: 0 })),
-  bosses: BOSSES.map(b => ({ id: b.id, defeated: false })),
-  powerScore: 0,
-  totalBossesDefeated: 0,
-  playerName: 'Champion',
-  battleLog: [{ message: '⚔️ Welcome, Champion! Defeat bosses to earn rewards.', className: '' }],
-  leaderboard: [],
-  purchasedCodes: [],
-  bossKillStats: {},
-  bossDeathStats: {},
-  customStories: [],
-  isDead: false,
-  reviveCount: 0,
-  revivePacks: 2,
-  balanceConfig: DEFAULT_BALANCE_CONFIG
-};
+const DEFAULT_STATE: GameState = DEFAULT_STARTER_BASELINE_STATE;
 
 // Safety-critical utility to clean and strip undefined fields recursively before Firestore writes
 function sanitizeForFirestore<T>(obj: T): T {
@@ -125,6 +106,12 @@ export default function App() {
     const bonus = TOUR_BONUSES[mode];
     if (!bonus) return;
 
+    trackEvent('tour_completed', {
+      tour_mode: mode,
+      reward_coins: bonus.coins,
+      reward_gems: bonus.gems
+    });
+
     setGameState(prev => {
       if (prev.completedTours?.[mode]) return prev; // Guard against duplicate payouts
 
@@ -159,6 +146,12 @@ export default function App() {
   const handleClaimPwaBonus = useCallback(() => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    trackEvent('pwa_bonus_claimed', {
+      reward_coins: 5000,
+      reward_gems: 250,
+      month: currentMonth
+    });
 
     setGameState(prev => {
       if (prev.pwaBonusClaimedMonth === currentMonth) return prev; // Guard against duplicate payouts in same month
@@ -237,9 +230,59 @@ export default function App() {
     setIsAdmin(admin);
   }, [currentUser, userProfile]);
 
-  // Initialize Google Analytics & Vemetric on Mount
+  // Initialize Google Analytics & Vemetric on Mount + Evaluate Inward Deep Links
   useEffect(() => {
     initAnalytics();
+
+    // Inward Deep Linking & State Evaluator
+    if (typeof window !== 'undefined') {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+
+        // 1. Top-Level View Deep Link (?view=shop|game|lore|stats)
+        const viewParam = searchParams.get('view')?.toLowerCase();
+        if (viewParam) {
+          if (viewParam === 'shop' || viewParam === 'armory') setActiveView('Shop');
+          else if (viewParam === 'game' || viewParam === 'arena' || viewParam === 'combat') setActiveView('Game');
+          else if (viewParam === 'lore' || viewParam === 'compendium') setActiveView('Lore');
+          else if (viewParam === 'stats' || viewParam === 'leaderboard') setActiveView('Stats');
+        }
+
+        // 2. Shop Category Deep Link (?category=weapons|defense|utility|mystic)
+        const categoryParam = searchParams.get('category')?.toLowerCase();
+        if (categoryParam && ['weapons', 'defense', 'utility', 'mystic'].includes(categoryParam)) {
+          setActiveView('Shop');
+          setControlledShopCategory(categoryParam as any);
+        }
+
+        // 3. Lore Sub-tab Deep Link (?lore=compendium|bosses|systems|calculator|story)
+        const loreParam = searchParams.get('lore')?.toLowerCase();
+        if (loreParam && ['compendium', 'bosses', 'systems', 'calculator', 'story'].includes(loreParam)) {
+          setActiveView('Lore');
+          setControlledLoreTab(loreParam as any);
+        }
+
+        // 4. Game Arena Sub-tab Deep Link (?tab=tycoon|bosses|stats)
+        const gameTabParam = searchParams.get('tab')?.toLowerCase();
+        if (gameTabParam && ['tycoon', 'bosses', 'stats'].includes(gameTabParam)) {
+          setActiveView('Game');
+          setControlledGameTab(gameTabParam as any);
+        }
+
+        // 5. Interactive Modal Deep Links (?tour=true, ?account=true, ?invite=ARMORY-XXXXX, ?squad=...)
+        if (searchParams.get('tour') === 'true' || searchParams.get('guided_tour') === 'true') {
+          setIsTourActive(true);
+        }
+        if (searchParams.get('install') === 'true' || searchParams.get('pwa') === 'true') {
+          setIsPWAInstallOpen(true);
+        }
+        if (searchParams.get('account') === 'true' || searchParams.get('squad') || searchParams.get('invite') || searchParams.get('ref')) {
+          setIsAccountOpen(true);
+        }
+      } catch (e) {
+        console.warn('Deep link parsing error:', e);
+      }
+    }
   }, []);
 
   // Track virtual page views when activeView changes
@@ -256,11 +299,25 @@ export default function App() {
 
   // --- FIREBASE AUTH STATE LISTENER & INITIAL TOUR PROMPT ---
   const [hasEvaluatedInitialAuth, setHasEvaluatedInitialAuth] = useState(false);
+  const previousAuthUserRef = useRef<FirebaseUser | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const prevUser = previousAuthUserRef.current;
+      previousAuthUserRef.current = user;
       setCurrentUser(user);
       if (user) {
+        const initialDisplayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Champion');
+        trackUserIdentify(user.uid, {
+          email: user.email || undefined,
+          displayName: initialDisplayName,
+          avatarUrl: user.photoURL || undefined,
+          isAnonymous: user.isAnonymous,
+          powerScore: calculatePowerScore(gameState),
+          totalBossesDefeated: gameState.totalBossesDefeated,
+          coins: Math.floor(gameState.coins),
+          gems: gameState.gems || 0
+        });
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const snap = await getDoc(userDocRef);
@@ -270,6 +327,18 @@ export default function App() {
             if (data.displayName) {
               setGameState(prev => ({ ...prev, playerName: data.displayName }));
             }
+            trackUserIdentify(user.uid, {
+              email: data.email || user.email || undefined,
+              displayName: data.displayName || initialDisplayName,
+              avatarUrl: user.photoURL || undefined,
+              title: data.title || 'Grand Champion',
+              avatar: data.avatar || '⚔️',
+              powerScore: data.powerScore || calculatePowerScore(gameState),
+              totalBossesDefeated: data.totalBossesDefeated ?? gameState.totalBossesDefeated,
+              coins: data.coins ?? Math.floor(gameState.coins),
+              gems: gameState.gems || 0,
+              isAnonymous: user.isAnonymous
+            });
           }
 
           // Fetch Cloud Game Save Progress
@@ -378,7 +447,18 @@ export default function App() {
           console.warn('Error fetching user profile or cloud progress:', err);
         }
       } else {
+        // User is unauthenticated / logged out
         setUserProfile(null);
+        setCloudSaveConflict(null);
+        setIsAdmin(false);
+
+        // If previously authenticated user signed out, wipe local storage and reset gameState to baseline
+        // so new accounts cannot quick-sync or exploit prior user's battle progress
+        if (prevUser !== null) {
+          trackUserLogout(prevUser.uid);
+          const cleanBaseline = clearAllLocalUserData();
+          setGameState(cleanBaseline);
+        }
       }
 
       // Prompt tour on initial load if user is not logged in
@@ -399,6 +479,11 @@ export default function App() {
 
   // --- REAL-TIME CLOUD LEADERBOARD LISTENER ---
   useEffect(() => {
+    if (isDevWorkspace()) {
+      console.info('🛡️ [Dev Workspace] Skipping real-time Firestore leaderboard onSnapshot listener to conserve read counts.');
+      return;
+    }
+
     try {
       const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(50));
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -589,6 +674,31 @@ export default function App() {
       }), { merge: true });
 
       setGameState(prev => ({ ...prev, powerScore: currentPowerScore }));
+
+      // Refresh identified user state and push latest stats to Vemetric & GA4
+      trackUserIdentify(currentUser.uid, {
+        email: currentUser.email || undefined,
+        displayName: nameToUse,
+        avatarUrl: currentUser.photoURL || undefined,
+        avatar: avatarToUse,
+        title: titleToUse,
+        powerScore: currentPowerScore,
+        totalBossesDefeated: bossesDefeated,
+        coins: goldCoins,
+        gems: gameState.gems || 0
+      });
+
+      // Dispatch analytics event
+      trackEvent('leaderboard_synced', {
+        user_id: currentUser.uid,
+        power_score: currentPowerScore,
+        bosses_defeated: bossesDefeated,
+        coins: goldCoins,
+        gems: gameState.gems || 0,
+        max_damage: gameState.maxDamage || 0,
+        total_dodges: gameState.totalDodges || 0,
+        total_specials: gameState.totalSpecials || 0
+      });
     } catch (err) {
       console.error('Error syncing leaderboard:', err);
       handleFirestoreError(err, OperationType.WRITE, `leaderboard/${currentUser.uid}`);
@@ -1144,6 +1254,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* GDPR COOKIE & PRIVACY CONSENT BANNER & MODAL */}
+      <CookieConsentBanner />
 
       {/* UNIVERSAL MOBILE TOUCH & DESKTOP HOVER TOOLTIP ENGINE */}
       <GlobalTouchTooltip />
