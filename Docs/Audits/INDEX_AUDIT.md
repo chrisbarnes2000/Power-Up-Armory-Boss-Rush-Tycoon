@@ -1,6 +1,7 @@
 # System Audit & Codebase Scorecards (`/Docs/Audits/INDEX_AUDIT.md`)
 
 ## 📋 Granular Audit Reports & Scorecards
+- [**HTTP Security & Vulnerability Defense Audit**](./HTTP_SECURITY_AUDIT.md) — Comprehensive remediation of CSP, HSTS, X-Content-Type, X-Frame-Options, COOP/CORP/COEP, and RFC 9116 `security.txt`.
 - [**NASA JPL Power of 10 Safety Scorecard**](./NASA_JPL_POWER_OF_10.md) — Bounded loops, deterministic control flows, memory safety, and null defenses.
 - [**WCAG 2.1/2.2 AA Accessibility Audit**](./WCAG_ACCESSIBILITY_AUDIT.md) — High contrast palette, keyboard traps avoidance, font scaling, and ARIA semantics.
 - [**Modularity & Line Ceiling Scorecard**](./MODULARITY_SCORECARD.md) — Decomposition metrics and single-responsibility subcomponent breakdown.
@@ -16,6 +17,7 @@
 | **Accessibility** | WCAG 2.1/2.2 AA | 🟢 Compliant | High contrast ratios, focus rings, ARIA labels, dynamic font scaling (50%-165%) |
 | **Service Management** | ITIL v4 Change Enablement | 🟢 Compliant | Standard change logging in `CHANGELOG_DEV.md` & `CHANGELOG.md` |
 | **Security** | Firebase Rules & Secrets | 🟢 Audited | Firestore security rules enforce auth constraints, no client secrets |
+| **HTTP Security & Headers** | OWASP Top 10 & RFC 9116 | 🟢 Enforced | CSP, HSTS, X-Content-Type, X-Frame-Options, COOP, CORP, COEP & `security.txt` |
 
 ## Module Line Ceiling Audit
 - `App.tsx`: 597 lines (Below 1000 line ceiling)

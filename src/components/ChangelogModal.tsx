@@ -98,19 +98,20 @@ export default function ChangelogModal({ isOpen, onClose, isAdmin, isBeta: isBet
   useEffect(() => {
     if (typeof isBetaProp === "boolean") {
       setIsBeta(isBetaProp);
-      if (!isBetaProp && !isAdmin && (activeTab === "dev" || activeTab === "beta")) {
+      if (!isBetaProp && !isAdmin && activeTab === "dev") {
         setActiveTab("public");
       }
     }
   }, [isBetaProp, isAdmin, activeTab]);
 
-  const hasBetaAccess = Boolean(isAdmin || isBeta);
+  // Beta Flags tab is always accessible so users & testers can explore experimental toggles and paywall previews
+  const hasBetaAccess = true;
 
   useEffect(() => {
-    if (!hasBetaAccess && (activeTab === "dev" || activeTab === "beta")) {
+    if (!isBeta && !isAdmin && activeTab === "dev") {
       setActiveTab("public");
     }
-  }, [hasBetaAccess, activeTab]);
+  }, [isBeta, isAdmin, activeTab]);
 
   const [publicChangelog, setPublicChangelog] = useState<string>("");
   const [devChangelog, setDevChangelog] = useState<string>("");
@@ -531,13 +532,29 @@ export default function ChangelogModal({ isOpen, onClose, isAdmin, isBeta: isBet
       });
     } else {
       setVotedIds(prev => new Set(prev).add(id));
-      setRoadmapItems(prev => prev.map(item => item.id === id ? { ...item, votes: item.votes + 1 } : item));
+      const newVotes = item.votes + 1;
+      setRoadmapItems(prev => prev.map(item => item.id === id ? { ...item, votes: newVotes } : item));
       
       trackEvent('roadmap_vote_added', {
         item_id: id,
         item_title: item.title,
         category: item.category
       });
+      
+      // Admin logging
+      if (isAdmin) {
+        trackEvent('admin_log_roadmap_like', { item_id: id, item_title: item.title, new_votes: newVotes });
+      }
+
+      // Logic for Beta/Feature flags
+      if (newVotes === 2) {
+        setLocalBetaFeatureOverride(`planned_beta_${id}`, true);
+        trackEvent('roadmap_item_promoted_to_beta', { item_id: id });
+      } else if (newVotes === 4) {
+        setLocalBetaFeatureOverride(`planned_beta_${id}`, false);
+        setLocalBetaFeatureOverride(`feature_dev_${id}`, true);
+        trackEvent('roadmap_item_promoted_to_feature_dev', { item_id: id });
+      }
     }
   };
 
@@ -564,7 +581,7 @@ export default function ChangelogModal({ isOpen, onClose, isAdmin, isBeta: isBet
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 md:p-6 lg:p-8 backdrop-blur-sm bg-black/60">
+      <div className="fixed inset-0 z-[500] flex items-center justify-center p-3 sm:p-5 md:p-6 lg:p-8 backdrop-blur-sm bg-black/60">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -623,6 +640,8 @@ export default function ChangelogModal({ isOpen, onClose, isAdmin, isBeta: isBet
               onToggleFeatureFlag={handleToggleFeatureFlag}
               onPublishBatchRelease={handlePublishBatchRelease}
               onManualBroadcast={handleManualBroadcast}
+              isBeta={isBeta}
+              onToggleBeta={handleToggleBetaTester}
             />
           )}
 

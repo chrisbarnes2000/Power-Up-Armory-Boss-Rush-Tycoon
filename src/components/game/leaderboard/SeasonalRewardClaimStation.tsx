@@ -2,6 +2,7 @@ import React from 'react';
 import { GameState, SeasonalRewardTier } from '../../../types';
 import { MONTHLY_REWARDS, YEARLY_REWARDS } from '../../../data/seasonalRewards';
 import { SeasonMode } from './LeaderboardSeasonHeader';
+import { triggerParticleBurst } from '../../common/ParticleFX';
 
 export interface SeasonalRewardClaimStationProps {
   gameState: GameState;
@@ -43,22 +44,25 @@ export const SeasonalRewardClaimStation: React.FC<SeasonalRewardClaimStationProp
   };
 
   return (
-    <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 sm:p-5 space-y-4">
-      <div className="border-b border-white/5 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h3 className="font-mono text-sm text-[#f5e56b] uppercase font-bold tracking-wide flex items-center gap-2">
-            <span>🎁 {seasonMode === 'yearly' ? 'YEARLY CHAMPIONSHIP' : 'MONTHLY SEASON'} PRIZE REWARDS</span>
-            <span className="text-[10px] bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-              Instant Payouts
-            </span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Reach target combat metrics and milestones to claim bonus gold, gems, and exclusive player titles.
-          </p>
+    <div className="bg-gradient-to-br from-[#141b2c] via-[#0f1726] to-[#0c121e] border border-amber-500/25 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.7)] space-y-5">
+      <div className="border-b border-amber-500/20 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🎁</span>
+          <div>
+            <h3 className="font-mono text-xs sm:text-sm text-amber-300 uppercase font-bold tracking-wider flex items-center gap-2">
+              <span>{seasonMode === 'yearly' ? 'ANNUAL GRAND CHAMPIONSHIP' : 'MONTHLY SEASON'} BOUNTY SANCTUARY</span>
+              <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                Instant Payouts
+              </span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Achieve celestial combat milestones to claim massive gold caches, starlight gems, and ascended titles.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {rewardsList.map(tier => {
           const currentVal = getCurrentMetricValue(tier.category);
           const isEligible = currentVal >= tier.minRequirement;
@@ -68,47 +72,47 @@ export const SeasonalRewardClaimStation: React.FC<SeasonalRewardClaimStationProp
           return (
             <div
               key={tier.id}
-              className={`p-3.5 rounded-xl border transition flex flex-col justify-between ${
+              className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
                 isClaimed
-                  ? 'bg-[#101b30]/60 border-white/5 opacity-80'
+                  ? 'bg-[#0f1624]/60 border-white/5 opacity-75'
                   : isEligible
-                  ? 'bg-gradient-to-r from-amber-950/40 via-blue-950/40 to-[#121f3a] border-amber-500/40 shadow-md'
-                  : 'bg-[#121c32] border-[#203354]'
+                  ? 'bg-gradient-to-r from-amber-950/50 via-[#18233a] to-[#141c2c] border-amber-400/60 shadow-lg ring-1 ring-amber-400/30'
+                  : 'bg-[#101828]/90 border-amber-500/20 hover:border-amber-500/40'
               }`}
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{tier.badgeEmoji}</span>
-                    <div>
-                      <h4 className="font-mono text-sm font-bold text-white flex items-center gap-1.5">
-                        <span>{tier.title}</span>
-                        {tier.titleReward && (
-                          <span className="text-[10px] text-amber-300 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-500/30 font-sans">
-                            Title: "{tier.titleReward}"
-                          </span>
-                        )}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-2xl p-1.5 bg-black/40 rounded-xl border border-white/5 shrink-0">{tier.badgeEmoji}</span>
+                    <div className="min-w-0">
+                      <h4 className="font-mono text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 flex-wrap">
+                        <span className="truncate">{tier.title}</span>
                       </h4>
-                      <p className="text-xs text-slate-300 font-mono mt-0.5">{tier.criteriaText}</p>
+                      {tier.titleReward && (
+                        <span className="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/30 font-mono inline-block mt-0.5">
+                          Title: "{tier.titleReward}"
+                        </span>
+                      )}
+                      <p className="text-xs text-slate-300 font-mono mt-1 leading-snug">{tier.criteriaText}</p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className="font-mono text-xs font-bold text-yellow-400 block">+{tier.coinsReward.toLocaleString()} 🪙</span>
-                    <span className="font-mono text-xs font-bold text-cyan-300 block">+{tier.gemsReward.toLocaleString()} 💎</span>
+                    <span className="font-mono text-xs font-black text-yellow-400 block tabular-nums">+{tier.coinsReward.toLocaleString()} 🪙</span>
+                    <span className="font-mono text-xs font-black text-cyan-300 block tabular-nums">+{tier.gemsReward.toLocaleString()} 💎</span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="mt-3">
+                <div className="mt-3.5 pt-2.5 border-t border-white/5">
                   <div className="flex justify-between text-[10px] font-mono text-slate-400 mb-1">
                     <span>Progress: {currentVal.toLocaleString()} / {tier.minRequirement.toLocaleString()}</span>
-                    <span>{progressPercent}%</span>
+                    <span className="text-amber-300 font-bold">{progressPercent}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/5">
                     <div
                       className={`h-full transition-all duration-500 ${
-                        isEligible ? 'bg-gradient-to-r from-emerald-500 to-amber-400' : 'bg-blue-600'
+                        isEligible ? 'bg-gradient-to-r from-emerald-500 to-amber-400' : 'bg-gradient-to-r from-blue-600 to-cyan-500'
                       }`}
                       style={{ width: `${progressPercent}%` }}
                     />
@@ -117,13 +121,13 @@ export const SeasonalRewardClaimStation: React.FC<SeasonalRewardClaimStationProp
               </div>
 
               {/* Action Button */}
-              <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between">
+              <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-mono">
                   {isClaimed ? 'Claimed for this period' : isEligible ? 'Target unlocked!' : 'Keep battling to unlock'}
                 </span>
 
                 {isClaimed ? (
-                  <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                  <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1 bg-emerald-950/70 px-3 py-1 rounded-xl border border-emerald-500/30">
                     <span>✅</span>
                     <span>Claimed</span>
                   </span>
@@ -131,15 +135,18 @@ export const SeasonalRewardClaimStation: React.FC<SeasonalRewardClaimStationProp
                   <button
                     type="button"
                     disabled={!isEligible}
-                    onClick={() => onClaimReward(tier)}
-                    className={`text-xs font-mono font-bold px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                    onClick={() => {
+                      triggerParticleBurst('purchase');
+                      onClaimReward(tier);
+                    }}
+                    className={`text-xs font-mono font-bold px-3.5 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 select-none ${
                       isEligible
-                        ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-md font-black animate-bounce'
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black shadow-lg shadow-amber-900/40 font-black animate-pulse active:scale-95'
                         : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
                     }`}
                   >
                     <span>🎁</span>
-                    <span>{isEligible ? 'Claim Prize' : 'Locked'}</span>
+                    <span>{isEligible ? 'Claim Bounty' : 'Locked'}</span>
                   </button>
                 )}
               </div>

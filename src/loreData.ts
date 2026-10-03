@@ -146,6 +146,24 @@ export const CANONICAL_CHAPTERS: CanonicalChapter[] = [
   {
     id: 'chapter-6',
     chapterNumber: 'Chapter VI',
+    title: 'The Granite Bastion',
+    subtitle: 'The Elder Titan & The Shattered Peak',
+    era: 'The Age of Stone & Strata',
+    featuredBoss: 'Elder Titan',
+    featuredItems: ['Shield Breaker', 'Titan Armor', 'Magnetite Shield'],
+    excerpt: 'A living mountain cannot be felled by ordinary steel. To shatter continental granite, one must wield weapons tuned to tectonic fault lines.',
+    chronicle: [
+      'Awakening from millennium-long slumber beneath the Jagged Spine, the Elder Titan walked. A colossal sentinel of living bedrock and crystallized magnetic ore, each footstep triggered seismic tremors across the industrial foundries.',
+      'Possessing an impenetrable Stone Carapace that naturally blunted 35% of all physical kinetic force, whole battalions fractured their enchanted broadswords against its obsidian knees without leaving a scratch.',
+      'The Armory’s Master Artificers convened at the tectonic foundry. They paired the reinforced Titan Armor with the harmonic resonance of the Shield Breaker and Magnetite Shield, designed to channel the Titan’s immense seismic weight back into its fractured core.',
+      'When the Titan unleashed its earth-shattering Ground Slam, the champion stood unyielding, rooted like bedrock. With a perfectly timed strike of the Shield Breaker, the champion unleashed an ultrasonic shockwave directly into the Titan’s fault fissures, causing the megalithic carapace to crack from crown to base.',
+      'The mountain fell, and from its mineral heart, the Armory harvested tectonic alloys that multiplied our passive foundry yields across all realms.'
+    ],
+    tacticalLesson: 'The Elder Titan’s Stone Carapace absorbs 35% physical damage. Utilize the Shield Breaker to bypass its armor, and stack Titan Armor to endure its seismic tectonic ground slams.'
+  },
+  {
+    id: 'chapter-7',
+    chapterNumber: 'Chapter VII',
     title: 'The Primordial Rift',
     subtitle: 'Poison of the Abyss & True Armor',
     era: 'The Abyssal Rupture',
@@ -162,8 +180,8 @@ export const CANONICAL_CHAPTERS: CanonicalChapter[] = [
     tacticalLesson: 'The Void Serpent’s DoT poison and armor will wear you down in prolonged engagements. Use the Void Orb’s 100% True Damage to bypass its resistances before its venom ticks consume your life.'
   },
   {
-    id: 'chapter-7',
-    chapterNumber: 'Chapter VII',
+    id: 'chapter-8',
+    chapterNumber: 'Chapter VIII',
     title: 'The Supernova Convergence',
     subtitle: 'The Devourer of Constellations',
     era: 'The Final Twilight',
@@ -469,6 +487,42 @@ export const ITEM_LORES: ItemLoreEntry[] = [
       whyItWorks: 'The only weapon possessing sufficient cosmic density to trigger an instant-kill collapse on the 5000 HP Star Eater.'
     },
     tycoonPhilosophy: '15.0 Gold/s base. The undisputed crown jewel of the tycoon empire, delivering unparalleled gold generation.'
+  },
+  {
+    id: 'Revive Pack',
+    itemNumber: 17,
+    category: 'Consumables' as any,
+    vendorName: '"Bandages" / "Stitches" / "The Wrap"',
+    title: 'Revive Pack · The Alchemical Bandage',
+    mythos: 'In the oldest alleyways of the Bazaar, the alchemical healers didn\'t use thread or cotton. They wove living raw silk infused with rejuvenating nectar directly into standard utility tape. The vendors call them Bandages, because they cover the wound. They call them Stitches, because they pull you back from the brink of the grave. They call them The Wrap, because one tight wrap and your fractured spirit binds back into your flesh.',
+    vendorQuote: 'You don\'t bleed in the Bazaar. You wrap. One wrap and the pain goes quiet. Two and your bones find their places. Three and you\'re standing back up, ready to challenge the titan once more.',
+    deliverableEcho: 'The Bandages are not simple gauze. They are a contract with your own vitality, sealed in alchemical glue.',
+    inGameEffect: 'Instantly revives a fallen hero to full health, ignoring scaling coin penalties.',
+    forgingRecord: 'Prepared by boiling silver-thread flax in pristine mountain water, then curing it in moon-dew and active nanite gels.',
+    battleSignificance: 'Restores 100% vital HP. Bypasses the exponentially growing coin revive tax, preserving vital gold resources.',
+    bossCounter: {
+      targetBoss: 'Lich King & Star Eater',
+      whyItWorks: 'Against bosses with instant-death or immense phase-two damage spikes, a quick bandage revive turns certain defeat into a winning counter.'
+    },
+    tycoonPhilosophy: '0.0 Gold/s base. A non-yielding life insurance reserve that shields your active capital from being drained by revive fees.'
+  },
+  {
+    id: 'Combat Tonic',
+    itemNumber: 18,
+    category: 'Consumables' as any,
+    vendorName: '"Tonics" / "Brew" / "The Surge"',
+    title: 'Combat Tonic · The Adrenaline Vial',
+    mythos: 'The Combat Tonic is boiled from the raw adrenaline of frenzied beasts and distilled under high pressure inside the foundry. The vendors call them Tonics, because they stimulate. They call them Brew, because they boil your blood. They call them The Surge, because one hit and your veins turn into rivers of liquid fire.',
+    vendorQuote: 'One sip and your heart beats like a war drum. Two and the world moves in slow motion. Three and your blade cleaves steel as if it were warm butter.',
+    deliverableEcho: 'The Tonics are not drinks. They are concentrated combat reflex, corked in dark glass.',
+    inGameEffect: 'Boosts player battle damage by 5% permanently per purchased dose.',
+    forgingRecord: 'Distilled from active fire-spores, ginger-root essence, and powdered dragon scale under extreme hydraulic press.',
+    battleSignificance: 'Adds a stacking 5% damage multiplier to all weapon attacks, compounding with Focus Crit and Shatter stats.',
+    bossCounter: {
+      targetBoss: 'Void Serpent & Star Eater',
+      whyItWorks: 'Sells a massive, unconditional damage acceleration required to melt high-HP celestial adversaries before they overwhelm you.'
+    },
+    tycoonPhilosophy: '0.0 Gold/s base. The ultimate booster asset, transforming cold coin savings directly into pure, compounding force.'
   }
 ];
 
@@ -591,6 +645,11 @@ export const SYSTEM_LEGEND = {
       label: 'Hero Health Pool',
       formula: 'Total Max HP = 100 Base HP + Total Defense + Shield Boosts',
       explanation: 'Every point of defense across your armory directly expands your active health bar in boss encounters, allowing you to endure ferocious boss strikes.'
+    },
+    {
+      label: 'Vital Health Mesh & Aura Vignette Filter',
+      formula: 'Vignette Red Filter = (1 - Current HP / Max HP) [Activates below 50% HP]',
+      explanation: 'As a champion’s health drops below 50% during combat, a blood-red progressive vital mesh vignette envelopes the edge of the viewport. The intensity scales continuously with combat fatigue, signaling critical danger until revived or healed.'
     }
   ],
   packNomenclature: [

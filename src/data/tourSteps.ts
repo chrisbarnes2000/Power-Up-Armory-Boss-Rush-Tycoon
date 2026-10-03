@@ -16,15 +16,15 @@ export interface TourStep {
 // --- 🎁 ONE-TIME TOUR COMPLETION BONUSES ---
 export const TOUR_BONUSES = {
   short: {
-    coins: 1000,
-    gems: 100,
-    label: '+1,000 Gold Coins & +100 Gems',
+    coins: 500,
+    gems: 50,
+    label: '+500 Gold Coins & +50 Gems',
     title: '⚡ Express Tour Onboarding Bonus'
   },
   full: {
-    coins: 5000,
-    gems: 500,
-    label: '+5,000 Gold Coins & +500 Gems',
+    coins: 1500,
+    gems: 150,
+    label: '+1,500 Gold Coins & +150 Gems',
     title: '📜 Grand Tour Master Onboarding Bonus'
   }
 };

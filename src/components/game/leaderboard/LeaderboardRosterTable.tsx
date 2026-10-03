@@ -95,78 +95,105 @@ export const LeaderboardRosterTable: React.FC<LeaderboardRosterTableProps> = ({
   };
 
   return (
-    <div className="bg-[#0e1628] border border-[#1a2540] rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
-      <div className="border-b border-white/5 pb-2.5 flex items-center justify-between">
-        <h3 className="text-xs uppercase font-mono font-bold text-slate-400">
-          Rankings sorted by <span className="text-cyan-400 font-black uppercase">{activeCategory.replace('_', ' ')}</span>
-        </h3>
-        <span className="text-[11px] font-mono text-slate-500">
-          {sortedEntries.length} Active Contenders
-        </span>
+    <div className="bg-gradient-to-br from-[#141b2c] via-[#0f1726] to-[#0c121e] border border-amber-500/25 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.7)] space-y-4">
+      <div className="border-b border-amber-500/20 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🏆</span>
+          <div>
+            <h3 className="text-xs uppercase font-mono font-bold text-amber-300 tracking-wider flex items-center gap-1.5">
+              <span>CODEX ROSTER · SORTED BY</span>
+              <span className="text-white font-black bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/30">
+                {activeCategory.replace('_', ' ').toUpperCase()}
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+              Verified realm contenders competing in the active seasonal horizon.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-amber-200/80 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 font-bold">
+            {sortedEntries.length} Active Contenders
+          </span>
+        </div>
       </div>
 
-      <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 max-h-[560px] overflow-y-auto pr-1 scrollbar-thin">
         {sortedEntries.map((entry, idx) => {
           const isMe = (currentUser && entry.userId === currentUser.uid) || entry.userId === 'local-player';
           const rank = idx + 1;
           const isTop3 = rank <= 3;
           const rankBadge = rank === 1 ? '🥇 1st' : rank === 2 ? '🥈 2nd' : rank === 3 ? '🥉 3rd' : `#${rank}`;
+          const rankTitle = rank === 1 ? 'Sovereign Champion' : rank === 2 ? 'Grand Archon' : rank === 3 ? 'Astral Sentinel' : entry.title || 'Warrior';
 
           return (
             <div
               key={entry.userId || `${entry.name}-${idx}`}
-              className={`flex items-center justify-between p-3 rounded-xl border transition ${
+              className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 gap-3 sm:gap-4 ${
                 isMe
-                  ? 'bg-blue-950/60 border-blue-500/50 shadow-md ring-1 ring-blue-400/30'
+                  ? 'bg-gradient-to-r from-amber-950/40 via-blue-950/50 to-[#121c32] border-amber-400/60 shadow-lg ring-1 ring-amber-400/40'
                   : isTop3
-                  ? 'bg-[#131f38] border-amber-500/20 hover:border-amber-500/40'
-                  : 'bg-white/5 border-white/5 hover:bg-white/10'
+                  ? 'bg-[#121a2c]/90 border-amber-500/30 hover:border-amber-400/60 hover:bg-[#16223a]'
+                  : 'bg-[#0e1524]/80 border-white/5 hover:border-amber-500/20 hover:bg-[#121b2e]'
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3.5 min-w-0">
                 <span
-                  className={`font-mono text-xs font-black px-2 py-1 rounded-lg shrink-0 ${
+                  className={`font-mono text-xs font-black px-2.5 py-1.5 rounded-xl shrink-0 text-center min-w-[54px] shadow-sm select-none ${
                     rank === 1
-                      ? 'bg-amber-400 text-black shadow-sm'
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-[0_0_12px_rgba(251,191,36,0.5)]'
                       : rank === 2
-                      ? 'bg-slate-300 text-black'
+                      ? 'bg-gradient-to-r from-slate-200 to-slate-400 text-black'
                       : rank === 3
-                      ? 'bg-amber-700 text-white'
-                      : 'bg-black/40 text-slate-400'
+                      ? 'bg-gradient-to-r from-amber-700 to-amber-800 text-amber-100 border border-amber-500/40'
+                      : 'bg-black/50 text-slate-400 border border-white/5'
                   }`}
                 >
                   {rankBadge}
                 </span>
 
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg shrink-0">{entry.avatar || '🛡️'}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-2xl shrink-0 p-1.5 bg-black/40 rounded-xl border border-white/5">{entry.avatar || '🛡️'}</span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono text-xs font-bold text-white truncate">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm font-bold text-white truncate">
                         {entry.name}
                       </span>
                       {isMe && (
-                        <span className="text-[9px] bg-blue-500 text-white font-black px-1.5 py-0.2 rounded font-mono">
+                        <span className="text-[10px] bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black px-2 py-0.5 rounded-full font-mono shadow-xs">
                           YOU
                         </span>
                       )}
                     </div>
-                    {entry.title && (
-                      <span className="text-[10px] text-slate-400 block truncate font-sans">
-                        {entry.title}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 text-xs text-amber-200/60 font-mono mt-0.5 truncate">
+                      <span>{rankTitle}</span>
+                      {entry.score ? (
+                        <>
+                          <span className="text-slate-600">·</span>
+                          <span className="text-slate-400 font-mono">{entry.score.toLocaleString()} PS</span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="text-right shrink-0 pl-2">
-                <span className="font-mono text-xs sm:text-sm font-black text-amber-300 block">
-                  {getMetricLabel(entry)}
-                </span>
-                <span className="text-[10px] font-mono text-slate-400 block">
-                  K/D: {entry.bosses || 0}W / {entry.totalDeaths || 0}L
-                </span>
+              <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 border-white/5 pt-2 sm:pt-0">
+                <div className="hidden md:block text-right">
+                  <span className="text-[10px] text-slate-400 block font-mono">Gauntlet Record</span>
+                  <span className="text-xs font-mono font-bold text-slate-300">
+                    <span className="text-emerald-400">{entry.bosses || 0} Wins</span> · <span className="text-red-400">{entry.totalDeaths || 0} Deaths</span>
+                  </span>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="font-mono text-sm sm:text-base font-black text-amber-300 block tabular-nums">
+                    {getMetricLabel(entry)}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 block sm:hidden">
+                    K/D: {entry.bosses || 0}W / {entry.totalDeaths || 0}L
+                  </span>
+                </div>
               </div>
             </div>
           );

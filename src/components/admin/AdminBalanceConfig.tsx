@@ -24,6 +24,15 @@ export default function AdminBalanceConfig({
     });
   };
 
+  const updateConfigBool = (key: keyof GameBalanceConfig, value: boolean) => {
+    const nextConfig = { ...currentConfig, [key]: value };
+    setGameState(prev => {
+      const next = { ...prev, balanceConfig: nextConfig };
+      saveState(next);
+      return next;
+    });
+  };
+
   return (
     <div 
       id="admin-game-balance-section"
@@ -60,6 +69,31 @@ export default function AdminBalanceConfig({
         <div>
           <strong className="text-white block mb-0.5 font-mono text-[11px] uppercase tracking-wider">State Isolation Sandbox:</strong>
           These balance variables apply exclusively to your private, active game state simulation. Adjustments are saved to your browser's local storage and synced to your private Firestore player profile (if authenticated). Other players' sessions, limits, or drop tables remain fully unaffected, ensuring zero cross-session contamination.
+        </div>
+      </div>
+
+      {/* DB Quick Sync Check Toggle Card */}
+      <div className="bg-black/50 border border-cyan-500/30 rounded-xl p-4 space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 className="font-mono text-xs text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-2">
+              <span>🔄</span> DATABASE QUICK SYNC CHECK TOGGLE
+            </h4>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Disable the automatic quick sync check on DB authentication load to prevent automatic cloud progress conflict checks.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateConfigBool('disableQuickSyncCheck', !(currentConfig.disableQuickSyncCheck ?? false))}
+            className={`px-4 py-2 rounded-xl font-mono text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-md ${
+              currentConfig.disableQuickSyncCheck
+                ? 'bg-red-600 hover:bg-red-500 text-white border border-red-400 animate-pulse'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400'
+            }`}
+          >
+            {currentConfig.disableQuickSyncCheck ? '🔴 QUICK SYNC DISABLED' : '🟢 QUICK SYNC ENABLED'}
+          </button>
         </div>
       </div>
 

@@ -29,4 +29,7 @@ User-agent: Applebot-Extended
 Allow: /
 Allow: /llms.txt
 
+# Security contact and disclosure policy:
+# /.well-known/security.txt
+
 Sitemap: /sitemap.xml

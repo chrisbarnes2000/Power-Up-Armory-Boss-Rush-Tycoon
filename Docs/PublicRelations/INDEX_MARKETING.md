@@ -97,3 +97,35 @@
 > Clean code = fast games. 🚀
 > 
 > #CleanCode #React #Architecture #TypeScript #Frontend
+
+---
+
+## 👓 Affiliate Campaign Suite: Zenni Optical ("Give $15, Get $15")
+
+> **Referral Access URL**: `http://rwrd.io/r7jn9f2?c`  
+> **Documentation Reference**: [`/Docs/PublicRelations/Affiliate_ZenniOptical.md`](./Affiliate_ZenniOptical.md)  
+> **Privacy Policy**: `https://www.zennioptical.com/privacy-policy` | **Terms**: `https://www.zennioptical.com/terms-of-use`  
+
+### 🐦 X / Twitter / Social Post
+> 👓 **Sharper Vision, Bigger Savings!** ✨
+> 
+> Spread the love, share the savings! Grab **$15 OFF** your first pair of prescription glasses, blue-light blockers, or polarized sunglasses with our official Zenni Optical partnership:
+> 
+> 🎁 Claim your $15 discount coupon here: http://rwrd.io/r7jn9f2?c
+> 
+> Stack your rewards: refer friends & get 300 points ($15 in rewards) per referral! 🚀
+> 
+> #ZenniOptical #Affiliate #Savings #Eyewear #GamingSetup #RapportVerse #MiniBarnMaster
+
+### 💼 Discord / Community Broadcast
+> 👓 **Official Partner Perk: Zenni Optical $15 Off Eyewear Grant**
+> 
+> Hey Champions! In partnership with Zenni Optical, we're giving our community access to exclusive eyewear savings:
+> 
+> - **$15 Off Coupon** on your first pair of prescription glasses, protective safety glasses, or Blokz blue-light lenses.
+> - **Referral Perks**: Stack 300 points ($15 value) for every friend you refer!
+> - **Member Perks**: Free standard US shipping over $65² 🚚, 1 point per $1 spent 💸, and a birthday gift 🎂!
+> 
+> 🔗 **Claim Your $15 Voucher**: http://rwrd.io/r7jn9f2?c  
+> 📜 *Terms & Privacy*: https://www.zennioptical.com/privacy-policy | https://www.zennioptical.com/terms-of-use
+

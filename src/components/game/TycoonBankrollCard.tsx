@@ -16,6 +16,8 @@ export interface TycoonBankrollCardProps {
   livePlayerHP?: number;
   livePlayerMaxHP?: number;
   maxHpBonus?: number;
+  revivePacks?: number;
+  onUseHealthPack?: () => void;
 }
 
 /**
@@ -35,7 +37,9 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
   isFighting = false,
   livePlayerHP = 100,
   livePlayerMaxHP = 100,
-  maxHpBonus = 0
+  maxHpBonus = 0,
+  revivePacks = 0,
+  onUseHealthPack
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,8 +94,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     return Math.floor(num).toLocaleString();
   };
 
-  const formatYield = (yieldPerMs: number): string => {
-    const perSec = yieldPerMs / 1000;
+  const formatYield = (perSec: number): string => {
     if (perSec >= 10_000) return `+${formatCompact(perSec)}/s`;
     if (perSec >= 100) return `+${Math.round(perSec)}/s`;
     if (perSec >= 1) return `+${perSec.toFixed(1).replace(/\.0$/, '')}/s`;
@@ -103,7 +106,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
     <div 
       ref={cardRef}
       id="tycoon-bankroll-card" 
-      className="fixed left-0 right-0 z-mid bg-linear-to-r from-[#121c32]/98 via-[#0c1322]/98 to-[#0a101d]/98 backdrop-blur-3xl border-t border-cyan-500/40 px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-12px_45px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(122,224,255,0.25)] w-full pointer-events-auto will-change-[bottom] transition-colors"
+      className="fixed left-0 right-0 z-40 bg-linear-to-r from-[#121c32]/98 via-[#0c1322]/98 to-[#0a101d]/98 backdrop-blur-3xl border-t border-cyan-500/40 px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 shadow-[0_-12px_45px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(122,224,255,0.25)] w-full pointer-events-auto will-change-[bottom] transition-colors"
       style={{ bottom: '0px' }}
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] mx-auto flex flex-col gap-1 box-border">
@@ -119,10 +122,10 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               tabIndex={0}
               role="button"
               data-tooltip={`Bosses Defeated: ${totalBossesDefeated} Bosses Vanquished`}
-              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
+              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2.5 sm:px-3 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center justify-center gap-1.5 shadow-inner cursor-pointer transition select-none min-w-[75px] sm:min-w-[95px]" 
             >
-              <span className="text-xs sm:text-sm leading-none shrink-0 pl-3">💀</span>
-              <span className="font-mono text-red-400 font-extrabold">{totalBossesDefeated}</span>
+              <span className="text-xs sm:text-sm leading-none shrink-0">💀</span>
+              <span className="font-mono text-red-400 font-extrabold tabular-nums">{totalBossesDefeated}</span>
             </div>
 
             {/* Gems */}
@@ -130,10 +133,10 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               tabIndex={0}
               role="button"
               data-tooltip={`Gems: ${Math.floor(gems || 0).toLocaleString()} Gems`}
-              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
+              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2.5 sm:px-3 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center justify-center gap-1.5 shadow-inner cursor-pointer transition select-none min-w-[85px] sm:min-w-[110px]" 
             >
-              <span className="text-xs sm:text-sm leading-none shrink-0 pl-3">💎</span>
-              <span className="font-mono text-[#cb9df2] font-extrabold">{formatCompact(gems || 0)}</span>
+              <span className="text-xs sm:text-sm leading-none shrink-0">💎</span>
+              <span className="font-mono text-[#cb9df2] font-extrabold tabular-nums">{formatCompact(gems || 0)}</span>
             </div>
 
             {/* Coins */}
@@ -141,21 +144,21 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               tabIndex={0}
               role="button"
               data-tooltip={`Gold Coins: ${Math.floor(coins).toLocaleString()} Gold`}
-              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
+              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2.5 sm:px-3 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center justify-center gap-1.5 shadow-inner cursor-pointer transition select-none min-w-[90px] sm:min-w-[120px]" 
             >
               <CoinIcon className="w-3.5 h-3.5 drop-shadow shrink-0" />
-              <span className="font-mono text-[#f5e56b] font-extrabold">{formatCompact(coins)}</span>
+              <span className="font-mono text-[#f5e56b] font-extrabold tabular-nums">{formatCompact(coins)}</span>
             </div>
 
             {/* Yield */}
             <div
               tabIndex={0}
               role="button"
-              data-tooltip={`Passive Yield: +${(passiveYield / 1000).toFixed(3)} gold/sec`}
-              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center gap-1 shadow-inner cursor-pointer transition select-none" 
+              data-tooltip={`Passive Yield: +${passiveYield.toFixed(1)} gold/sec`}
+              className="bg-[#141c30] hover:bg-[#1a2642] active:scale-95 px-2.5 sm:px-3 py-0.5 rounded-full border border-[#2a4060] text-[11px] sm:text-xs flex items-center justify-center gap-1.5 shadow-inner cursor-pointer transition select-none min-w-[85px] sm:min-w-[110px]" 
             >
               <span className="text-xs sm:text-sm leading-none shrink-0">⏱️</span>
-              <span className="font-mono text-green-400 font-extrabold">{formatYield(passiveYield)}</span>
+              <span className="font-mono text-green-400 font-extrabold tabular-nums">{formatYield(passiveYield)}</span>
             </div>
           </div>
         </div>
@@ -180,12 +183,29 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               }`} 
             >
               <span className="text-xs leading-none shrink-0">{isDead || livePlayerHP <= 0 ? '💀' : '❤️'}</span>
+              <span className="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-emerald-400/80 shrink-0">HP</span>
               <span className={`font-mono font-extrabold ${
                 isDead || livePlayerHP <= 0 ? 'text-red-300' : 'text-emerald-300'
               }`}>
                 {isDead ? '0 (DEAD)' : `${formatCompact(livePlayerHP)}/${formatCompact(livePlayerMaxHP)}`}
               </span>
             </div>
+
+            {/* Quick Heal Action Button */}
+            {(isDead || livePlayerHP < livePlayerMaxHP) && revivePacks > 0 && onUseHealthPack && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUseHealthPack();
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 px-2 py-0.5 rounded-full border border-emerald-400 text-[10px] font-mono font-black text-white flex items-center gap-1 shadow-md transition cursor-pointer select-none animate-pulse"
+                title={`Use 1 Health Pack (${revivePacks} Left) to restore full HP`}
+              >
+                <span>🩹 Heal</span>
+                <span className="bg-black/30 px-1 py-0.2 rounded text-[9px]">({revivePacks})</span>
+              </button>
+            )}
 
             {/* ATK */}
             <div
@@ -195,6 +215,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               className="bg-[#121c33] hover:bg-[#1a2948] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-red-500/30 text-[11px] sm:text-xs flex items-center gap-1 shadow-sm hover:border-red-400/60 transition cursor-pointer select-none" 
             >
               <span className="text-xs leading-none shrink-0">⚔️</span>
+              <span className="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-red-400/80 shrink-0">ATK</span>
               <span className="font-mono text-red-300 font-extrabold">{formatCompact(attack)}</span>
             </div>
 
@@ -210,6 +231,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               }`} 
             >
               <span className="text-xs leading-none shrink-0">{defense < 0 ? '⚠️' : '🛡️'}</span>
+              <span className={`font-mono text-[9px] sm:text-[10px] uppercase font-bold shrink-0 ${defense < 0 ? 'text-amber-400' : 'text-blue-400/80'}`}>DEF</span>
               <span className={`font-mono font-extrabold ${defense < 0 ? 'text-amber-300' : 'text-blue-300'}`}>{formatCompact(defense)}</span>
             </div>
 
@@ -221,6 +243,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               className="bg-[#121c33] hover:bg-[#1a2948] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-amber-500/30 text-[11px] sm:text-xs flex items-center gap-1 shadow-sm hover:border-amber-400/60 transition cursor-pointer select-none" 
             >
               <span className="text-xs leading-none shrink-0">⚡</span>
+              <span className="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-amber-400/80 shrink-0">SPD</span>
               <span className="font-mono text-amber-300 font-extrabold">{speed}</span>
             </div>
 
@@ -232,6 +255,7 @@ export const TycoonBankrollCard: React.FC<TycoonBankrollCardProps> = ({
               className="bg-[#121c33] hover:bg-[#1a2948] active:scale-95 px-2 sm:px-2.5 py-0.5 rounded-full border border-cyan-500/30 text-[11px] sm:text-xs flex items-center gap-1 shadow-sm hover:border-cyan-400/60 transition cursor-pointer select-none" 
             >
               <span className="text-xs leading-none shrink-0">✨</span>
+              <span className="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-cyan-400/80 shrink-0">PS</span>
               <span className="font-mono text-cyan-300 font-extrabold">{formatCompact(powerScore)}</span>
             </div>
           </div>

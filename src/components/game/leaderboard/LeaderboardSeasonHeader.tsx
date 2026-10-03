@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen, Sparkles, RefreshCw, Shield, Crown, Share2 } from 'lucide-react';
 
 export type SeasonMode = 'monthly' | 'yearly' | 'alltime';
 
@@ -10,6 +11,8 @@ export interface LeaderboardSeasonHeaderProps {
   isSyncingLeaderboard?: boolean;
   onOpenAccount?: () => void;
   powerScore: number;
+  onOpenLoreBook?: () => void;
+  onOpenShareCard?: () => void;
 }
 
 export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = ({
@@ -19,7 +22,9 @@ export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = (
   onSyncLeaderboard,
   isSyncingLeaderboard = false,
   onOpenAccount,
-  powerScore
+  powerScore,
+  onOpenLoreBook,
+  onOpenShareCard
 }) => {
   const now = new Date();
   const monthNames = [
@@ -34,61 +39,94 @@ export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = (
   const daysLeftInMonth = Math.max(1, daysInMonth - now.getDate());
 
   return (
-    <div className="bg-gradient-to-r from-[#0d172c] via-[#101e38] to-[#0a1224] border border-[#203354] rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="bg-gradient-to-r from-[#16120c] via-[#121c2e] to-[#0d1626] border border-amber-500/35 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(251,191,36,0.25)] relative overflow-hidden">
+      {/* Ancient ambient glows */}
+      <div className="absolute -top-12 -right-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 relative z-10">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-2xl">🏆</span>
-            <h2 className="text-base sm:text-lg font-black font-mono text-white tracking-wide flex items-center gap-2">
-              <span>LEADERBOARD & SEASONAL REWARDS</span>
-              <span className="text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-sans font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Cloud Live</span>
-              </span>
-            </h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-900 border border-amber-400/40 flex items-center justify-center text-xl shadow-lg shrink-0">
+              👑
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 tracking-wider">
+                  HALL OF CHAMPIONS · ETERNAL CODEX
+                </h2>
+                <span className="text-[10px] bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Cloud Synchronized</span>
+                </span>
+              </div>
+              <p className="text-xs text-amber-200/70 font-mono tracking-wide mt-0.5">
+                SEASONAL ASCENSION · HEROIC LEADERBOARDS · TITAN BOUNTIES
+              </p>
+            </div>
           </div>
 
-          <p className="text-xs text-slate-400 mt-1 flex items-center gap-2 flex-wrap font-mono">
+          <div className="text-xs text-slate-300 mt-2.5 flex items-center gap-2.5 flex-wrap font-mono bg-black/30 px-3 py-1.5 rounded-xl border border-white/5 w-fit">
             {seasonMode === 'monthly' && (
               <>
-                <span className="text-cyan-400 font-bold">📅 {currentMonthName} {currentYear} Season</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-amber-400 font-bold">⏳ {daysLeftInMonth} Days Remaining</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-emerald-400 font-bold">🎁 225k Gold + 4,500 Gems Prize Pool</span>
+                <span className="text-amber-300 font-bold flex items-center gap-1">
+                  <span>📅</span>
+                  <span>{currentMonthName} {currentYear} Horizon</span>
+                </span>
+                <span className="text-amber-500/40">·</span>
+                <span className="text-cyan-300 font-bold flex items-center gap-1">
+                  <span>⏳</span>
+                  <span>{daysLeftInMonth} Days Remaining</span>
+                </span>
+                <span className="text-amber-500/40">·</span>
+                <span className="text-emerald-300 font-bold flex items-center gap-1">
+                  <span>🎁</span>
+                  <span>225,000 🪙 + 4,500 💎 Prize Pool</span>
+                </span>
               </>
             )}
             {seasonMode === 'yearly' && (
               <>
-                <span className="text-amber-400 font-bold">👑 {currentYear} Grand Championship</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-purple-400 font-bold">🌟 Annual Sovereign Titles</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-emerald-400 font-bold">🎁 350k Gold + 7,500 Gems Prize Pool</span>
+                <span className="text-amber-300 font-bold flex items-center gap-1">
+                  <span>👑</span>
+                  <span>{currentYear} Grand Championship</span>
+                </span>
+                <span className="text-amber-500/40">·</span>
+                <span className="text-purple-300 font-bold flex items-center gap-1">
+                  <span>🌟</span>
+                  <span>Annual Sovereign Titles</span>
+                </span>
+                <span className="text-amber-500/40">·</span>
+                <span className="text-emerald-300 font-bold flex items-center gap-1">
+                  <span>🎁</span>
+                  <span>350,000 🪙 + 7,500 💎 Prize Pool</span>
+                </span>
               </>
             )}
             {seasonMode === 'alltime' && (
               <>
-                <span className="text-yellow-400 font-bold">🏛️ Eternal Hall of Champions</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-slate-300">Lifetime Armory Records</span>
+                <span className="text-yellow-300 font-bold flex items-center gap-1">
+                  <span>🏛️</span>
+                  <span>Eternal Sovereign Legends</span>
+                </span>
+                <span className="text-amber-500/40">·</span>
+                <span className="text-slate-300">Immortal Realm Records & High Scores</span>
               </>
             )}
-          </p>
+          </div>
         </div>
 
-        {/* Season Timeframe Switcher & Cloud Sync Trigger */}
+        {/* Season Horizon Timeframe Switcher & Cloud Sync Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex bg-[#0b1322] p-1 border border-[#203354] rounded-xl text-xs font-mono font-bold shadow-inner">
+          {/* Season Mode Switcher Tabs */}
+          <div className="flex bg-[#0a0f1d] p-1.5 border border-amber-500/30 rounded-2xl text-xs font-mono font-bold shadow-inner">
             <button
               type="button"
               onClick={() => onSeasonChange('monthly')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 select-none ${
                 seasonMode === 'monthly'
-                  ? 'bg-blue-600 text-white shadow-md font-black'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-blue-700 to-cyan-600 text-white shadow-md border border-cyan-400/40 font-black scale-102'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <span>📅</span>
@@ -97,10 +135,10 @@ export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = (
             <button
               type="button"
               onClick={() => onSeasonChange('yearly')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 select-none ${
                 seasonMode === 'yearly'
-                  ? 'bg-amber-600 text-white shadow-md font-black'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-amber-50 shadow-md border border-amber-300/40 font-black scale-102'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <span>👑</span>
@@ -109,10 +147,10 @@ export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = (
             <button
               type="button"
               onClick={() => onSeasonChange('alltime')}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 select-none ${
                 seasonMode === 'alltime'
-                  ? 'bg-purple-600 text-white shadow-md font-black'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-md border border-purple-400/40 font-black scale-102'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <span>🏛️</span>
@@ -120,24 +158,51 @@ export const LeaderboardSeasonHeader: React.FC<LeaderboardSeasonHeaderProps> = (
             </button>
           </div>
 
+          {/* Lore Book Codex Quick Link */}
+          {onOpenLoreBook && (
+            <button
+              type="button"
+              onClick={() => onOpenLoreBook && onOpenLoreBook()}
+              className="text-xs bg-gradient-to-r from-amber-950/80 to-[#1e150a] hover:from-amber-900/90 hover:to-[#2b1e0f] border border-amber-500/40 text-amber-200 font-bold px-3.5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+              title="Open Seasonal Ranks Lore & Codex Summary"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>Season Lore</span>
+            </button>
+          )}
+
+          {/* Dynamic Vector Share Card Studio */}
+          {onOpenShareCard && (
+            <button
+              type="button"
+              onClick={onOpenShareCard}
+              className="text-xs bg-gradient-to-r from-cyan-950/80 to-[#0e1c2b] hover:from-cyan-900/90 hover:to-[#14283d] border border-cyan-500/40 text-cyan-200 font-bold px-3.5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+              title="Open Dynamic Vector Share Card Studio"
+            >
+              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Share Card</span>
+            </button>
+          )}
+
+          {/* Sync / Sign-in Action */}
           {currentUser ? (
             <button
               type="button"
               onClick={() => onSyncLeaderboard && onSyncLeaderboard()}
               disabled={isSyncingLeaderboard}
-              className="text-xs bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md"
+              className="text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-black px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 border border-emerald-400/30"
             >
-              <span className={isSyncingLeaderboard ? 'animate-spin inline-block' : ''}>🔄</span>
-              <span>{isSyncingLeaderboard ? 'Syncing...' : 'Sync Score'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingLeaderboard ? 'animate-spin' : ''}`} />
+              <span>{isSyncingLeaderboard ? 'Synchronizing...' : 'Sync Score'}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onOpenAccount}
-              className="text-xs bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/40 text-blue-300 font-extrabold px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+              className="text-xs bg-gradient-to-r from-blue-900/60 to-cyan-900/60 hover:from-blue-800/80 hover:to-cyan-800/80 border border-cyan-400/40 text-cyan-200 font-extrabold px-3.5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
             >
-              <span>🔑</span>
-              <span>Sign In to Rank ({powerScore} PS)</span>
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Sign In to Rank ({powerScore.toLocaleString()} PS)</span>
             </button>
           )}
         </div>

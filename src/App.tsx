@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import ShopView from './components/ShopView';
 import GameView from './components/GameView';
 import LoreBookView from './components/LoreBookView';
+import PartnersView from './components/PartnersView';
 import AdminModal from './components/AdminModal';
 import AccountModal from './components/AccountModal';
 import GuidedTour, { TourStep } from './components/GuidedTour';
@@ -12,14 +13,19 @@ import { TOUR_BONUSES } from './data/tourSteps';
 import FontScaleControl from './components/FontScaleControl';
 import Footer from './components/Footer';
 import { PWAInstallModal } from './components/common/PWAInstallModal';
+import { ShareCardModal } from './components/common/ShareCardModal';
 import { GlobalTouchTooltip } from './components/common/GlobalTouchTooltip';
+import { ParticleOverlay, triggerParticleBurst } from './components/common/ParticleFX';
 import { GameState, LeaderboardEntry, UserProfile } from './types';
 import { POWERUPS, BOSSES, DEFAULT_BALANCE_CONFIG, calculatePowerScore, DEFAULT_STARTER_BASELINE_STATE, clearAllLocalUserData } from './data';
-import { initAnalytics, trackPageView, trackUserIdentify, trackUserLogout, trackEvent, isDevWorkspace } from './lib/analytics';
+import { initAnalytics, trackPageView, trackUserIdentify, trackUserLogout, trackEvent, isDevWorkspace, trackSquadInvite } from './lib/analytics';
 import CookieConsentBanner from './components/common/CookieConsentBanner';
 import ChangelogModal from './components/ChangelogModal';
 import { APP_VERSION } from './version';
-import { getIsBetaTester, setBetaTesterMode } from './lib/remoteConfig';
+import { getIsBetaTester, setBetaTesterMode, getIsCloudAutoSyncEnabled } from './lib/remoteConfig';
+import { MONTHLY_REWARDS, YEARLY_REWARDS } from './data/seasonalRewards';
+import { SeasonMode } from './components/game/leaderboard/LeaderboardSeasonHeader';
+import { LeaderboardCategory } from './components/game/leaderboard/LeaderboardCategoryNav';
 
 const DEFAULT_STATE: GameState = DEFAULT_STARTER_BASELINE_STATE;
 
@@ -45,7 +51,7 @@ function sanitizeForFirestore<T>(obj: T): T {
 }
 
 export default function App() {
-  const [activeView, setActiveView] = useState<'Shop' | 'Game' | 'Stats' | 'Lore'>('Game');
+  const [activeView, setActiveView] = useState<'Shop' | 'Game' | 'Stats' | 'Lore' | 'Partners'>('Game');
   const [gameState, setGameState] = useState<GameState>(DEFAULT_STATE);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -67,13 +73,131 @@ export default function App() {
 
   // Controlled sub-tabs across pages
   const [controlledLoreTab, setControlledLoreTab] = useState<'compendium' | 'chronicles' | 'legend' | 'bestiary'>('compendium');
-  const [initialLoreChronicleMode, setInitialLoreChronicleMode] = useState<'canonical' | 'living'>('canonical');
+  const [initialLoreChronicleMode, setInitialLoreChronicleMode] = useState<'canonical' | 'living' | 'writer'>('canonical');
   const [controlledShopCategory, setControlledShopCategory] = useState<'weapons' | 'defense' | 'utility' | 'mystic'>('weapons');
   const [controlledGameTab, setControlledGameTab] = useState<'tycoon' | 'bosses' | 'stats'>('tycoon');
+  const [controlledStatsSeason, setControlledStatsSeason] = useState<SeasonMode>('alltime');
+  const [controlledStatsCategory, setControlledStatsCategory] = useState<LeaderboardCategory>('power');
   const [isShopCartDrawerOpen, setIsShopCartDrawerOpen] = useState(false);
   const [isPWAInstallOpen, setIsPWAInstallOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isBeta, setIsBeta] = useState(getIsBetaTester());
+  const [isShareCardOpen, setIsShareCardOpen] = useState(false);
+  const [shareCardDefaultView, setShareCardDefaultView] = useState<'champion' | 'boss' | 'squad'>('champion');
+  const [shareCardBossData, setShareCardBossData] = useState<{ name: string; emoji: string } | undefined>(undefined);
+  const [deepTagWelcome, setDeepTagWelcome] = useState<string | null>(null);
+
+  const handleOpenShareCard = useCallback((view: 'champion' | 'boss' | 'squad' = 'champion', boss?: { name: string; emoji: string }) => {
+    setShareCardDefaultView(view);
+    setShareCardBossData(boss);
+    setIsShareCardOpen(true);
+  }, []);
+
+  // Capture inward deep tagging & dynamically inject OpenGraph / Twitter dynamic SVG tags
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const deepPlayer = params.get('player') || params.get('name');
+      const deepInvite = params.get('invite') || params.get('code');
+      const deepBoss = params.get('boss');
+      const deepPs = params.get('ps');
+
+      if (deepPlayer || deepInvite || deepBoss) {
+        const svgUrl = `${window.location.origin}/share-card.svg${window.location.search}`;
+        const pageTitle = deepBoss 
+          ? `${deepBoss} Vanquished by ${deepPlayer || 'Champion'} · Power-Up Armory`
+          : deepPlayer 
+            ? `${deepPlayer}'s Champion Codex · Power-Up Armory`
+            : `Join Raid Squad ${deepInvite} · Power-Up Armory`;
+
+        document.title = pageTitle;
+
+        let ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+
+        let ogImage = document.querySelector('meta[property="og:image"]');
+        if (!ogImage) {
+          ogImage = document.createElement('meta');
+          ogImage.setAttribute('property', 'og:image');
+          document.head.appendChild(ogImage);
+        }
+        ogImage.setAttribute('content', svgUrl);
+
+        let twitterImage = document.querySelector('meta[name="twitter:image"]');
+        if (!twitterImage) {
+          twitterImage = document.createElement('meta');
+          twitterImage.setAttribute('name', 'twitter:image');
+          document.head.appendChild(twitterImage);
+        }
+        twitterImage.setAttribute('content', svgUrl);
+
+        if (deepPlayer) {
+          setDeepTagWelcome(`⚔️ ${deepPlayer}'s Codex Card Loaded${deepPs ? ` (Power Score: ${Number(deepPs).toLocaleString()})` : ''}!`);
+        } else if (deepInvite) {
+          setDeepTagWelcome(`👥 Squad Invite [${deepInvite}] Active! Redeem in Account for +3,000 Coins!`);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Compute number of unclaimed seasonal rewards for live sub-menu badge
+  const allSeasonalRewards = [...MONTHLY_REWARDS, ...YEARLY_REWARDS];
+  const unclaimedSeasonalCount = allSeasonalRewards.filter(reward => {
+    const isClaimed = !!gameState.claimedSeasonalRewards?.[reward.id];
+    if (isClaimed) return false;
+
+    let userVal = 0;
+    switch (reward.category) {
+      case 'kills':
+        userVal = gameState.totalBossesDefeated || 0;
+        break;
+      case 'deaths':
+        userVal = gameState.totalDeaths || (
+          Object.values(gameState.bossDeathStats || {}).reduce<number>((a, b) => a + (Number(b) || 0), 0)
+        );
+        break;
+      case 'max_damage':
+        userVal = gameState.maxDamage || 0;
+        break;
+      case 'dodges':
+        userVal = gameState.totalDodges || 0;
+        break;
+      case 'specials':
+        userVal = gameState.totalSpecials || 0;
+        break;
+      case 'gold':
+        userVal = gameState.totalGoldEarned || gameState.coins || 0;
+        break;
+      case 'gems':
+        userVal = gameState.totalGemsEarned || gameState.gems || 0;
+        break;
+      case 'overall_power':
+        userVal = gameState.powerScore || 0;
+        break;
+    }
+    return userVal >= reward.minRequirement;
+  }).length;
+
+  // Floating Toast Notification when new bounties become claimable
+  const [bountyToast, setBountyToast] = useState<string | null>(null);
+  const prevUnclaimedCountRef = useRef<number | null>(null);
+  const isInitialBountyMountRef = useRef(true);
+
+  useEffect(() => {
+    // Suppress launch particle FX during initial mount / app boot
+    if (isInitialBountyMountRef.current) {
+      prevUnclaimedCountRef.current = unclaimedSeasonalCount;
+      isInitialBountyMountRef.current = false;
+      return;
+    }
+
+    if (prevUnclaimedCountRef.current !== null && unclaimedSeasonalCount > prevUnclaimedCountRef.current) {
+      const diff = unclaimedSeasonalCount - prevUnclaimedCountRef.current;
+      setBountyToast(diff === 1 ? '1 New Bounty Unlocked!' : `${diff} New Bounties Unlocked!`);
+    }
+    prevUnclaimedCountRef.current = unclaimedSeasonalCount;
+  }, [unclaimedSeasonalCount]);
 
   // Automatically prompt changelog if version has changed
   useEffect(() => {
@@ -358,108 +482,134 @@ export default function App() {
               gems: gameState.gems || 0,
               isAnonymous: user.isAnonymous
             });
+
+            if (data.isAdmin === true) {
+              setIsAdmin(true);
+              setIsBeta(true);
+              setBetaTesterMode(true);
+            }
+            if (data.isBetaTester === true) {
+              setIsBeta(true);
+              setBetaTesterMode(true);
+            }
           }
 
-          // Fetch Cloud Game Save Progress
-          const progressDocRef = doc(db, 'user_progress', user.uid);
-          const progressSnap = await getDoc(progressDocRef);
-          if (progressSnap.exists()) {
-            const cloudData = progressSnap.data();
-            
-            // Check if current local state is just the default starter
-            let localState = DEFAULT_STATE;
-            try {
-              const saved = localStorage.getItem('bossRushTycoon');
-              if (saved) {
-                localState = { ...DEFAULT_STATE, ...JSON.parse(saved) };
-              }
-            } catch (e) {
-              console.warn('Could not parse localState in auth listener:', e);
+          // Owner & Admin verification check across all domains & preview builds
+          const isOwnerAccount = 
+            user.uid === 'WlMw7jRoVgSl2kyjH6B47DLayU72' ||
+            user.email?.toLowerCase() === 'chris.barnes.2000@me.com';
+
+          if (isOwnerAccount || (user as any).isAdmin === true) {
+            setIsAdmin(true);
+            setIsBeta(true);
+            setBetaTesterMode(true);
+          }
+
+          user.getIdTokenResult().then(res => {
+            if (res.claims.isAdmin === true || isOwnerAccount) {
+              setIsAdmin(true);
+              setIsBeta(true);
+              setBetaTesterMode(true);
             }
+          }).catch(() => {});
 
-            const isLocalDefault = 
-              localState.totalBossesDefeated === 0 && 
-              localState.coins <= 2005 && 
-              !(localState.powerups || []).some(p => p.owned);
+          // Parse local state stored in browser localStorage
+          let localState = DEFAULT_STATE;
+          try {
+            const saved = localStorage.getItem('bossRushTycoon');
+            if (saved) {
+              localState = { ...DEFAULT_STATE, ...JSON.parse(saved) };
+            }
+          } catch (e) {
+            console.warn('Could not parse localState in auth listener:', e);
+          }
 
-            if (isLocalDefault) {
-              // Automatically restore progress since local is pristine
-              const next: GameState = {
-                ...localState,
-                coins: cloudData.coins ?? localState.coins,
-                gems: cloudData.gems ?? localState.gems,
-                maxHpBonus: cloudData.maxHpBonus ?? localState.maxHpBonus,
-                damageBonusPercent: cloudData.damageBonusPercent ?? localState.damageBonusPercent,
-                powerups: (localState.powerups || []).map(p => {
-                  const cloudP = cloudData.powerups?.find((cp: any) => cp.id === p.id);
-                  return cloudP ? { ...p, ...cloudP } : p;
-                }),
-                bosses: (localState.bosses || []).map(b => {
-                  const cloudB = cloudData.bosses?.find((cb: any) => cb.id === b.id);
-                  return cloudB ? { ...b, ...cloudB } : b;
-                }),
-                totalBossesDefeated: cloudData.totalBossesDefeated ?? localState.totalBossesDefeated,
-                purchasedCodes: cloudData.purchasedCodes ?? localState.purchasedCodes,
-                bossKillStats: cloudData.bossKillStats ?? localState.bossKillStats,
-                bossDeathStats: cloudData.bossDeathStats ?? localState.bossDeathStats,
-                customStories: cloudData.customStories ?? localState.customStories,
-                reviveCount: cloudData.reviveCount ?? localState.reviveCount,
-                revivePacks: cloudData.revivePacks ?? localState.revivePacks,
-                completedTours: cloudData.completedTours ?? localState.completedTours,
-                baseAttack: cloudData.baseAttack ?? localState.baseAttack,
-                baseDefense: cloudData.baseDefense ?? localState.baseDefense,
-                baseSpeed: cloudData.baseSpeed ?? localState.baseSpeed
-              };
-              setGameState(next);
-              localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+          const isQuickSyncDisabled = !!(localState.balanceConfig?.disableQuickSyncCheck || gameState.balanceConfig?.disableQuickSyncCheck);
+
+          if (!isQuickSyncDisabled) {
+            // Fetch Cloud Game Save Progress
+            const progressDocRef = doc(db, 'user_progress', user.uid);
+            const progressSnap = await getDoc(progressDocRef);
+            if (progressSnap.exists()) {
+              const cloudData = progressSnap.data();
+
+              const isLocalDefault = 
+                localState.totalBossesDefeated === 0 && 
+                localState.coins <= 2005 && 
+                !(localState.powerups || []).some(p => p.owned);
+
+              if (isLocalDefault) {
+                // Automatically restore progress since local is pristine
+                const next: GameState = {
+                  ...localState,
+                  coins: cloudData.coins ?? localState.coins,
+                  gems: cloudData.gems ?? localState.gems,
+                  maxHpBonus: cloudData.maxHpBonus ?? localState.maxHpBonus,
+                  damageBonusPercent: cloudData.damageBonusPercent ?? localState.damageBonusPercent,
+                  powerups: (localState.powerups || []).map(p => {
+                    const cloudP = cloudData.powerups?.find((cp: any) => cp.id === p.id);
+                    return cloudP ? { ...p, ...cloudP } : p;
+                  }),
+                  bosses: (localState.bosses || []).map(b => {
+                    const cloudB = cloudData.bosses?.find((cb: any) => cb.id === b.id);
+                    return cloudB ? { ...b, ...cloudB } : b;
+                  }),
+                  totalBossesDefeated: cloudData.totalBossesDefeated ?? localState.totalBossesDefeated,
+                  purchasedCodes: cloudData.purchasedCodes ?? localState.purchasedCodes,
+                  bossKillStats: cloudData.bossKillStats ?? localState.bossKillStats,
+                  bossDeathStats: cloudData.bossDeathStats ?? localState.bossDeathStats,
+                  customStories: cloudData.customStories ?? localState.customStories,
+                  reviveCount: cloudData.reviveCount ?? localState.reviveCount,
+                  revivePacks: cloudData.revivePacks ?? localState.revivePacks,
+                  completedTours: cloudData.completedTours ?? localState.completedTours,
+                  baseAttack: cloudData.baseAttack ?? localState.baseAttack,
+                  baseDefense: cloudData.baseDefense ?? localState.baseDefense,
+                  baseSpeed: cloudData.baseSpeed ?? localState.baseSpeed
+                };
+                setGameState(next);
+                localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+              } else {
+                // Compare both to see if we should prompt
+                const isCoinsDiff = Math.abs((cloudData.coins || 0) - localState.coins) > 5;
+                const isBossesDiff = (cloudData.totalBossesDefeated || 0) !== localState.totalBossesDefeated;
+                
+                if (isCoinsDiff || isBossesDiff) {
+                  setCloudSaveConflict({
+                    cloud: cloudData,
+                    local: localState
+                  });
+                }
+              }
             } else {
-              // Compare both to see if we should prompt
-              const isCoinsDiff = Math.abs((cloudData.coins || 0) - localState.coins) > 5;
-              const isBossesDiff = (cloudData.totalBossesDefeated || 0) !== localState.totalBossesDefeated;
-              
-              if (isCoinsDiff || isBossesDiff) {
-                setCloudSaveConflict({
-                  cloud: cloudData,
-                  local: localState
-                });
-              }
-            }
-          } else {
-            // First time log in with progress - push local progress to cloud backup
-            let localState = DEFAULT_STATE;
-            try {
-              const saved = localStorage.getItem('bossRushTycoon');
-              if (saved) {
-                localState = { ...DEFAULT_STATE, ...JSON.parse(saved) };
-              }
-            } catch {}
-            const isLocalDefault = 
-              localState.totalBossesDefeated === 0 && 
-              localState.coins <= 2005 && 
-              !(localState.powerups || []).some(p => p.owned);
+              // First time log in with progress - push local progress to cloud backup
+              const isLocalDefault = 
+                localState.totalBossesDefeated === 0 && 
+                localState.coins <= 2005 && 
+                !(localState.powerups || []).some(p => p.owned);
 
-            if (!isLocalDefault) {
-              setDoc(doc(db, 'user_progress', user.uid), sanitizeForFirestore({
-                userId: user.uid,
-                coins: localState.coins,
-                gems: localState.gems,
-                maxHpBonus: localState.maxHpBonus,
-                damageBonusPercent: localState.damageBonusPercent,
-                powerups: localState.powerups || [],
-                bosses: localState.bosses || [],
-                totalBossesDefeated: localState.totalBossesDefeated || 0,
-                purchasedCodes: localState.purchasedCodes || [],
-                bossKillStats: localState.bossKillStats || {},
-                bossDeathStats: localState.bossDeathStats || {},
-                customStories: localState.customStories || [],
-                reviveCount: localState.reviveCount || 0,
-                revivePacks: localState.revivePacks || 0,
-                completedTours: localState.completedTours || {},
-                baseAttack: localState.baseAttack ?? 10,
-                baseDefense: localState.baseDefense ?? 5,
-                baseSpeed: localState.baseSpeed ?? 5,
-                updatedAt: new Date().toISOString()
-              }), { merge: true }).catch(err => console.warn('Push local state to cloud error:', err));
+              if (!isLocalDefault) {
+                setDoc(doc(db, 'user_progress', user.uid), sanitizeForFirestore({
+                  userId: user.uid,
+                  coins: localState.coins,
+                  gems: localState.gems,
+                  maxHpBonus: localState.maxHpBonus,
+                  damageBonusPercent: localState.damageBonusPercent,
+                  powerups: localState.powerups || [],
+                  bosses: localState.bosses || [],
+                  totalBossesDefeated: localState.totalBossesDefeated || 0,
+                  purchasedCodes: localState.purchasedCodes || [],
+                  bossKillStats: localState.bossKillStats || {},
+                  bossDeathStats: localState.bossDeathStats || {},
+                  customStories: localState.customStories || [],
+                  reviveCount: localState.reviveCount || 0,
+                  revivePacks: localState.revivePacks || 0,
+                  completedTours: localState.completedTours || {},
+                  baseAttack: localState.baseAttack ?? 10,
+                  baseDefense: localState.baseDefense ?? 5,
+                  baseSpeed: localState.baseSpeed ?? 5,
+                  updatedAt: new Date().toISOString()
+                }), { merge: true }).catch(err => console.warn('Push local state to cloud error:', err));
+              }
             }
           }
         } catch (err) {
@@ -499,7 +649,22 @@ export default function App() {
   // --- REAL-TIME CLOUD LEADERBOARD LISTENER ---
   useEffect(() => {
     if (isDevWorkspace()) {
-      console.info('🛡️ [Dev Workspace] Skipping real-time Firestore leaderboard onSnapshot listener to conserve read counts.');
+      // In dev sandbox, execute a single getDocs read to populate the cloud leaderboard with real users without keeping continuous open snapshot streams
+      const fetchOnce = async () => {
+        try {
+          const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(50));
+          const snapshot = await getDocs(q);
+          const entries: LeaderboardEntry[] = [];
+          snapshot.forEach((docSnap) => {
+            entries.push(docSnap.data() as LeaderboardEntry);
+          });
+          setCloudLeaderboard(entries);
+          setGameState(prev => ({ ...prev, leaderboard: entries }));
+        } catch (err) {
+          console.warn('Dev workspace one-time leaderboard fetch warning:', err);
+        }
+      };
+      fetchOnce();
       return;
     }
 
@@ -567,8 +732,8 @@ export default function App() {
           }
         });
 
-        // Coins rate fractioned by 1,000 for slower gameplay and high-retention progression
-        const accruedCoins = rate / 1000;
+        // Coins accrued directly based on loadout gold rate per second
+        const accruedCoins = rate;
 
         // Auto-replenish bosses every 15 seconds after victory so they replenish more often
         const updatedBosses = prev.bosses.map(boss => {
@@ -718,6 +883,19 @@ export default function App() {
         total_dodges: gameState.totalDodges || 0,
         total_specials: gameState.totalSpecials || 0
       });
+
+      // If running in dev workspace without persistent snapshot listener, refresh cloud leaderboard list
+      if (isDevWorkspace()) {
+        try {
+          const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(50));
+          const snapshot = await getDocs(q);
+          const entries: LeaderboardEntry[] = [];
+          snapshot.forEach((docSnap) => {
+            entries.push(docSnap.data() as LeaderboardEntry);
+          });
+          setCloudLeaderboard(entries);
+        } catch {}
+      }
     } catch (err) {
       console.error('Error syncing leaderboard:', err);
       handleFirestoreError(err, OperationType.WRITE, `leaderboard/${currentUser.uid}`);
@@ -725,6 +903,93 @@ export default function App() {
       setIsSyncingLeaderboard(false);
     }
   }, [currentUser, userProfile, gameState]);
+
+  // Squad Invite Code Redemption Handler
+  const handleRedeemInviteCode = useCallback((code: string): { success: boolean; message: string } => {
+    const cleanCode = code.trim().toUpperCase();
+    const myCode = 
+      gameState.inviteCode || 
+      userProfile?.inviteCode || 
+      `ARMORY-${(userProfile?.userId || gameState.playerName || 'CHAMP').replace(/[^A-Za-z0-9]/g, '').slice(0, 5).toUpperCase() || 'HERO7'}`;
+
+    if (cleanCode === myCode) {
+      return { success: false, message: 'You cannot redeem your own squad invite code!' };
+    }
+
+    if (gameState.invitedByCode || userProfile?.invitedByCode) {
+      return { success: false, message: 'You have already redeemed a squad invite code!' };
+    }
+
+    const isPartnerCode = ['MINIBARN-MASTER', 'MINIBARN', 'RAPPORT-VERSE', 'RAPPORTVERSE', 'RAPPRT'].includes(cleanCode);
+    const partnerName = isPartnerCode 
+      ? (cleanCode.includes('BARN') ? 'MiniBarnMaster' : 'RapportVerse') 
+      : undefined;
+
+    trackSquadInvite('redeemed', cleanCode, {
+      is_partner_creator: isPartnerCode,
+      ...(partnerName ? { creator_name: partnerName } : {}),
+      reward_coins: 3000,
+      reward_gems: 150
+    });
+
+    // Grant bonus: +3,000 Coins and +150 Gems
+    const updatedState: GameState = {
+      ...gameState,
+      coins: gameState.coins + 3000,
+      gems: (gameState.gems || 0) + 150,
+      invitedByCode: cleanCode,
+      inviteCode: myCode,
+      squadRecruitsCount: (gameState.squadRecruitsCount || 0) + 1,
+      squadMembers: [...(gameState.squadMembers || []), isPartnerCode ? `Partner Recruit: ${partnerName}` : `Recruited via ${cleanCode}`],
+      battleLog: [
+        {
+          message: isPartnerCode 
+            ? `🤝 ${partnerName} Partner Bonus Activated (${cleanCode})! Received +3,000 Coins & +150 Gems!`
+            : `👥 Squad Invite Redeemed (${cleanCode})! Received +3,000 Coins & +150 Gems bonus!`,
+          className: 'log-reward'
+        },
+        ...gameState.battleLog
+      ]
+    };
+
+    setGameState(updatedState);
+    localStorage.setItem('bossRushTycoon', JSON.stringify(updatedState));
+
+    if (currentUser) {
+      const userRef = doc(db, 'users', currentUser.uid);
+      updateDoc(userRef, {
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: (userProfile?.squadRecruitsCount || 0) + 1,
+        coins: updatedState.coins,
+        updatedAt: new Date().toISOString()
+      }).catch(err => console.warn('Could not sync invite to user profile:', err));
+
+      const progressRef = doc(db, 'user_progress', currentUser.uid);
+      setDoc(progressRef, {
+        userId: currentUser.uid,
+        coins: updatedState.coins,
+        gems: updatedState.gems,
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: updatedState.squadRecruitsCount,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => console.warn('Could not sync invite to user progress:', err));
+
+      setUserProfile(prev => prev ? {
+        ...prev,
+        invitedByCode: cleanCode,
+        inviteCode: myCode,
+        squadRecruitsCount: (prev.squadRecruitsCount || 0) + 1,
+        coins: updatedState.coins
+      } : null);
+    }
+
+    return { 
+      success: true, 
+      message: `🎉 Success! Joined squad (${cleanCode})! Received +3,000 Coins & +150 Gems!` 
+    };
+  }, [gameState, userProfile, currentUser]);
 
   // Apply Cloud Progress (Overwrite Local State)
   const applyCloudProgress = (cloudData: any) => {
@@ -818,9 +1083,9 @@ export default function App() {
     setCloudSaveConflict(null);
   };
 
-  // --- AUTOMATIC CLOUD AUTO-SAVE THROTTLED TO 30 SECONDS ---
+  // --- AUTOMATIC CLOUD AUTO-SAVE THROTTLED TO 30 SECONDS (Gated by Beta Auto-Sync Flag) ---
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !getIsCloudAutoSyncEnabled()) return;
 
     // Skip if default starter profile
     const isDefault = 
@@ -868,10 +1133,10 @@ export default function App() {
       {/* GLOBAL NAVBAR - STICKY 2-TIER HEADER */}
       <header 
         id="global-navbar" 
-        className="sticky top-0 z-mid flex flex-col border-b border-white/10 bg-[#0a0e1a] shadow-2xl shadow-black/80 w-full max-w-full box-border"
+        className="sticky top-0 z-20 flex flex-col border-b border-white/10 bg-[#0a0e1a] shadow-2xl shadow-black/80 w-full max-w-full box-border"
       >
         {/* Tier 1: Brand & Top Utility Controls (Accessibility, Tour, Account, Admin, Cloud Status) */}
-        <div className="w-full flex items-center justify-between px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 border-b border-white/5 bg-[#0a0e1a]">
+        <div className="w-full flex items-center justify-between px-2.5 sm:px-6 md:px-8 py-1.5 sm:py-2 border-b border-white/5 bg-[#0a0e1a] relative z-20">
           {/* Logo & Brand Identity */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <span className="text-xl sm:text-2xl filter drop-shadow">⚔️</span>
@@ -899,6 +1164,17 @@ export default function App() {
             >
               <span className="text-xs sm:text-sm animate-pulse">🧭</span>
               <span className="hidden xs:inline">Tour</span>
+            </button>
+
+            {/* Updates & Beta Flags Modal Trigger */}
+            <button
+              id="header-updates-beta-btn"
+              onClick={() => setIsChangelogOpen(true)}
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-linear-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/40 text-[11px] sm:text-xs text-amber-300 hover:text-amber-200 font-extrabold transition flex items-center gap-1 cursor-pointer shadow-sm"
+              title="View Release Updates, Dev Logs, Roadmap & Experimental Beta Flags"
+            >
+              <span className="text-xs sm:text-sm">🚀</span>
+              <span className="hidden xs:inline">Updates &amp; Beta</span>
             </button>
 
             {/* PWA / iOS Install Trigger Button */}
@@ -955,129 +1231,297 @@ export default function App() {
 
             {/* Sync Info */}
             <div className="text-right hidden lg:flex items-center gap-1.5 pl-2 border-l border-white/10 text-xs font-mono text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-[11px] font-bold text-slate-400">{currentUser ? 'Cloud Synced' : 'Cloud Ready'}</span>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${isAdmin ? 'bg-red-400' : !getIsCloudAutoSyncEnabled() ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+              <span className="text-[11px] font-bold text-slate-400">
+                {isAdmin ? 'Admin Bypassed' : !getIsCloudAutoSyncEnabled() ? 'Manual Sync' : currentUser ? 'Cloud Synced' : 'Cloud Ready'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Tier 2: Primary Navigation System (Pinned smoothly and fully opaque) */}
-        <div className="w-full flex items-center justify-center px-2 sm:px-6 pt-1.5 pb-3.5 sm:pb-4 bg-[#0b101d] border-t border-white/5 shadow-inner">
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center max-w-full">
-            <div className="flex bg-[#121c30] border border-[#2a4060] rounded-full p-0.5 shadow-inner">
+        {/* Tier 2: Primary Navigation System & Contextual Dynamic Sub-Menu (Vertically Stacked) */}
+        <div className="w-full flex items-center justify-center px-2 sm:px-6 pt-1.5 pb-3 sm:pb-3.5 bg-[#0b101d] border-t border-white/5 shadow-inner relative z-20">
+          <div className="flex flex-col items-center gap-2 sm:gap-2.5 justify-center max-w-full w-full">
+            {/* Primary Pill Navigation */}
+            <div className="flex items-center bg-[#121c30] border border-[#2a4060] rounded-full p-0.5 shadow-inner">
+              <button 
+                id="nav-tab-game"
+                onClick={() => {
+                  setActiveView('Game');
+                }} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Game' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/20 font-black' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">🎮</span>
+                <span className="hidden xs:inline">Game Arena</span>
+                <span className="xs:hidden">Arena</span>
+              </button>
+
+              <button 
+                id="nav-tab-armory-store"
+                onClick={() => setActiveView('Shop')} 
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Shop' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 font-black' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xs">{isAdmin || userProfile?.isArmoryStoreEnabled || gameState.totalBossesDefeated >= 1 || (gameState.bossKillStats?.['Goblin King'] || 0) >= 1 ? '🛒' : '🔒'}</span>
+                <span className="hidden xs:inline">Armory Store</span>
+                <span className="xs:hidden">Store</span>
+              </button>
+
               <button 
                 id="nav-tab-lore"
                 onClick={() => setActiveView('Lore')} 
-                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                  activeView === 'Lore' ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20' : 'text-slate-400 hover:text-slate-200'
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Lore' ? 'bg-orange-600 text-white shadow-md shadow-orange-500/20 font-black' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <span className="text-xs">📖</span>
                 <span className="hidden xs:inline">Lore Book</span>
                 <span className="xs:hidden">Lore</span>
               </button>
-              {(isAdmin || userProfile?.isArmoryStoreEnabled === true) && (
-                <button 
-                  id="nav-tab-armory-store"
-                  onClick={() => setActiveView('Shop')} 
-                  className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                    activeView === 'Shop' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="text-xs">🛒</span>
-                  <span className="hidden xs:inline">Armory Store</span>
-                  <span className="xs:hidden">Armory</span>
-                </button>
-              )}
-              {userProfile?.isArmoryStoreEnabled !== true && (
-                <button 
-                  id="nav-tab-shop"
-                  onClick={() => {
-                    setActiveView('Game');
-                    setControlledGameTab('tycoon');
-                  }} 
-                  className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                    activeView === 'Game' && controlledGameTab === 'tycoon' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="text-xs">🏪</span>
-                  <span className="hidden xs:inline">Tycoon Shop</span>
-                  <span className="xs:hidden">Shop</span>
-                </button>
-              )}
-              <button 
-                id="nav-tab-game"
-                onClick={() => {
-                  setActiveView('Game');
-                  setControlledGameTab('bosses');
-                }} 
-                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                  activeView === 'Game' && controlledGameTab === 'bosses' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-xs">🎮</span>
-                <span className="hidden xs:inline">Boss Rush</span>
-                <span className="xs:hidden">Game</span>
-              </button>
+
               <button 
                 id="nav-tab-stats"
                 onClick={() => setActiveView('Stats')} 
-                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 ${
-                  activeView === 'Stats' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/10' : 'text-slate-400 hover:text-slate-200'
+                className={`rounded-full font-bold text-[11px] sm:text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 ${
+                  activeView === 'Stats' ? 'bg-[#2a4060] text-[#d0e8ff] shadow-md shadow-blue-500/20 font-black' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="text-xs">📊</span>
+                <span className="text-xs">🏆</span>
                 <span className="hidden xs:inline">Rank & Stats</span>
                 <span className="xs:hidden">Rank</span>
               </button>
             </div>
 
-            {/* Dynamic Game Sub-Tabs on Boss Rush Tab */}
-            {activeView === 'Game' && (
-              <div id="game-sub-tabs" className="flex items-center gap-0.5 p-0.5 bg-[#142036] border border-[#2a4060] rounded-full shadow-md animate-fadeIn">
-                <button 
-                  id="game-tab-tycoon"
-                  onClick={() => setControlledGameTab('tycoon')}
-                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
-                    controlledGameTab === 'tycoon' ? 'bg-amber-500 text-slate-950 shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
-                  }`}
-                >
-                  <span>⚡</span>
-                  <span>Tycoon</span>
-                </button>
-                <button 
-                  id="game-tab-bosses"
-                  onClick={() => setControlledGameTab('bosses')}
-                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
-                    controlledGameTab === 'bosses' ? 'bg-red-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
-                  }`}
-                >
-                  <span>⚔️</span>
-                  <span>Bosses</span>
-                </button>
-                <button 
-                  id="game-tab-saga"
-                  onClick={() => {
-                    setActiveView('Lore');
-                    setControlledLoreTab('chronicles');
-                    setInitialLoreChronicleMode('living');
-                  }}
-                  className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
-                    controlledLoreTab === 'chronicles' ? 'bg-purple-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
-                  }`}
-                >
-                  <span>📜</span>
-                  <span>Living Saga</span>
-                </button>
-              </div>
-            )}
+            {/* Dynamic Contextual Sub-Menu (Adapts to Active View) */}
+            <div id="dynamic-sub-tabs" className="flex items-center gap-0.5 p-0.5 bg-[#142036] border border-[#2a4060] rounded-full shadow-md animate-fadeIn max-w-full overflow-x-auto scrollbar-none">
+              {activeView === 'Partners' && (
+                <div className="py-0.5 sm:py-1 px-3 text-[10px] sm:text-[11px] font-mono text-amber-300 uppercase tracking-widest font-black flex items-center gap-1">
+                  <span>🤝</span>
+                  <span>Strategic Partner Portal</span>
+                </div>
+              )}
+              {activeView === 'Game' && (
+                <>
+                  <button 
+                    id="game-tab-tycoon"
+                    onClick={() => setControlledGameTab('tycoon')}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledGameTab === 'tycoon' ? 'bg-amber-500 text-slate-950 shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>⚡</span>
+                    <span>Tycoon Mine</span>
+                  </button>
+                  <button 
+                    id="game-tab-bosses"
+                    onClick={() => setControlledGameTab('bosses')}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledGameTab === 'bosses' ? 'bg-red-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>⚔️</span>
+                    <span>Boss Rush</span>
+                  </button>
+                  <button 
+                    id="game-tab-quill"
+                    onClick={() => {
+                      setActiveView('Lore');
+                      setControlledLoreTab('chronicles');
+                      setInitialLoreChronicleMode('writer');
+                    }}
+                    className="py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]"
+                  >
+                    <span>✍️</span>
+                    <span>Chronicler's Quill</span>
+                  </button>
+                </>
+              )}
+
+              {activeView === 'Lore' && (
+                <>
+                  <button 
+                    id="lore-sub-compendium"
+                    onClick={() => setControlledLoreTab('compendium')}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledLoreTab === 'compendium' ? 'bg-orange-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>📖</span>
+                    <span>3D Tome</span>
+                  </button>
+                  <button 
+                    id="lore-sub-chronicles"
+                    onClick={() => {
+                      setControlledLoreTab('chronicles');
+                      setInitialLoreChronicleMode('canonical');
+                    }}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledLoreTab === 'chronicles' && initialLoreChronicleMode === 'canonical' ? 'bg-orange-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>📜</span>
+                    <span>Scrolls</span>
+                  </button>
+                  <button 
+                    id="lore-sub-bestiary"
+                    onClick={() => setControlledLoreTab('bestiary')}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledLoreTab === 'bestiary' ? 'bg-orange-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>👾</span>
+                    <span>Bestiary</span>
+                  </button>
+                  <button 
+                    id="lore-sub-legend"
+                    onClick={() => setControlledLoreTab('legend')}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledLoreTab === 'legend' ? 'bg-orange-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>🏛️</span>
+                    <span>Codex</span>
+                  </button>
+                </>
+              )}
+
+              {activeView === 'Shop' && (
+                <>
+                  <button 
+                    id="shop-sub-weapons"
+                    onClick={() => setControlledShopCategory('weapons')}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledShopCategory === 'weapons' ? 'bg-indigo-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>⚔️</span>
+                    <span>Weapons</span>
+                  </button>
+                  <button 
+                    id="shop-sub-defense"
+                    onClick={() => setControlledShopCategory('defense')}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledShopCategory === 'defense' ? 'bg-indigo-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>🛡️</span>
+                    <span>Defense</span>
+                  </button>
+                  <button 
+                    id="shop-sub-utility"
+                    onClick={() => setControlledShopCategory('utility')}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledShopCategory === 'utility' ? 'bg-indigo-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>✨</span>
+                    <span>Utility</span>
+                  </button>
+                  <button 
+                    id="shop-sub-mystic"
+                    onClick={() => setControlledShopCategory('mystic')}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledShopCategory === 'mystic' ? 'bg-indigo-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                  >
+                    <span>🌀</span>
+                    <span>Mystic</span>
+                  </button>
+                </>
+              )}
+
+              {activeView === 'Stats' && (
+                <>
+                  {/* Monthly Season Timeframe */}
+                  <button 
+                    id="stats-sub-monthly"
+                    onClick={() => {
+                      setControlledStatsSeason('monthly');
+                      if (controlledStatsCategory === 'rewards') setControlledStatsCategory('power');
+                    }}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledStatsSeason === 'monthly' && controlledStatsCategory !== 'rewards'
+                        ? 'bg-blue-600 text-white shadow-sm font-black'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                    title="Monthly Seasonal Leaderboard"
+                  >
+                    <span>📅</span>
+                    <span>Monthly</span>
+                  </button>
+
+                  {/* Yearly Championship Timeframe */}
+                  <button 
+                    id="stats-sub-yearly"
+                    onClick={() => {
+                      setControlledStatsSeason('yearly');
+                      if (controlledStatsCategory === 'rewards') setControlledStatsCategory('power');
+                    }}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledStatsSeason === 'yearly' && controlledStatsCategory !== 'rewards'
+                        ? 'bg-amber-600 text-white shadow-sm font-black'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                    title="Yearly Championship Leaderboard"
+                  >
+                    <span>👑</span>
+                    <span>Yearly</span>
+                  </button>
+
+                  {/* All-Time Eternal Timeframe */}
+                  <button 
+                    id="stats-sub-alltime"
+                    onClick={() => {
+                      setControlledStatsSeason('alltime');
+                      if (controlledStatsCategory === 'rewards') setControlledStatsCategory('power');
+                    }}
+                    className={`py-0.5 sm:py-1 px-2 sm:px-2.5 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledStatsSeason === 'alltime' && controlledStatsCategory !== 'rewards'
+                        ? 'bg-purple-600 text-white shadow-sm font-black'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                    title="All-Time Eternal Leaderboard"
+                  >
+                    <span>🏛️</span>
+                    <span>All-Time</span>
+                  </button>
+
+                  {/* Claim Rewards Option */}
+                  <button 
+                    id="stats-sub-claim-rewards"
+                    onClick={() => {
+                      setControlledStatsCategory('rewards');
+                    }}
+                    className={`py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
+                      controlledStatsCategory === 'rewards'
+                        ? 'bg-emerald-600 text-white shadow-sm font-black ring-1 ring-emerald-400/50'
+                        : unclaimedSeasonalCount > 0
+                        ? 'bg-amber-950/60 text-amber-300 border border-amber-500/40 hover:bg-amber-900/70 animate-pulse font-black'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-[#1c2c48]'
+                    }`}
+                    title="Claim Seasonal Tier Rewards"
+                  >
+                    <span>🎁</span>
+                    <span>Claim</span>
+                    {unclaimedSeasonalCount > 0 && (
+                      <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded-full font-black">
+                        {unclaimedSeasonalCount}
+                      </span>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* RENDER VIEW - EXPANDED WIDTH CONTAINER */}
-      <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-16 pt-8 sm:pt-12 md:pt-16 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto box-border">
-        {activeView === 'Shop' && (isAdmin || userProfile?.isArmoryStoreEnabled === true) ? (
+      {/* RENDER VIEW - EXPANDED WIDTH CONTAINER WITH SYNCHRONIZED BOUNDS */}
+      <main className="flex-1 px-3 sm:px-6 md:px-8 lg:px-12 pt-4 sm:pt-6 md:pt-8 flex flex-col items-center w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto box-border min-h-[calc(100dvh-12rem)] transition-all duration-200">
+        {activeView === 'Shop' && (isAdmin || userProfile?.isArmoryStoreEnabled === true || gameState.totalBossesDefeated >= 1 || (gameState.bossKillStats?.['Goblin King'] || 0) >= 1) ? (
           <ShopView
             gameState={gameState}
             setGameState={setGameState}
@@ -1085,23 +1529,72 @@ export default function App() {
             onCategoryChange={setControlledShopCategory}
             openCartDrawer={isShopCartDrawerOpen}
             onOpenLoreBook={() => setActiveView('Lore')}
+            userProfile={userProfile}
+            isAdmin={isAdmin}
           />
         ) : activeView === 'Shop' ? (
-          <div className="text-center py-20 font-mono space-y-4 max-w-lg mx-auto bg-[#0d1322] border border-[#2a4060]/30 rounded-3xl p-8 my-10 shadow-2xl shadow-black/80">
-            <span className="text-5xl block animate-bounce mb-2">🔒</span>
-            <h2 className="text-lg sm:text-xl font-black text-red-400 uppercase tracking-widest">ARMORY STORE RESTRICTED</h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Access to the checkout-based Armory Store is classified. Ask a Root Administrator in the leaderboard to authorize access for your Champion ID.
-            </p>
-            <button
-              onClick={() => {
-                setActiveView('Game');
-                setControlledGameTab('tycoon');
-              }}
-              className="mt-4 px-5 py-2.5 bg-[#172238] hover:bg-[#203050] text-[#7ae0ff] border border-[#2a4060] rounded-xl text-xs font-mono font-bold transition cursor-pointer"
-            >
-              ← Jump back to Tycoon Shop
-            </button>
+          <div className="w-full max-w-2xl mx-auto my-10 bg-linear-to-b from-[#131b2f] via-[#0d1424] to-[#070b14] border-2 border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] text-center space-y-6">
+            <div className="w-20 h-20 bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner animate-pulse">
+              🔒
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-amber-400 bg-amber-950/60 px-3 py-1 rounded-full border border-amber-500/30">
+                Level 1 Royal Clearance Required
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider font-mono">
+                Royal Armory Store Bridge
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
+                The Royal Quartermaster reserves checkout voucher keys for proven champions. Defeat the <strong className="text-red-400">Goblin King</strong> in the Boss Rush to establish clearance!
+              </p>
+            </div>
+
+            {/* Visual Teaser Preview of Gear Packs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+              <div className="bg-[#0b101d] border border-white/10 rounded-xl p-3 space-y-1 opacity-75">
+                <span className="text-2xl">🗡️</span>
+                <div className="text-xs font-bold text-white">Weapons</div>
+                <div className="text-[10px] text-slate-400">Packs & Shards</div>
+              </div>
+              <div className="bg-[#0b101d] border border-white/10 rounded-xl p-3 space-y-1 opacity-75">
+                <span className="text-2xl">🛡️</span>
+                <div className="text-xs font-bold text-white">Defense</div>
+                <div className="text-[10px] text-slate-400">Shields & Armor</div>
+              </div>
+              <div className="bg-[#0b101d] border border-white/10 rounded-xl p-3 space-y-1 opacity-75">
+                <span className="text-2xl">✨</span>
+                <div className="text-xs font-bold text-white">Utility</div>
+                <div className="text-[10px] text-slate-400">Lenses & Dust</div>
+              </div>
+              <div className="bg-[#0b101d] border border-white/10 rounded-xl p-3 space-y-1 opacity-75">
+                <span className="text-2xl">🌀</span>
+                <div className="text-xs font-bold text-white">Mystic</div>
+                <div className="text-[10px] text-slate-400">Cosmic Relics</div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  setActiveView('Game');
+                  setControlledGameTab('bosses');
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-linear-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-mono font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-red-600/30 transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>⚔️</span>
+                <span>Challenge Goblin King Now</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveView('Game');
+                  setControlledGameTab('tycoon');
+                }}
+                className="w-full sm:w-auto px-5 py-3 bg-[#172238] hover:bg-[#203050] text-[#7ae0ff] border border-[#2a4060] rounded-2xl text-xs font-mono font-bold transition cursor-pointer"
+              >
+                ← Return to Tycoon Mine
+              </button>
+            </div>
           </div>
         ) : null}
         {activeView === 'Game' && (
@@ -1109,14 +1602,25 @@ export default function App() {
             gameState={gameState}
             setGameState={setGameState}
             initialTab={controlledGameTab}
+            activeTab={controlledGameTab}
             onTabChange={setControlledGameTab}
-            onOpenLoreBook={() => setActiveView('Lore')}
+            onOpenLoreBook={(tab, mode) => {
+              setActiveView('Lore');
+              if (tab && typeof tab === 'string') setControlledLoreTab(tab as any);
+              if (mode && typeof mode === 'string') setInitialLoreChronicleMode(mode as any);
+            }}
             currentUser={currentUser}
             userProfile={userProfile}
             onOpenAccount={() => setIsAccountOpen(true)}
             cloudLeaderboard={cloudLeaderboard}
             onSyncLeaderboard={syncLeaderboard}
             isSyncingLeaderboard={isSyncingLeaderboard}
+            controlledStatsSeason={controlledStatsSeason}
+            onStatsSeasonChange={setControlledStatsSeason}
+            controlledStatsCategory={controlledStatsCategory}
+            onStatsCategoryChange={setControlledStatsCategory}
+            onOpenShareCard={handleOpenShareCard}
+            onRedeemInviteCode={handleRedeemInviteCode}
           />
         )}
         {activeView === 'Stats' && (
@@ -1124,14 +1628,25 @@ export default function App() {
             gameState={gameState}
             setGameState={setGameState}
             initialTab="stats"
+            activeTab="stats"
             onTabChange={setControlledGameTab}
-            onOpenLoreBook={() => setActiveView('Lore')}
+            onOpenLoreBook={(tab, mode) => {
+              setActiveView('Lore');
+              if (tab && typeof tab === 'string') setControlledLoreTab(tab as any);
+              if (mode && typeof mode === 'string') setInitialLoreChronicleMode(mode as any);
+            }}
             currentUser={currentUser}
             userProfile={userProfile}
             onOpenAccount={() => setIsAccountOpen(true)}
             cloudLeaderboard={cloudLeaderboard}
             onSyncLeaderboard={syncLeaderboard}
             isSyncingLeaderboard={isSyncingLeaderboard}
+            controlledStatsSeason={controlledStatsSeason}
+            onStatsSeasonChange={setControlledStatsSeason}
+            controlledStatsCategory={controlledStatsCategory}
+            onStatsCategoryChange={setControlledStatsCategory}
+            onOpenShareCard={handleOpenShareCard}
+            onRedeemInviteCode={handleRedeemInviteCode}
           />
         )}
         {activeView === 'Lore' && (
@@ -1148,18 +1663,26 @@ export default function App() {
             initialChronicleMode={initialLoreChronicleMode}
           />
         )}
+        {activeView === 'Partners' && (
+          <PartnersView
+            gameState={gameState}
+            setGameState={setGameState}
+          />
+        )}
       </main>
 
       {/* GLOBAL FOOTER WITH RAPPORTVERSE COPYRIGHT & AFFILIATION */}
       <Footer
         onNavigate={(v) => {
-          setActiveView(v);
+          setActiveView(v as any);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenTour={startTour}
         onOpenAccount={() => setIsAccountOpen(true)}
         onOpenInstall={() => setIsPWAInstallOpen(true)}
         onOpenChangelog={() => setIsChangelogOpen(true)}
+        isAdmin={isAdmin}
+        currentUser={currentUser}
       />
 
       {/* DYNAMIC CHANGELOG & UPDATES */}
@@ -1197,6 +1720,17 @@ export default function App() {
         userProfile={userProfile}
         setUserProfile={setUserProfile}
         onSyncLeaderboard={syncLeaderboard}
+        onOpenShareCard={handleOpenShareCard}
+      />
+
+      {/* DYNAMIC VECTOR SVG SHARE CARD STUDIO MODAL */}
+      <ShareCardModal
+        isOpen={isShareCardOpen}
+        onClose={() => setIsShareCardOpen(false)}
+        gameState={gameState}
+        userProfile={userProfile}
+        defaultView={shareCardDefaultView}
+        bossData={shareCardBossData}
       />
 
       {/* GUIDED TOUR OVERLAY (SHORT / FULL / SKIP) */}
@@ -1216,9 +1750,61 @@ export default function App() {
         onClaimBonus={handleClaimPwaBonus}
       />
 
+      {/* INCOMING DEEP TAG CHAMPION / SQUAD WELCOME TOAST BANNER */}
+      {deepTagWelcome && (
+        <div 
+          onClick={() => {
+            setIsAccountOpen(true);
+            setDeepTagWelcome(null);
+          }}
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-[350] w-11/12 max-w-lg bg-gradient-to-r from-cyan-900 via-indigo-900 to-cyan-950 text-white font-mono text-xs px-4 py-3 rounded-2xl shadow-[0_10px_40px_rgba(6,182,212,0.4)] border-2 border-cyan-400 flex items-center justify-between gap-3 animate-fadeIn cursor-pointer hover:border-cyan-300 transition-all select-none"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl shrink-0">✨</span>
+            <div className="truncate">
+              <div className="font-black text-cyan-200 truncate">{deepTagWelcome}</div>
+              <div className="text-[10px] text-cyan-400 font-bold underline">Tap to open Squad &amp; Account Portal ▶</div>
+            </div>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setDeepTagWelcome(null); }}
+            className="text-slate-400 hover:text-white font-black text-sm p-1 shrink-0"
+            title="Dismiss Welcome"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* FLOATING BOUNTY UNLOCKED TOAST BANNER */}
+      {bountyToast && (
+        <div 
+          onClick={() => {
+            setActiveView('Game');
+            setControlledGameTab('stats');
+            setControlledStatsCategory('rewards');
+            setBountyToast(null);
+          }}
+          className="fixed top-20 right-4 sm:right-6 z-[300] max-w-sm sm:max-w-md bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-mono font-black text-xs px-4 py-3 rounded-2xl shadow-[0_10px_35px_rgba(245,158,11,0.5)] border-2 border-yellow-200 flex items-center gap-3 animate-bounce cursor-pointer hover:scale-105 transition-all select-none"
+        >
+          <span className="text-2xl shrink-0">🎁</span>
+          <div className="flex-1 min-w-0">
+            <div className="uppercase tracking-wider font-black text-xs text-slate-950 font-mono leading-tight">{bountyToast}</div>
+            <div className="text-[10px] text-slate-900 font-bold underline mt-0.5">Click to Open Seasonal Bounties ▶</div>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setBountyToast(null); }}
+            className="ml-1 text-slate-950 hover:text-white font-black text-sm p-1 shrink-0"
+            title="Dismiss Toast"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* CLOUD SAVE CONFLICT OVERLAY MODAL */}
       {cloudSaveConflict && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-[100] animate-fadeIn">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-[500] animate-fadeIn">
           <div className="w-full max-w-[550px] bg-linear-to-b from-[#111827] via-[#0d1322] to-[#070b14] border-2 border-cyan-500/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.15)] space-y-6 text-center">
             <div className="w-16 h-16 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto text-3xl">
               ☁️
@@ -1305,6 +1891,9 @@ export default function App() {
 
       {/* GDPR COOKIE & PRIVACY CONSENT BANNER & MODAL */}
       <CookieConsentBanner />
+
+      {/* DYNAMIC PARTICLE BURST ENGINE (VICTORY, DEFEAT, PURCHASES, REBIRTH) */}
+      <ParticleOverlay />
 
       {/* UNIVERSAL MOBILE TOUCH & DESKTOP HOVER TOOLTIP ENGINE */}
       <GlobalTouchTooltip />

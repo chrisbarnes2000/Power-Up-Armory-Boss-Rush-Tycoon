@@ -4,13 +4,15 @@ import { DEFAULT_HERO_BASELINE } from '../../data';
 interface LocalResetOptionsProps {
   confirmLocalWipe: 'zero' | 'standard' | null;
   setConfirmLocalWipe: (mode: 'zero' | 'standard' | null) => void;
-  onLocalWipe: (mode: 'zero' | 'standard') => void;
+  onLocalWipe: (mode: 'zero' | 'standard', clearChronicles?: boolean) => void;
+  customChroniclesCount?: number;
 }
 
 export const LocalResetOptions: React.FC<LocalResetOptionsProps> = ({
   confirmLocalWipe,
   setConfirmLocalWipe,
-  onLocalWipe
+  onLocalWipe,
+  customChroniclesCount = 0
 }) => {
   return (
     <div className="mt-5 bg-linear-to-b from-red-950/25 to-slate-900/40 border border-red-500/25 rounded-2xl p-3 sm:p-3.5 space-y-2.5">
@@ -23,7 +25,7 @@ export const LocalResetOptions: React.FC<LocalResetOptionsProps> = ({
             </h3>
           </div>
           <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">
-            Choose a 1-click clean-slate preset to wipe equipment, power-ups, and battle history:
+            Choose a 1-click clean-slate preset to wipe equipment, power-ups, combat chat log, and battle history:
           </p>
         </div>
       </div>
@@ -42,26 +44,67 @@ export const LocalResetOptions: React.FC<LocalResetOptionsProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-300 leading-normal font-sans">
-              Raw clean slate: 0 ATK, 0 DEF (0 Armor), 0 SPD, 0 Coins, 0 Gems & 0 Nanite Revives.
+              Raw clean slate: 0 ATK, 0 DEF (0 Armor), 0 SPD, 0 Coins, 0 Gems, 0 Revives & wipes combat chat log.
             </p>
           </div>
           <div className="mt-2.5">
             {confirmLocalWipe === 'zero' ? (
-              <div className="flex items-center gap-1.5 animate-fadeIn">
-                <button
-                  type="button"
-                  onClick={() => onLocalWipe('zero')}
-                  className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-black rounded-lg transition cursor-pointer shadow-md shadow-red-600/20"
-                >
-                  Confirm 0 PS Wipe?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmLocalWipe(null)}
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
-                >
-                  ✕
-                </button>
+              <div className="space-y-2 animate-fadeIn bg-red-950/60 border border-red-500/40 rounded-xl p-2.5">
+                {customChroniclesCount > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10.5px] font-mono text-amber-300 flex items-center gap-1 font-bold">
+                      <span>📜</span>
+                      <span>{customChroniclesCount} Custom Chronicle{customChroniclesCount > 1 ? 's' : ''} Detected in Lore Book</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug">
+                      Would you like to clear your custom chronicles as well, or preserve them in the Lore Book?
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onLocalWipe('zero', true)}
+                          className="flex-1 py-1.5 px-2 bg-red-600 hover:bg-red-500 text-white font-mono text-[10px] font-black rounded-lg transition cursor-pointer shadow-md shadow-red-600/20 text-center"
+                          title="Wipe stats, clear combat log, and erase custom chronicles"
+                        >
+                          🗑️ Clear Chronicles & Wipe
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmLocalWipe(null)}
+                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onLocalWipe('zero', false)}
+                        className="w-full py-1.5 px-2 bg-amber-600/90 hover:bg-amber-500 text-white font-mono text-[10px] font-black rounded-lg transition cursor-pointer shadow-sm text-center"
+                        title="Wipe stats and combat log, but keep custom chronicles in the Lore Book"
+                      >
+                        📜 Preserve Chronicles & Wipe
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onLocalWipe('zero', false)}
+                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-black rounded-lg transition cursor-pointer shadow-md shadow-red-600/20"
+                    >
+                      Confirm 0 PS Wipe?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmLocalWipe(null)}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
@@ -94,21 +137,62 @@ export const LocalResetOptions: React.FC<LocalResetOptionsProps> = ({
 
           <div className="mt-2.5">
             {confirmLocalWipe === 'standard' ? (
-              <div className="flex items-center gap-1.5 animate-fadeIn">
-                <button
-                  type="button"
-                  onClick={() => onLocalWipe('standard')}
-                  className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-black rounded-lg transition cursor-pointer shadow-md shadow-emerald-600/20"
-                >
-                  Confirm Starter Reset?
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmLocalWipe(null)}
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
-                >
-                  ✕
-                </button>
+              <div className="space-y-2 animate-fadeIn bg-emerald-950/60 border border-emerald-500/40 rounded-xl p-2.5">
+                {customChroniclesCount > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-[10.5px] font-mono text-amber-300 flex items-center gap-1 font-bold">
+                      <span>📜</span>
+                      <span>{customChroniclesCount} Custom Chronicle{customChroniclesCount > 1 ? 's' : ''} Detected in Lore Book</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug">
+                      Would you like to clear your custom chronicles as well, or preserve them in the Lore Book?
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onLocalWipe('standard', true)}
+                          className="flex-1 py-1.5 px-2 bg-red-600 hover:bg-red-500 text-white font-mono text-[10px] font-black rounded-lg transition cursor-pointer shadow-md shadow-red-600/20 text-center"
+                          title="Wipe stats, clear combat log, and erase custom chronicles"
+                        >
+                          🗑️ Clear Chronicles & Reset
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmLocalWipe(null)}
+                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onLocalWipe('standard', false)}
+                        className="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[10px] font-black rounded-lg transition cursor-pointer shadow-sm text-center"
+                        title="Reset starter stats and combat log, but keep custom chronicles in the Lore Book"
+                      >
+                        📜 Preserve Chronicles & Reset
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onLocalWipe('standard', false)}
+                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-black rounded-lg transition cursor-pointer shadow-md shadow-emerald-600/20"
+                    >
+                      Confirm Starter Reset?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmLocalWipe(null)}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs rounded-lg transition cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button

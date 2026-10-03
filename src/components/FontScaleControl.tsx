@@ -121,7 +121,7 @@ export default function FontScaleControl({ initialScale, onScaleChange }: FontSc
       {isOpen && (
         <div
           id="font-scale-popover"
-          className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-2rem)] max-w-[350px] sm:w-88 mx-auto bg-[#0e1628]/98 border-2 border-[#2a4060] rounded-2xl p-3.5 sm:p-4 shadow-2xl shadow-black/95 z-[100] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-2rem)] max-w-[350px] sm:w-88 mx-auto bg-[#0e1628]/98 border-2 border-[#2a4060] rounded-2xl p-3.5 sm:p-4 shadow-2xl shadow-black/95 z-[150] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">

@@ -10,13 +10,15 @@ interface SquadRecruitSectionProps {
   userProfile: UserProfile | null;
   onSaveState?: (state: GameState) => void;
   onRedeemInviteCode: (code: string) => { success: boolean; message: string };
+  onOpenShareCard?: (view?: 'champion' | 'boss' | 'squad') => void;
 }
 
 export const SquadRecruitSection: React.FC<SquadRecruitSectionProps> = ({
   gameState,
   setGameState,
   userProfile,
-  onRedeemInviteCode
+  onRedeemInviteCode,
+  onOpenShareCard
 }) => {
   const [inputCode, setInputCode] = useState('');
   const [copied, setCopied] = useState(false);
@@ -135,6 +137,16 @@ export const SquadRecruitSection: React.FC<SquadRecruitSectionProps> = ({
                   {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
+                {onOpenShareCard && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenShareCard('squad')}
+                    className="px-2 py-1 bg-gradient-to-r from-indigo-900 to-purple-900 hover:from-indigo-800 hover:to-purple-800 border border-indigo-400/40 text-indigo-200 rounded text-[10px] font-mono font-bold transition flex items-center gap-1 cursor-pointer"
+                    title="Generate Dynamic SVG Squad Invite Card"
+                  >
+                    <span>✨ Card</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleShareInvite}

@@ -4,6 +4,202 @@
 
 ---
 
+## [v1.3.3-dev.1] — 2026-10-02
+
+### Engineering Actions
+- **Armory Store Tycoon Bankroll, Coin-Gated Checkout & Admin Cash Clearance (`src/components/ShopView.tsx`, `src/components/admin/AdminUserModeration.tsx`, `src/types.ts`)**:
+  - **Pinned TycoonBankrollCard**: Integrated the live `TycoonBankrollCard` into the Armory Store (`ShopView.tsx`) fixed to the viewport base, rendering real-time Gold Coins, Astral Gems, passive generation rate, milestone boss vanquishes, and core combat attributes (HP, ATK, DEF, SPD, PS).
+  - **Coin-Gated Checkout Logic**: Gated storefront item checkouts against player coin reserves (`gameState.coins < cartTotal`). Disables checkout buttons with deficit messaging (`Need X more coins`) and displays available coins versus required subtotal. Deducts gold coins automatically upon successful order confirmation.
+  - **Admin Cash Payment Bypass**: Updated `AdminUserModeration.tsx` with a per-user **"Shop Bypass: ON (Cash) / OFF (Gold)"** toggle (`isArmoryStoreEnabled`). When active (or for administrators), the gold cost check and deduction are waived, rendering a `💵 Cash Clearance Bypass` indicator and enabling immediate receipt key generation for in-person cash payments.
+  - **In-Store Health Pack Quick Heal**: Wired `handleUseHealthPack` directly into the Armory Store bankroll bar, allowing players to consume Health/Revive packs outside of battle to restore HP to 100% with rebirth particle FX and telemetry tracking.
+- **Zenni Optical Refer-a-Friend Synergy & Everyday Loyalty Perks (`src/config/appConfig.ts`, `src/components/PartnersView.tsx`, `Docs/PublicRelations/Affiliate_ZenniOptical.md`, `Docs/PublicRelations/INDEX_MARKETING.md`, `Docs/README.md`)**:
+  - **Universal Affiliate Specification**: Created `/Docs/PublicRelations/Affiliate_ZenniOptical.md` detailing the "Give $15, Get $15" program, reward stacking matrix ($15 / $75 / $150), and compliance links to Zenni Privacy Policy and Terms of Use.
+  - **Partners Hub Showcase Card**: Built an interactive showcase card in `PartnersView.tsx` with one-tap outbound referral navigation (`http://rwrd.io/r7jn9f2?c`).
+  - **Loyalty Member Perks**: Highlighted everyday member perks:
+    - 🚚 Free standard US shipping on all orders over $65²
+    - 💸 Earn 1 point on every dollar spent
+    - 🎂 Special birthday rewards
+  - **In-Game Code Redemption**: Added support for `ZENNI`, `ZENNI15`, and `ZENNIOPTICAL` codes at the partner redemption desk, depositing +3,000 Coins and +150 Gems.
+  - **App Configuration**: Registered Zenni Optical credentials and links in `APP_CONFIG`.
+- **Comprehensive HTTP Security & Vulnerability Hardening (`vite.config.ts`, `index.html`, `public/.well-known/security.txt`, `public/security.txt`, `public/security-policy.html`, `public/robots.txt`, `Docs/Audits/HTTP_SECURITY_AUDIT.md`, `Docs/Audits/INDEX_AUDIT.md`)**:
+  - **HTTP Security Headers Plugin**: Authored a custom Vite connect middleware plugin and configured `server.headers` / `preview.headers` to emit a complete suite of enterprise security headers on all responses:
+    - **Content Security Policy (CSP)**: `default-src 'self' ... frame-ancestors 'self' https://aistudio.google.com https://*.google.com https://*.run.app https://*.googleusercontent.com` preventing script injection while ensuring AI Studio iframe compatibility.
+    - **Strict-Transport-Security (HSTS)**: `max-age=31536000; includeSubDomains; preload`.
+    - **X-Content-Type-Options**: `nosniff`.
+    - **X-Frame-Options**: `SAMEORIGIN` (selectively omitted when loaded within approved Google AI Studio iframes).
+    - **Referrer-Policy**: `strict-origin-when-cross-origin`.
+    - **Permissions-Policy**: `camera=(), microphone=(), geolocation=(), payment=(), usb=()`.
+    - **Cross-Origin Policies**: `Cross-Origin-Opener-Policy: same-origin-allow-popups` (secures origin while preserving Firebase Auth popup sign-in), `Cross-Origin-Resource-Policy: cross-origin`, and `Cross-Origin-Embedder-Policy: credentialless`.
+  - **RFC 9116 `security.txt`**: Created standard vulnerability disclosure contact files at `/public/.well-known/security.txt` and `/public/security.txt`.
+  - **Vulnerability Disclosure Policy**: Published `/public/security-policy.html` detailing safe harbor rules and reporting guidelines.
+  - **Document Metadata**: Added security directives to `index.html` via `<meta http-equiv>` tags and linked `security.txt` via `<link rel="author">` and `public/robots.txt`.
+  - **Audit Publication**: Published complete remediation audit report at `/Docs/Audits/HTTP_SECURITY_AUDIT.md` and indexed in `/Docs/Audits/INDEX_AUDIT.md`.
+- **Telemetry & Funnel Enhancements (`src/lib/analytics.ts`, `src/components/ShopView.tsx`, `src/components/PartnersView.tsx`)**:
+  - Enriched `purchase` and `armory_checkout_code_generated` events with `payment_type: 'gold_coins' | 'in_person_cash_bypass'`.
+  - Added `health_pack_used` telemetry tracking from the storefront bankroll bar.
+  - Added `partner_promo_redeemed` event recording partner attribution and bonus amounts.
+
+---
+
+## [v1.3.2-dev.5] — 2026-10-02
+
+### Engineering Actions
+- **Health Mesh Progressive Decay, MiniBarnMaster URL & Z-Index Harmonization (`src/components/common/ParticleFX.tsx`, `src/config/appConfig.ts`, `src/components/Footer.tsx`, `Docs/PublicRelations/MiniBarnMasterPartnership.md`, `Docs/Z_INDEX_LAYERING_GUIDE.md`)**:
+  - **6s Progressive Continuous Decay**: Upgraded `HealthMeshVignette` with a `requestAnimationFrame` continuous decay loop over 6 seconds. When HP drops below 55%, the red damage filter starts at full intensity and smoothly/progressively decays down to 0 opacity over 6s.
+  - **MiniBarnMaster Base URL Update**: Updated all MiniBarnMaster partner references, URLs, and outbound UTM trackers to `https://minibarnmaster.ai.studio` across `appConfig.ts`, `Footer.tsx`, and the Strategic Simulation Partnership Memorandum (`Docs/PublicRelations/MiniBarnMasterPartnership.md`).
+  - **Harmonized Z-Index Architecture**: Conducted a comprehensive Z-Index audit across all components, modals, popovers, drawers, toasts, and tooltips. Standardized modal backdrops (`z-[500]`), toasts (`z-[300]`), popovers (`z-[150]`), particle canvases (`z-[9950]`), and global tooltips (`z-[10000]`), publishing the full developer guide at `/Docs/Z_INDEX_LAYERING_GUIDE.md`.
+  - **Dynamic Sub Lore Options, Navigation Header Simplification, Active Tab Type Crash Fix, Tactical Consumables, Partner Affiliates Portal & Insufficient Coins Floating Toast (`src/App.tsx`, `src/components/LoreBookView.tsx`, `src/components/game/BossGauntlet.tsx`, `src/components/game/BattleModal.tsx`, `src/components/game/leaderboard/LeaderboardSeasonHeader.tsx`, `src/data.ts`, `src/loreData.ts`, `src/components/lore/ItemCompendiumTab.tsx`, `src/components/PartnersView.tsx`, `src/components/Footer.tsx`, `src/components/common/ParticleFX.tsx`, `src/index.css`, `src/components/GameView.tsx`)**:
+    - **Insufficient Coins Floating Alert**: Designed and implemented an animated floating **Insufficient Coins Toast Banner** (`GameView.tsx`) featuring a 4.5-second auto-dismiss timer and a tactile dismiss button. Triggers immediately with detailed pricing breakdowns when players attempt to revive their champion or purchase revive packs with insufficient gold reserves.
+    - **Header Menu Simplification**: Cleaned up the sticky top header navigation by removing the top-level Affiliates tab button. This keeps the header extremely clean, while the interactive **Affiliates & Partners Hub** view remains fully functional and accessible via the dedicated footer index links.
+    - **Defeat-Themed Battle Resolution Tags**: Split the live battle log end-of-battle banners. If defeated, the log renders a specialized crimson-themed **`💀 🪦 💀 END OF BATTLE RESOLUTION (DEFEAT) 💀 🪦 💀`** tag instead of the victory banner to accurately represent combat loss.
+    - **Arcade Symmetrical Sword Clash**: Corrected the duel commencement swooping animation in `BattleStartIntro` and `index.css`. Repositioned keyframes so that the left and right swords swooping in from opposite margins now meet symmetrically at clashing 45-degree and -45-degree angles inside the center-stage overlap, eliminating asymmetric vertical offset.
+    - **Interactive Partners & Affiliates Hub**: Engineered a dedicated, beautiful **Affiliates & Partners Portal** view (`PartnersView.tsx`) showcasing our key partner programs: **RapportVerse** visual trust mapping and connection networks and **MiniBarnMaster** premium Pacific Northwest storage shed engineering.
+    - **Dynamic Shed ROI Simulator**: Embedded an interactive ROI pricing slider widget comparing storage unit rental fees over 12–60 months against building a customizable permanent modular shed.
+    - **Promo Redemption & Territory Maps**: Integrated a local partner code redeemer desk (directly recognizing `MINIBARN` and `RAPPORTVERSE` for a +3,000 Coin / +150 Gem bonus) along with regional demand maps detailing Washington State territory factions (HOA Studios in Bellevue, moisture-proofing on the Coast).
+    - **Admin-Bypassed Cloud Sync Badge**: Refactored the cloud status tags on both the sticky header (`App.tsx`) and global footer (`Footer.tsx`) to dynamically respect active Administrator bypass levels (`isAdmin === true`). Displays a clear `Admin Bypassed` indicator badge in crimson/red to distinguish simulated administrative states.
+    - **Unveiled Starter Consumables**: Upgraded starter state initialization (`DEFAULT_STARTER_BASELINE_STATE` in `data.ts`) to immediately unveil **🩹 Revive Pack (Bandages)** and **🧪 Combat Tonic** inside the 3D Tome from the start of a new campaign.
+    - **Dedicated Consumables Category in Tome**: Created a separate `'Consumables'` filter category tab in `ItemCompendiumTab.tsx` to pull bandages and tonics out of standard equipment lists, separating tactical supplies cleanly from weapon/defense systems.
+    - **Distilled Tonic Lore & Metrics Integration**: Engineered **🧪 Combat Tonic** into the global `POWERUPS` registry and composed deep alchemical worldbuilding records for both items in `ITEM_LORES`. Embedded custom display formatting to denote consumable classifications in place of passive level multipliers.
+    - **Removed Admin Sample Auto-Fill**: Cleaned up the Admin Portal (`AdminModal.tsx`) by removing the hardcoded `'OUVL-RG3U-1WW3-MEB2'` sample ID auto-fill from the reverse cart lookup input, leaving the field clear and ready for immediate manual pasting/queries.
+    - **Active Tab Event Capture Bug Fix**: Fixed a high-severity bug where clicking the seasonal standings header link inside `LeaderboardSeasonHeader` propagated the React click `MouseEvent` directly as the `tab` parameter to `onOpenLoreBook`, resulting in `activeTab` storing an object instead of a string and causing a crash in `activeTab.toUpperCase()`. Handlers have been safely wrapped in anonymous parameter-less triggers, type guards added to `App.tsx`'s set-state handlers, and string checks added to `LoreBookView`'s telemetry.
+    - **Header Dynamic Sub-Tabs**: Streamlined the Lore menu sub-tabs to exactly **4 highly optimized pills** for mobile viewports (**📖 3D Tome**, **📜 Scrolls**, **👾 Bestiary**, and **🏛️ Codex**), removing `Living Saga` and relocating **✍️ Chronicler's Quill** to the Game Arena menu section to prevent mobile overflow.
+    - **Simplified Stats Timeframe Sub-tabs**: Removed the redundant and confusing `All Champions` button from the `#dynamic-sub-tabs` under Stats. Since category selection is already handled by the fully featured in-view `LeaderboardCategoryNav` bar, the sub-menu now cleanly displays the 4 non-overlapping options (**📅 Monthly**, **👑 Yearly**, **All-Time**, and **🎁 Claim**) without double-highlighting glitches.
+    - **Combat Log Quick Menu**: Embedded **✍️ Quill** (Chronicler's Quill Editor) and **⚔️ Saga** (Living War Saga) direct navigation buttons into the live combat log header across both `BossGauntlet` and `BattleModal`, allowing players to instantly jump to write custom lore entries or inspect active war records without relying solely on auto-generated battle logs.
+
+---
+
+## [v1.3.2-dev.4] — 2026-10-02
+
+### Engineering Actions
+- **Consumable Health Packs Outside Death (`GameView.tsx`, `TycoonBankrollCard.tsx`, `PreFightCoinShop.tsx`, `TycoonGenerators.tsx`, `BattleModal.tsx`, `BossGauntlet.tsx`)**:
+  - **Consumable Health Packs Outside Death**: Enabled consuming Health/Revive Packs (`handleReviveWithPack` / `handleUseHealthPack`) whenever the hero is damaged (`livePlayerHP < livePlayerMaxHP`) or dead, instantly restoring HP to 100% full health and triggering rebirth particle FX.
+  - **Ubiquitous Healing Controls**: Placed "🩹 Heal / Use Health Pack" buttons directly on the **Bankroll Stat Bar**, **Astral Gold Forge Console**, **Pre-Fight Coin Shop**, **Battle Modal**, and **Boss Gauntlet Arena Header**.
+
+---
+
+## [v1.3.2-dev.3] — 2026-10-01
+
+### Engineering Actions
+- **Bounty Unlock Toast Notification & Claim Particle FX (`src/App.tsx`, `src/components/game/StatsLeaderboard.tsx`, `src/components/game/leaderboard/SeasonalRewardClaimStation.tsx`, `src/loreData.ts`)**:
+  - **Bounty Unlock Toast Banner**: Created a floating notification toast that triggers whenever the player unlocks new claimable seasonal bounties (`🎁 NEW BOUNTY UNLOCKED!`). Clicking the toast automatically navigates to the Seasonal Bounties sanctuary.
+  - **Claim Particle Celebration FX**: Integrated `triggerParticleBurst('purchase')` particle celebrations on the bounty claim buttons in both `StatsLeaderboard.tsx` and `SeasonalRewardClaimStation.tsx`.
+  - **Launch FX Suppression**: Added an `isInitialBountyMountRef` check to prevent `triggerParticleBurst` from firing during application startup / initial auth evaluation.
+  - **Lore Codex Health Mesh Entry**: Documented the **Vital Health Mesh & Aura Vignette Filter** in the Lore Book System Codex (`src/loreData.ts`), detailing its formula (`Vignette Red Filter = (1 - HP/MaxHP) [below 50% HP]`) and in-universe combat mechanics.
+
+---
+
+## [v1.3.2-dev.2] — 2026-10-01
+
+### Engineering Actions
+- **Admin Toggle to Disable DB Quick Sync Check (`src/types.ts`, `src/data.ts`, `src/components/admin/AdminBalanceConfig.tsx`, `src/App.tsx`)**:
+  - **Admin Control**: Added a dedicated **Database Quick Sync Check Toggle** in the Admin Game Balance Config panel.
+  - **Bypass Logic**: When enabled (`disableQuickSyncCheck`), the app bypasses automatic cloud progress sync and conflict checks on DB authentication load.
+  - **Reload Persistence**: Fixed initial auth listener logic to parse `localState` directly from `localStorage` before evaluating `disableQuickSyncCheck`, ensuring "Cloud Save Found" modals are strictly suppressed during app reloads in dev mode when bypass is active.
+
+---
+
+## [v1.3.2-dev.1] — 2026-10-01
+
+### Engineering Actions
+- **Lore Reward Particle FX & Leaderboard Damage Mesh Removal (`src/components/LoreBookView.tsx`, `src/components/GameView.tsx`)**:
+  - **Combined Coins, Gems & Bonus FX (`purchase`)**: Triggered combined particle fountain celebrations upon claiming lore book scholar bonuses, page exploration rewards, and grand master rewards.
+  - **Leaderboard Mesh Removal**: Conditioned `HealthMeshVignette` so the damage mesh is completely removed when viewing stats and leaderboard pages (`activeTab !== 'stats'`).
+  - **Lore Page Robustness**: Ensured pristine error-free execution across all modular lore tab components (Chronicles, Story Weaver, Item Compendium, Boss Bestiary, and Ancient Legends).
+- **Battle Log Dividers & Prominent Phoenix Status Card (`src/components/game/BattleModal.tsx`, `src/components/game/BossGauntlet.tsx`)**:
+  - **Start/End Battle Log Dividers**: Added prominent glowing section dividers (`⚡ ⚔️ ⚡ START OF BATTLE ENCOUNTER ⚡ ⚔️ ⚡` and `🏆 🛡️ 🏆 END OF BATTLE RESOLUTION 🏆 🛡️ 🏆`) with generous padding between combat encounters in both the Battle Modal and Boss Gauntlet log feeds.
+  - **Prominent Phoenix Status Card**: Placed a dedicated glowing Phoenix status badge directly in the Hero fighter card view within `BattleModal.tsx`, clearly displaying whether the Phoenix Feather is ready (`🔥 READY (Lv X)`) or locked (`🔒 Locked`).
+
+---
+
+## [v1.3.1-dev.3] — 2026-09-30
+
+### Engineering Actions
+- **Combat UI Refinements, Hidden Damage Mesh & Stable Bankroll Pills (`src/components/common/ParticleFX.tsx`, `src/components/game/BattleModal.tsx`, `src/components/game/TycoonBankrollCard.tsx`)**:
+  - **Hidden Initial Damage Vignette (`HealthMeshVignette`)**: Configured the progressive damage mesh filter to start completely hidden (`intensity <= 0.45`), only activating when player health drops below 50%.
+  - **Phoenix Feather Status Display (`BattleModal`)**: Added a prominent Phoenix Revive status badge (`🔥 PHOENIX READY (Lv X)` or `🔒 Phoenix Locked`) in the combat arena header so players have real-time visibility into their auto-revive readiness.
+  - **Stable Bankroll Card Pills (`TycoonBankrollCard`)**: Assigned fixed minimum widths and `tabular-nums` formatting to all currency/stat pills, preventing layout jitter as gold and stats accumulate over time.
+  - **Slowed Battle Start Intro (`BattleStartIntro`)**: Extended battle intro duration to 2.2 seconds with a slower 0.85s focus blade swoop, clash shockwave rings, and double sword combination.
+
+---
+
+## [v1.3.1-dev.2] — 2026-09-29
+
+### Engineering Actions
+- **Distinct Currency Purchase Particles & Focus Blade Battle Intro (`src/components/common/ParticleFX.tsx`, `src/components/game/PreFightCoinShop.tsx`, `src/components/GameView.tsx`)**:
+  - **Unique Purchase FX (`purchase_coin` & `purchase_gem`)**: Implemented dedicated particle burst routines for currency-specific transactions:
+    - **`purchase_coin`**: Amber gold coin and sparkling coin-shaped fountain particles for coin purchases and pre-fight coin shop upgrades.
+    - **`purchase_gem`**: Emerald, sapphire, and amethyst gem-shaped fountain particles for gem unlocks and gemstone purchases.
+    - **`purchase` (Combined)**: Retained for mixed bonus gains and store cart checkouts.
+  - **Focus Blade Battle Start Animation (`BattleStartIntro`)**: Updated the duel start intro so single focus blade swords (`🗡️`) swoop across from both sides and combine into the double weapons-class sword (`⚔️`) upon central clash.
+- **Combat Visual FX, Health Vignette Mesh & Crossed Swords Battle Intro (`src/components/common/ParticleFX.tsx`, `src/components/GameView.tsx`, `src/index.css`)**:
+  - **Progressive Health Mesh Vignette (`HealthMeshVignette`)**: Implemented a full-screen red/crimson edge vignette and digital mesh filter overlay that scales dynamically with player damage (`1 - (livePlayerHP / livePlayerMaxHP)`), intensifying as health gets critically low.
+  - **Crossed Swords Battle Start Intro (`BattleStartIntro`)**: Engineered an epic combat initiation intro featuring two massive steel/gold swords swooping from opposite screen edges across the viewport, colliding in the center with an electric clash spark and **`⚡ DUEL COMMENCING ⚡`** banner.
+  - **Refined Defeat Timing & Lingering Ash (`ParticleOverlay`)**: Adjusted defeat particle counts (`120` particles) and reduced decay rates (`0.003 + Math.random() * 0.006`) so crimson ash embers drift smoothly across the entire screen and linger properly in sync with player death timing.
+- **Dev Sandbox Cloud Leaderboard Hydration (`src/App.tsx`)**:
+  - Replaced the full development bypass with a 1-time `getDocs` read upon container load and post-sync, allowing sandbox/preview sessions to immediately display the live global roster of real players while still avoiding persistent continuous WebSocket listener quotas.
+- **Leaderboard Dynamic Sub-Menu Timeframes & Claim Station Integration (`src/App.tsx`, `src/components/GameView.tsx`, `src/components/game/StatsLeaderboard.tsx`)**:
+  - **Dynamic Timeframe Selectors**: Enhanced the contextual Tier 2 sub-menu for the Leaderboard view (`#dynamic-sub-tabs`) to include direct 1-click timeframe switches: **Monthly Season** (📅), **Yearly Championship** (👑), and **All-Time Eternal** (🏛️).
+  - **All Champions Global Visibility**: Added an **All Champions** (👥) default sub-menu selector, ensuring the entire global player base is always displayed and ranked transparently across all metrics.
+  - **Direct Seasonal Claim Option**: Integrated a dedicated **Claim Rewards** (🎁) sub-menu button with real-time dynamic unclaimed badge counts that instantly opens the Seasonal Reward Claim Station.
+- **Header & Footer Z-Index Harmonization & Stacking Context (`src/App.tsx`, `src/components/Footer.tsx`, `src/components/game/TycoonBankrollCard.tsx`)**:
+  - Matched the global header (`header#global-navbar`, Tier 1 and Tier 2 bars) and footer (`footer#app-global-footer`) z-indexes to unified `z-20`, ensuring both remain above main scrollable view content (`z-0`/`z-10`) but below sticky HUDs and interactive overlays.
+  - Positioned the bottom Bankroll HUD (`#tycoon-bankroll-card`) at `z-40` to float seamlessly above header/footer elements, while remaining below modal backdrops (`z-[500]`), cart drawers (`z-[200]`), and global tooltips (`z-[10000]`).
+- **Tycoon Revive Pack Dispensary, Journey Salvage Drops & Balanced Grid Architecture (`src/components/game/TycoonGenerators.tsx`, `src/components/GameView.tsx`)**:
+  - **Alchemical Emergency Dispensary**: Introduced a dedicated Tycoon dispensary module allowing players to replenish Revive Packs on demand with Coins or Gems across 3 flexible tiers (1x Single Pack for 150🪙/10💎, 3x Tactical Bundle for 400🪙/25💎, and 10x War Chest Crate for 1,200🪙/75💎).
+  - **Random Journey Drops**: Implemented organic in-game drop events for Revive Packs:
+    - ⛏️ **Mining Core Salvage (3.5% Chance)**: Randomly unearths an intact Revive Pack from Astral Core strata with custom particle celebrations.
+    - 👹 **Titan Hoard Loot (25% Chance)**: Conquering realm titans in the Boss Rush arena grants bonus field Revive Packs.
+  - **Balanced Even-Row Weapons Grid**: Re-architected generator layouts to eliminate awkward 4+2 column stacking; Weapons Class now scales evenly (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`), while 3-item artifact classes render cleanly across 3 columns (`grid-cols-1 sm:grid-cols-3`).
+  - **Enhanced Header Typography**: Increased relative heading font sizes across the Mining Console, Emergency Dispensary, and Category Matrix headers (`text-sm sm:text-base md:text-lg font-black`).
+- **Health Persistence, Phoenix Auto-Revive & Dynamic Particle Engine (`src/components/common/ParticleFX.tsx`, `src/components/GameView.tsx`, `src/components/game/BattleModal.tsx`, `src/components/ShopView.tsx`, `src/components/game/PreFightCoinShop.tsx`, `src/App.tsx`)**:
+  - **Combat Health Persistence**: Eliminated automatic 100% full health replenishment when entering battles; champions now retain their current damaged HP across encounters unless healed via Revive Packs/Coins, or possessing Level 5 *Phoenix Feather* (*Phoenix Embrace* perk).
+  - **Phoenix Auto-Revive Rebirth**: Integrated mid-combat automatic resurrection when taking fatal damage with an equipped Phoenix Feather, restoring 50% HP with a dedicated `🔥 🦅 PHOENIX REBIRTH` activation event, distinct from normal strike/damage floaters.
+  - **Dynamic Particle Burst Engine (`ParticleOverlay`)**: Engineered a high-performance 60fps HTML5 Canvas particle system rendering contextual particle bursts:
+    - 🏆 **Victory**: Golden coins, stardust sparks, and amber fireworks.
+    - 💀 **Defeat**: Crimson smoke embers and drifting dark ash.
+    - 💎 **Purchases & Upgrades**: Emerald, diamond, and sapphire gemstone fountains.
+    - 🔥 **Phoenix Rebirth**: Upward-surging solar flames and golden phoenix embers.
+- **Tycoon Mining Defeat Prevention & Revive Pack Integration (`src/components/game/TycoonGenerators.tsx`, `src/components/GameView.tsx`)**:
+  - Implemented real-time fallen status check preventing deceased players (`isDead || livePlayerHP <= 0`) from mining the Astral Gold Core, triggering a prominent animated defeat toast notification (`💀 Champion Defeated! You cannot mine while fallen. Use a Revive Pack or Coins to restore your vitality!`).
+  - Added an emergency Fallen Champion Revive Banner directly above the gold forge with 1-click **Revive Pack 🩹** consumption and **Coin Revive ⚡** actions.
+  - Integrated the Revive Pack inventory counter badge (`🩹 Revive Packs: X`) directly onto the Tycoon mining console for instant visibility.
+- **Bestiary Scroll Parity & Encounter-Based Wax Seal Unsealing (`src/loreData.ts`, `src/components/lore/ChroniclesTab.tsx`, `src/components/lore/StoryWeaverTab.tsx`, `src/components/LoreBookView.tsx`)**:
+  - Expanded `CANONICAL_CHAPTERS` from 7 to 8 scrolls by introducing **Chapter VI: "The Granite Bastion"** (`Elder Titan`), creating complete 1:1 parity with the 8 realm titans in the Bestiary.
+  - Re-anchored scroll unlock logic to directly gate each chapter by whether its featured Titan has been encountered in the Boss Rush arena (`kills > 0 || deaths > 0 || boss.defeated`), replacing generic count thresholds with authentic creature discovery.
+  - Added dedicated return and cancel controls (`← Return to Living Saga`, `← Cancel & Return to Saga`) in both the Chronicler's Quill header and footer action bar to seamlessly return writers back to the living war saga.
+- **Full Unified Navigation & Dynamic Submenu Overhaul (`src/App.tsx`, `src/components/LoreBookView.tsx`)**:
+  - Vertically stacked the primary view navigation (`Game Arena`, `Armory Store`, `Lore Book`, `Rank & Stats`) and the contextual dynamic sub-menu (`#dynamic-sub-tabs`) into an intuitive two-tiered flex column layout (`flex flex-col items-center gap-2 sm:gap-2.5`).
+  - Harmonized the Tier 2 global header dynamic submenu with primary views (`Game`, `Shop`, `Lore`, `Stats`).
+  - Eliminated the redundant "Living Saga" button in the Game submenu that caused tester confusion regarding duplicate navbars.
+  - Redesigned `#lore-nav-tabs` into an illuminated 3D Tome folio ribbon with progressive unlock indicators (`16 Relics`, `Ch. 1-7`, `Threat Registry`, `Systems Codex`).
+- **3D Leatherbound Tome Rendering & Separated Progressive Relic Unlocks (`src/components/lore/ItemCompendiumTab.tsx`)**:
+  - Implemented open 3D tome folio spread with realistic book perspective (`[perspective:1400px]`), central spine gutter crease shadow, brass corner brackets, and silk bookmark ribbon.
+  - Separated progressive unlocks: Inscribed/owned relics display full golden illuminated stats and Markdown exports; unowned relics feature shrouded mystic folios with lore clues and direct links to the Armory and Boss Rush.
+- **Boss Bestiary Progressive Gating & Direct Arena Challenge (`src/components/lore/BossBestiaryTab.tsx`)**:
+  - Enhanced threat registry with progressive tier classification (Local Titans, Astral Terrors, Apocalyptic Behemoths) and status tracking (Conquered, Sighted, Classified).
+  - Added direct "⚔️ Challenge" action button linking directly to active Boss Rush arena combat.
+- **Combat Engine & Boss Progression Rebalance (`src/utils/combatEngine.ts`, `src/data.ts`, `src/components/game/BattleModal.tsx`, `src/components/game/BossGauntlet.tsx`)**:
+  - Overhauled combat formulas: Focus scales Critical Strike chance up to 50% (dealing 2.2x damage); Stealth scales Dodge chance up to 40%; Laser Lens enforces 100% True Precision; Magnetite Shield reflects 25% damage; 16% trigger chance for equipped active techniques.
+  - Added interactive "Tactical Combat Engine & Attribute Guide" codex modal to `BattleModal.tsx` and `BossGauntlet.tsx`.
+  - Rebalanced boss HP and attack scaling to prevent trivial 1-2 hit victories while preserving rewarding power progression.
+- **Scroll Wax Seal & Bestiary Status Alignment (`src/components/lore/ChroniclesTab.tsx`, `src/components/lore/BossBestiaryTab.tsx`)**:
+  - Resolved visual contradiction on unsealed scrolls where an intact red "SEAL" pin was erroneously rendered alongside the "🔓 Unsealed" badge; introduced dynamic Broken Wax Seal styling (`BROKEN SEAL` dashed emerald/gold stamp with severed ribbons) when unlocked, and `🔒 SEALED` only when locked.
+  - Added right-side header padding (`pr-16 sm:pr-20`) to prevent title text collision with the top-right wax seal emblem.
+  - Synchronized Bestiary threat registry status indicators (`👑 ✓ Mastered`, `⚠️ Sighted`, `🔒 Classified`) across both list cards and dossier headers to eliminate mismatched lock/pin states.
+- **Tab Sizing Synchronization & Layout Jitter Elimination (`src/App.tsx`, `src/components/GameView.tsx`, `src/index.css`)**:
+  - Injected `scrollbar-gutter: stable` globally to eliminate horizontal layout jumps during transitions between short and long content pages.
+  - Synchronized `<main>` layout container bounds with unified padding (`px-3 sm:px-6 md:px-8 lg:px-12 pt-4 sm:pt-6 md:pt-8`) and minimum viewport height (`min-h-[calc(100dvh-12rem)]`).
+  - Aligned `GameView`'s outer container shell with `ShopView` and `LoreBookView` (`rounded-[32px] md:rounded-[48px]`, dual border, and matching shadow) to prevent border snapping when toggling primary tabs.
+  - Wrapped `Tycoon`, `Boss Rush`, and `Leaderboard` in dedicated sub-wrappers (`#tab-subwrapper-tycoon`, `#tab-subwrapper-bosses`, `#tab-subwrapper-stats`) with smooth transitions and minimum height bounds (`min-h-[580px]`) to prevent vertical jitter during sub-tab navigation.
+- **Z-Index Stacking Context & Battle Modal Blend (`src/components/Footer.tsx`, `src/components/game/BattleModal.tsx`)**:
+  - Lowered `footer#app-global-footer` z-index to `z-0` (beneath the modal layer) and reinforced `BattleModal` backdrop to `z-[500]` and card to `z-[501]` to eliminate visual bleed-through.
+  - Seamlessly blended live bankroll details (Gold Coins, Gems, Passive Yield, Revive Packs, Power Score) into the Tactical Loadout command bar (`div#battle-tactical-loadout`), providing a single unified combat HUD during arena duels.
+- **Economy & Passive Yield Calibration (`src/components/game/TycoonBankrollCard.tsx`, `src/data.ts`, `src/data/tourSteps.ts`)**:
+  - Corrected `TycoonBankrollCard.tsx` passive yield formatting to match exact gold/sec output without erroneous millisecond divisor.
+  - Re-calibrated starter balance (500 coins, 100 gems) and tour completion bonuses (Express: +500 coins, +50 gems; Grand: +1,500 coins, +150 gems).
+
+---
+
 ## [v1.3.1-dev.1] — 2026-09-27
 
 ### Engineering Actions

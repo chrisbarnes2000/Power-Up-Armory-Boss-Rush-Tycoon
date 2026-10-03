@@ -99,15 +99,25 @@ export const StoryWeaverTab: React.FC<StoryWeaverTabProps> = ({
 
   return (
     <div className="bg-[#0e1628] border border-[#1a2540] rounded-3xl p-5 sm:p-7">
-      <div className="border-b border-white/10 pb-4 mb-6">
-        <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-widest mb-1">
-          <span>✍️ THE CHRONICLER'S QUILL</span>
-          <span className="bg-white/5 text-slate-400 px-2 py-0.5 rounded text-xs">Story Studio</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-widest mb-1">
+            <span>✍️ THE CHRONICLER'S QUILL</span>
+            <span className="bg-white/5 text-slate-400 px-2 py-0.5 rounded text-xs">Story Studio</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-white">Weave a Battle Tale</h3>
+          <p className="text-xs text-slate-300 mt-1">
+            Connect your real armory equipment with your battle record. Auto-draft an evocative chronicle or handwrite custom lore to bind permanently to the Tome.
+          </p>
         </div>
-        <h3 className="text-xl sm:text-2xl font-black text-white">Weave a Battle Tale</h3>
-        <p className="text-xs text-slate-300 mt-1">
-          Connect your real armory equipment with your battle record. Auto-draft an evocative chronicle or handwrite custom lore to bind permanently to the Tome.
-        </p>
+        <button
+          type="button"
+          onClick={onBackToLiving}
+          className="self-start sm:self-auto px-4 py-2 rounded-xl bg-[#141c30] hover:bg-[#1a2846] text-amber-300 hover:text-amber-200 border border-amber-500/30 text-xs font-mono font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+        >
+          <span>←</span>
+          <span>Return to Living Saga</span>
+        </button>
       </div>
 
       <form onSubmit={handleSaveCustomStory} className="space-y-5">
@@ -249,23 +259,35 @@ export const StoryWeaverTab: React.FC<StoryWeaverTabProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button
             type="button"
-            onClick={() => {
-              setWeaverTitle('');
-              setWeaverText('');
-            }}
-            className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
+            onClick={onBackToLiving}
+            className="px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
           >
-            Clear
+            <span>←</span>
+            <span>Cancel & Return to Saga</span>
           </button>
-          <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition cursor-pointer"
-          >
-            📖 Bind Story to Lore Book
-          </button>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setWeaverTitle('');
+                setWeaverText('');
+              }}
+              className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              Clear
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <span>📖</span>
+              <span>Bind Story to Lore Book</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>

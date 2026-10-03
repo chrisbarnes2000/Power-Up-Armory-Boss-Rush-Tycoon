@@ -19,7 +19,8 @@ import {
   getTotalSpeed as getTotalSpeedEngine,
   getNormalMaxHP as getNormalMaxHPEngine,
   getPowerScore as getPowerScoreEngine,
-  getCurrentReviveCost as getCurrentReviveCostEngine
+  getCurrentReviveCost as getCurrentReviveCostEngine,
+  calculateCombatTurn
 } from '../utils/combatEngine';
 
 // Modular Subcomponents
@@ -31,6 +32,9 @@ import { TycoonGenerators } from './game/TycoonGenerators';
 import { BossGauntlet } from './game/BossGauntlet';
 
 import { StatWarningModal } from './game/StatWarningModal';
+import { triggerParticleBurst, HealthMeshVignette, BattleStartIntro } from './common/ParticleFX';
+import { SeasonMode } from './game/leaderboard/LeaderboardSeasonHeader';
+import { LeaderboardCategory } from './game/leaderboard/LeaderboardCategoryNav';
 
 export interface GameViewProps {
   initialTab?: 'tycoon' | 'bosses' | 'stats';
@@ -38,13 +42,19 @@ export interface GameViewProps {
   onTabChange?: (tab: 'tycoon' | 'bosses' | 'stats') => void;
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
-  onOpenLoreBook?: () => void;
+  onOpenLoreBook?: (tab?: 'chronicles' | 'bestiary' | 'compendium' | 'legend', mode?: 'canonical' | 'living' | 'writer') => void;
   currentUser?: FirebaseUser | null;
   userProfile?: UserProfile | null;
   cloudLeaderboard?: LeaderboardEntry[];
   onOpenAccount?: () => void;
   onSyncLeaderboard?: () => Promise<void>;
   isSyncingLeaderboard?: boolean;
+  controlledStatsSeason?: SeasonMode;
+  onStatsSeasonChange?: (mode: SeasonMode) => void;
+  controlledStatsCategory?: LeaderboardCategory;
+  onStatsCategoryChange?: (category: LeaderboardCategory) => void;
+  onOpenShareCard?: (view?: 'champion' | 'boss' | 'squad', bossData?: { name: string; emoji: string }) => void;
+  onRedeemInviteCode: (code: string) => { success: boolean; message: string };
 }
 
 export function GameView({ 
@@ -59,7 +69,13 @@ export function GameView({
   cloudLeaderboard = [],
   onOpenAccount,
   onSyncLeaderboard,
-  isSyncingLeaderboard = false
+  isSyncingLeaderboard = false,
+  controlledStatsSeason,
+  onStatsSeasonChange,
+  controlledStatsCategory,
+  onStatsCategoryChange,
+  onOpenShareCard,
+  onRedeemInviteCode
 }: GameViewProps) {
   // Tab state management
   const [activeTab, setActiveTab] = useState<'tycoon' | 'bosses' | 'stats'>(controlledActiveTab || initialTab || 'tycoon');
@@ -87,6 +103,16 @@ export function GameView({
   const [liveBossHP, setLiveBossHP] = useState(100);
   const [liveBossMaxHP, setLiveBossMaxHP] = useState(100);
   const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+  const [insufficientCoinsToast, setInsufficientCoinsToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (insufficientCoinsToast) {
+      const timer = setTimeout(() => {
+        setInsufficientCoinsToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [insufficientCoinsToast]);
 
   // Extreme Stat Offset Warning Confirmation State
   const [pendingStatWarning, setPendingStatWarning] = useState<{
@@ -213,6 +239,30 @@ export function GameView({
     }
   }, [battleLogs]);
 
+  useEffect(() => {
+    const handleWipeLogsEvent = () => {
+      const initialTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const resetLog: BattleLogEntry[] = [
+        {
+          message: 'Equip legendary gear, mine raw gold cores, and conquer titan bosses.',
+          className: 'log-damage',
+          timestamp: initialTime
+        },
+        {
+          message: '🌟 Welcome to the Astral Powerup Armory!',
+          className: 'log-special',
+          timestamp: initialTime
+        }
+      ];
+      setBattleLogs(resetLog);
+    };
+
+    window.addEventListener('armory_logs_wiped', handleWipeLogsEvent);
+    return () => {
+      window.removeEventListener('armory_logs_wiped', handleWipeLogsEvent);
+    };
+  }, []);
+
   const getLogColorStyling = (log: { message: string; className: string }) => {
     switch (log.className) {
       case 'log-reward':
@@ -274,8 +324,8 @@ export function GameView({
 
   // --- MANUAL MINING CORE ---
   const handleMineGoldCore = () => {
-    if (gameState.isDead) {
-      addLog(`💀 You cannot mine while deceased! Revive your champion first.`, 'log-defeat');
+    if (gameState.isDead || livePlayerHP <= 0) {
+      addLog(`💀 You cannot mine while deceased! Revive your champion with a Revive Pack or Coins.`, 'log-defeat');
       return;
     }
 
@@ -297,15 +347,24 @@ export function GameView({
     setRecentMineGain(totalMined);
     setTimeout(() => setRecentMineGain(null), 600);
 
+    // 3.5% random salvage discovery of an intact Revive Pack while mining the core strata!
+    const foundRevivePack = Math.random() < 0.035;
+
     setGameState(prev => {
       const next = { 
         ...prev, 
         coins: prev.coins + totalMined,
-        totalGoldEarned: (prev.totalGoldEarned || 0) + totalMined
+        totalGoldEarned: (prev.totalGoldEarned || 0) + totalMined,
+        revivePacks: foundRevivePack ? (prev.revivePacks || 0) + 1 : prev.revivePacks
       };
       saveState(next);
       return next;
     });
+
+    if (foundRevivePack) {
+      triggerParticleBurst('rebirth');
+      addLog(`🎁 SALVAGE BONANZA! Unearthed an intact Alchemical Revive Pack (+1 🩹) from the core strata!`, 'log-special');
+    }
   };
 
   // --- POWERUP PURCHASING & UPGRADES ---
@@ -338,6 +397,7 @@ export function GameView({
       return next;
     });
 
+    triggerParticleBurst('purchase_gem');
     addLog(`💎 Acquired +1 ${data.emoji} ${data.id} for ${gemCost} Gems!`, 'log-reward');
     trackEvent('tycoon_powerup_purchased', {
       item_id: powerupId,
@@ -409,6 +469,7 @@ export function GameView({
       return next;
     });
 
+    triggerParticleBurst('purchase_coin');
     addLog(`⚡ Upgraded ${data.emoji} ${data.id} to Level ${ps.level + 1}!`, 'log-buff');
     trackEvent('tycoon_powerup_upgraded', {
       item_id: powerupId,
@@ -460,10 +521,24 @@ export function GameView({
 
     let bossHP = getBossHP(bossId);
     const bossAtk = getBossAttack(bossId);
-    let playerHP = Math.max(10, 100 + getTotalDefense() + (gameState.maxHpBonus || 0));
+    const maxHP = Math.max(10, 100 + getTotalDefense() + (gameState.maxHpBonus || 0));
     const playerAtk = getTotalAttack();
+
+    // Check if player has Phoenix Feather for auto-revive / Level 5 full pre-battle health refresh
+    const phoenix = gameState.powerups.find(p => p.id === 'Phoenix Feather');
+    const hasMaxPhoenix = !!(phoenix && phoenix.owned && phoenix.quantity > 0 && phoenix.level >= 5);
+    const hasPhoenixRebirth = !!(phoenix && phoenix.owned && phoenix.quantity > 0);
+
+    // Health persistence: Health does not auto-refresh when starting a battle unless player has Max Phoenix Feather
+    let playerHP = livePlayerHP > 0 ? Math.min(livePlayerHP, maxHP) : maxHP;
+    if (hasMaxPhoenix) {
+      playerHP = maxHP;
+      addLog(`🦅 PHOENIX EMBRACE: Level 5 Phoenix Feather fully refreshed your vitality to 100% HP (${maxHP}/${maxHP}) before battle!`, 'log-heal');
+    } else if (livePlayerHP < maxHP) {
+      addLog(`🩸 Entering combat with remaining vitality: ${playerHP}/${maxHP} HP (Health persists across fights; use a Revive Pack or Coins to restore full HP)`, 'log-buff');
+    }
     
-    setLivePlayerMaxHP(playerHP);
+    setLivePlayerMaxHP(maxHP);
     setLivePlayerHP(playerHP);
     setLiveBossMaxHP(bossHP);
     setLiveBossHP(bossHP);
@@ -478,10 +553,13 @@ export function GameView({
 
     let turn = 0;
     const maxTurns = 60;
+    let hasUsedPhoenixThisRound = false;
 
     const battleTurn = () => {
       if (bossHP <= 0) {
         setLiveBossHP(0);
+        setLivePlayerHP(playerHP); // Retain remaining damaged player HP
+        triggerParticleBurst('victory');
         const config = gameState.balanceConfig || {
           baseReviveCost: 100,
           reviveCostMultiplier: 1.5,
@@ -501,6 +579,9 @@ export function GameView({
         const baseGemReward = Math.max(5, Math.floor(boss.reward / 5));
         const gemReward = getsGems ? Math.floor(baseGemReward * config.gemMultiplier) : 0;
 
+        // 25% chance of recovering a bonus Revive Pack from the conquered Titan's hoard
+        const dropsRevivePack = Math.random() < 0.25;
+
         setGameState(prev => {
           const stats = prev.bossKillStats || {};
           const next = {
@@ -513,6 +594,7 @@ export function GameView({
             totalBossesDefeated: prev.totalBossesDefeated + 1,
             killStreak: (prev.killStreak || 0) + 1,
             deathStreak: 0,
+            revivePacks: dropsRevivePack ? (prev.revivePacks || 0) + 1 : prev.revivePacks,
             bossKillStats: {
               ...stats,
               [bossId]: (stats[bossId] || 0) + 1
@@ -533,6 +615,10 @@ export function GameView({
           dropMsg = `No Gold or Gems dropped`;
         }
 
+        if (dropsRevivePack) {
+          dropMsg += ` 🩹 +1 Revive Pack found in titan's hoard!`;
+        }
+
         addLog(`🏆 VICTORY! Defeated ${boss.emoji} ${boss.id}! ${dropMsg}`, 'log-victory');
         trackBossBattle(bossId, 'victory', {
           boss_name: boss.id,
@@ -546,7 +632,20 @@ export function GameView({
       }
 
       if (playerHP <= 0 || turn >= maxTurns) {
+        // PHOENIX FEATHER AUTO-REVIVE REBIRTH CHECK
+        if (playerHP <= 0 && hasPhoenixRebirth && !hasUsedPhoenixThisRound) {
+          hasUsedPhoenixThisRound = true;
+          const restoredHP = Math.max(1, Math.floor(maxHP * 0.5));
+          playerHP = restoredHP;
+          setLivePlayerHP(playerHP);
+          triggerParticleBurst('rebirth');
+          addLog(`🔥 🦅 PHOENIX REBIRTH ACTIVATED! The Phoenix Feather ignited with eternal celestial flame, preventing fatal defeat and restoring ${restoredHP} HP (50%)!`, 'log-special');
+          setTimeout(battleTurn, 1600);
+          return;
+        }
+
         setLivePlayerHP(0);
+        triggerParticleBurst('defeat');
         setGameState(prev => {
           const stats = prev.bossDeathStats || {};
           const next = {
@@ -565,7 +664,7 @@ export function GameView({
         });
 
         const currentCost = getCurrentReviveCost();
-        addLog(`💀 Defeated by ${boss.emoji} ${boss.id}! Revive for ${currentCost} Coins or consume 1 Revive Pack!`, 'log-defeat');
+        addLog(`💀 DEFEAT! Defeated by ${boss.emoji} ${boss.id}! Revive for ${currentCost} Coins or consume 1 Revive Pack!`, 'log-defeat');
         trackBossBattle(bossId, 'defeat', {
           boss_name: boss.id,
           turns: turn,
@@ -578,57 +677,45 @@ export function GameView({
 
       turn++;
 
-      // Player Turn
-      let damage = Math.max(1, Math.floor(playerAtk * (0.8 + Math.random() * 0.4)));
-      const isCrit = Math.random() < 0.15;
+      // Execute comprehensive tactical combat turn via Combat Engine
+      const turnResult = calculateCombatTurn(gameState, bossId, bossHP, playerHP, turn);
+      const { playerDamage, isCrit, specialTrigger, isSupernova, bossDamageTaken, playerDamageTaken, isDodge, reflectedDamage, isBossDodged, bossMechanicNote } = turnResult;
+
+      // Special Trigger Logging
+      if (specialTrigger) {
+        addLog(`✨ ${specialTrigger.emoji} ${specialTrigger.name}: ${specialTrigger.effectText}`, 'log-special');
+      }
+
       if (isCrit) {
-        damage = Math.floor(damage * 2);
-        addLog(`💥 CRITICAL STRIKE! Dealt ${damage} damage!`, 'log-damage');
+        addLog(`💥 FOCUS CRITICAL STRIKE! Dealt ${playerDamage} damage!`, 'log-damage');
       }
 
-      // Special Artifact Triggers
-      let specialTriggered = false;
-      if (Math.random() < 0.12) {
-        const ownedSpecials = gameState.powerups.filter(p => p.owned && p.quantity > 0);
-        if (ownedSpecials.length > 0) {
-          const randomSpecial = ownedSpecials[Math.floor(Math.random() * ownedSpecials.length)];
-          const itemData = getPowerupData(randomSpecial.id);
-          if (itemData) {
-            specialTriggered = true;
-            addLog(`✨ ${itemData.emoji} Special: ${itemData.special}`, 'log-special');
-            if (itemData.id === 'Star Fragment' && Math.random() < 0.1) {
-              bossHP = 0;
-              setLiveBossHP(0);
-              addLog(`💫 SUPERNOVA! ${boss.emoji} ${boss.id} was instantly vaporized!`, 'log-victory');
-              setGameState(prev => {
-                const next = {
-                  ...prev,
-                  totalSpecials: (prev.totalSpecials || 0) + 1
-                };
-                saveState(next);
-                return next;
-              });
-              setTimeout(battleTurn, 1400);
-              return;
-            }
-            if (itemData.id === 'Void Orb') {
-              damage = Math.floor(damage * 1.6);
-              addLog(`🌌 Oblivion rift: Strike bypasses armor for +60% damage!`, 'log-special');
-            }
-            if (itemData.id === 'Dragon Scale' && Math.random() < 0.3) {
-              damage = Math.floor(damage * 1.3);
-              addLog(`🐉 Dragonfire Breath melts boss for bonus damage!`, 'log-special');
-            }
-          }
-        }
+      if (bossMechanicNote) {
+        addLog(`🛡️ ${boss.emoji} ${boss.id}: ${bossMechanicNote}`, 'log-buff');
       }
 
-      // Update max damage and specials in state
+      if (isSupernova) {
+        bossHP = 0;
+        setLiveBossHP(0);
+        addLog(`💫 SUPERNOVA VICTORY! ${boss.emoji} ${boss.id} was instantly vaporized by cosmic fury!`, 'log-victory');
+        setGameState(prev => {
+          const next = {
+            ...prev,
+            totalSpecials: (prev.totalSpecials || 0) + 1
+          };
+          saveState(next);
+          return next;
+        });
+        setTimeout(battleTurn, 1400);
+        return;
+      }
+
+      // Record damage & specials telemetry
       setGameState(prev => {
         const currentMax = prev.maxDamage || 0;
-        const newMax = Math.max(currentMax, damage);
-        const newSpecials = (prev.totalSpecials || 0) + (specialTriggered ? 1 : 0);
-        if (newMax !== currentMax || specialTriggered) {
+        const newMax = Math.max(currentMax, playerDamage);
+        const newSpecials = (prev.totalSpecials || 0) + (specialTrigger ? 1 : 0);
+        if (newMax !== currentMax || specialTrigger) {
           const next = { ...prev, maxDamage: newMax, totalSpecials: newSpecials };
           saveState(next);
           return next;
@@ -636,8 +723,12 @@ export function GameView({
         return prev;
       });
 
-      bossHP = Math.max(0, bossHP - damage);
-      addLog(`🗡️ You deal ${damage} damage! Boss HP: ${bossHP}`, 'log-damage');
+      if (isBossDodged) {
+        addLog(`💨 ${boss.emoji} ${boss.id} evaded your attack! (Use Laser Lens for 100% True Precision)`, 'log-buff');
+      } else {
+        bossHP = Math.max(0, bossHP - bossDamageTaken);
+        addLog(`🗡️ You deal ${bossDamageTaken} damage! Boss HP: ${bossHP}`, 'log-damage');
+      }
 
       if (bossHP <= 0) {
         setLiveBossHP(0);
@@ -645,25 +736,22 @@ export function GameView({
         return;
       }
 
-      // Boss Turn
-      const isDodge = Math.random() < 0.2;
+      // Boss Turn Resolution
       if (isDodge) {
-        addLog(`🔄 You dodged the boss attack!`, 'log-buff');
+        addLog(`🔄 STEALTH DODGE! You gracefully evaded the boss strike!`, 'log-buff');
         setGameState(prev => {
           const next = { ...prev, totalDodges: (prev.totalDodges || 0) + 1 };
           saveState(next);
           return next;
         });
       } else {
-        const defenseMultiplier = Math.min(0.8, getTotalDefense() / 150);
-        let actualBossDamage = Math.max(1, Math.floor(bossAtk * (0.7 + Math.random() * 0.6)));
-        actualBossDamage = Math.floor(actualBossDamage * (1 - defenseMultiplier));
-        playerHP = Math.max(0, playerHP - actualBossDamage);
-        addLog(`👹 ${boss.emoji} ${boss.id} strikes for ${actualBossDamage} damage! Player HP: ${playerHP}`, 'log-damage');
-      }
-
-      if (boss.id === 'Orc Warlord' && bossHP < getBossHP(bossId) * 0.5) {
-        addLog(`💀 Orc Warlord enters Frenzy! Attack speed and strength increased!`, 'log-special');
+        playerHP = Math.max(0, playerHP - playerDamageTaken);
+        triggerParticleBurst('damage');
+        addLog(`👹 ${boss.emoji} ${boss.id} strikes for ${playerDamageTaken} damage! Player HP: ${playerHP}`, 'log-damage');
+        if (reflectedDamage && reflectedDamage > 0) {
+          bossHP = Math.max(0, bossHP - reflectedDamage);
+          addLog(`🧲 Magnetite Shield reflects ${reflectedDamage} kinetic damage back onto ${boss.emoji} ${boss.id}!`, 'log-special');
+        }
       }
 
       setLivePlayerHP(playerHP);
@@ -689,9 +777,11 @@ export function GameView({
       });
       const maxHP = 100 + getTotalDefense() + (gameState.maxHpBonus || 0);
       setLivePlayerHP(maxHP);
+      triggerParticleBurst('rebirth');
       addLog(`⚡ Revived for ${cost} Coins! HP fully restored. (Next Coin Revive: ${Math.floor((gameState.balanceConfig?.baseReviveCost || 100) * Math.pow(gameState.balanceConfig?.reviveCostMultiplier || 1.5, (gameState.reviveCount || 0) + 1))} Coins)`, 'log-heal');
     } else {
       addLog(`❌ Insufficient Coins to Revive! Requires ${cost} Coins (You have ${Math.floor(gameState.coins)}). Use 1 Revive Pack instead!`, 'log-defeat');
+      setInsufficientCoinsToast(`Requires ${cost.toLocaleString()} Coins to revive, but you only have ${Math.floor(gameState.coins).toLocaleString()}.`);
     }
   };
 
@@ -709,10 +799,84 @@ export function GameView({
       });
       const maxHP = 100 + getTotalDefense() + (gameState.maxHpBonus || 0);
       setLivePlayerHP(maxHP);
+      triggerParticleBurst('rebirth');
       addLog(`🩹 Consumed 1 Revive Pack! HP fully restored without incrementing coin revive scaling penalty! (${availablePacks - 1} Packs remaining)`, 'log-heal');
     } else {
-      addLog(`❌ No Revive Packs available! Purchase Revive Packs in the Tycoon Store or pay ${getCurrentReviveCost()} Coins.`, 'log-defeat');
+      addLog(`❌ No Revive Packs available! Purchase Revive Packs in the Tycoon Dispensary or pay ${getCurrentReviveCost()} Coins.`, 'log-defeat');
     }
+  };
+
+  const handleBuyCombatHealthTonic = () => {
+    const cost = getCurrentReviveCost();
+    if (gameState.coins < cost) {
+      addLog(`❌ Insufficient Coins! Minor Vitality Tonic costs ${cost} Coins (Requires Revive Cost).`, 'log-defeat');
+      setInsufficientCoinsToast(`Requires ${cost.toLocaleString()} Coins to drink Minor Vitality Tonic, but you only have ${Math.floor(gameState.coins).toLocaleString()}.`);
+      return;
+    }
+    if (gameState.isDead || livePlayerHP <= 0) {
+      addLog(`💀 Champion is fallen! Revive your champion with Coins or a Revive Pack before drinking tonics.`, 'log-defeat');
+      return;
+    }
+    if (livePlayerHP >= livePlayerMaxHP) {
+      addLog(`✨ Vitality is already at 100% full capacity (${livePlayerHP}/${livePlayerMaxHP} HP)!`, 'log-buff');
+      return;
+    }
+
+    const quarterHP = Math.max(1, Math.floor(livePlayerMaxHP / 4));
+    const newHP = Math.min(livePlayerMaxHP, livePlayerHP + quarterHP);
+    const healedAmount = newHP - livePlayerHP;
+
+    setGameState(prev => {
+      const next = {
+        ...prev,
+        coins: prev.coins - cost
+      };
+      saveState(next);
+      return next;
+    });
+
+    setLivePlayerHP(newHP);
+    triggerParticleBurst('rebirth');
+    addLog(`🧪 Drank Minor Vitality Tonic! Restored +${healedAmount} HP (1/4 Max Health) for ${cost} Coins! (${newHP}/${livePlayerMaxHP} HP)`, 'log-heal');
+  };
+
+  const handleBuyRevivePacks = (count: number, currency: 'coins' | 'gems', cost: number) => {
+    if (currency === 'coins') {
+      if (gameState.coins < cost) {
+        addLog(`❌ Insufficient Coins! Need ${cost} Coins for ${count} Revive Pack${count > 1 ? 's' : ''}`, 'log-defeat');
+        setInsufficientCoinsToast(`Requires ${cost.toLocaleString()} Coins to purchase ${count} Revive Pack${count > 1 ? 's' : ''}, but you only have ${Math.floor(gameState.coins).toLocaleString()}.`);
+        return;
+      }
+      setGameState(prev => {
+        const next = {
+          ...prev,
+          coins: prev.coins - cost,
+          revivePacks: (prev.revivePacks || 0) + count
+        };
+        saveState(next);
+        return next;
+      });
+    } else {
+      if ((gameState.gems || 0) < cost) {
+        addLog(`❌ Insufficient Gems! Need ${cost} 💎 for ${count} Revive Pack${count > 1 ? 's' : ''}`, 'log-defeat');
+        return;
+      }
+      setGameState(prev => {
+        const next = {
+          ...prev,
+          gems: (prev.gems || 0) - cost,
+          revivePacks: (prev.revivePacks || 0) + count
+        };
+        saveState(next);
+        return next;
+      });
+    }
+    if (currency === 'coins') {
+      triggerParticleBurst('purchase_coin');
+    } else {
+      triggerParticleBurst('purchase_gem');
+    }
+    addLog(`🩹 Acquired +${count} Revive Pack${count > 1 ? 's' : ''} from Alchemical Dispensary for ${cost} ${currency === 'coins' ? 'Coins' : 'Gems'}!`, 'log-heal');
   };
 
   // --- REDEMPTION ENGINE ---
@@ -814,12 +978,12 @@ export function GameView({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col select-none py-2 md:py-4 relative pb-28 sm:pb-32 px-2 sm:px-4 md:px-6 box-border">
-      {/* ACTIVE TAB CONTAINER */}
-      <div className="flex-1 w-full max-w-full">
+    <div className="w-full max-w-full flex-1 flex flex-col bg-linear-to-b from-[#111827] to-[#0a0f1a] border border-[#2a3d5c] rounded-[32px] md:rounded-[48px] p-4 sm:p-6 md:p-8 shadow-[0_30px_80px_rgba(0,0,0,0.9),inset_0_0_0_2px_#1f2d4a,inset_0_0_0_3px_#141f33] select-none my-2 md:my-6 relative pb-28 sm:pb-32 box-border min-h-[680px] transition-all duration-200 overflow-visible">
+      {/* ACTIVE TAB CONTAINER WITH MIN-HEIGHT STABILIZATION */}
+      <div className="flex-1 w-full max-w-full min-h-[580px] transition-all duration-200">
         {/* TAB 1: TYCOON & CLICKER GENERATORS */}
         {activeTab === 'tycoon' && (
-          <div className="space-y-8">
+          <div id="tab-subwrapper-tycoon" className="w-full space-y-8 animate-fadeIn transition-all duration-200">
             <TycoonGenerators
               gameState={gameState}
               onMineGoldCore={handleMineGoldCore}
@@ -828,6 +992,17 @@ export function GameView({
               onUpgradePowerupLevel={upgradePowerupLevel}
               onBuyPowerupInGame={buyPowerupInGame}
               getPowerupData={getPowerupData}
+              onReviveWithCoins={handleReviveWithCoins}
+              onReviveWithPack={handleReviveWithPack}
+              getCurrentReviveCost={getCurrentReviveCost}
+              livePlayerHP={livePlayerHP}
+              livePlayerMaxHP={livePlayerMaxHP}
+              totalAttack={getTotalAttack()}
+              totalDefense={getTotalDefense()}
+              totalSpeed={getTotalSpeed()}
+              powerScore={getPowerScore()}
+              passiveYield={getPassiveYield()}
+              onBuyRevivePacks={handleBuyRevivePacks}
             />
             <KeyRedemptionCard
               onRedeem={redeemReceiptCode}
@@ -838,56 +1013,72 @@ export function GameView({
 
         {/* TAB 2: BOSS BATTLE ARENA */}
         {activeTab === 'bosses' && (
-          <BossGauntlet
-            gameState={gameState}
-            setGameState={setGameState}
-            saveState={saveState}
-            addLog={addLog}
-            isFighting={isFighting}
-            activeBossId={activeBossId}
-            onFightBoss={fightBoss}
-            onReviveWithCoins={handleReviveWithCoins}
-            onReviveWithPack={handleReviveWithPack}
-            getCurrentReviveCost={getCurrentReviveCost}
-            getBossData={getBossData}
-            getBossState={getBossState}
-            getBossPowerReq={getBossPowerReq}
-            getBossHP={getBossHP}
-            getBossAttack={getBossAttack}
-            powerScore={getPowerScore()}
-            livePlayerHP={livePlayerHP}
-            livePlayerMaxHP={livePlayerMaxHP}
-            liveBossHP={liveBossHP}
-            liveBossMaxHP={liveBossMaxHP}
-            battleLogs={battleLogs}
-            logContainerRef={logContainerRef}
-            getLogColorStyling={getLogColorStyling}
-            onOpenLoreBook={onOpenLoreBook}
-            onOpenBattleModal={() => setIsBattleModalOpen(true)}
-            showTimestamps={showTimestamps}
-            onToggleTimestamps={toggleTimestamps}
-            persistLogs={persistLogs}
-            onTogglePersistLogs={togglePersistLogs}
-            onClearLogs={handleClearLogs}
-          />
+          <div id="tab-subwrapper-bosses" className="w-full animate-fadeIn transition-all duration-200">
+            <BossGauntlet
+              gameState={gameState}
+              setGameState={setGameState}
+              saveState={saveState}
+              addLog={addLog}
+              isFighting={isFighting}
+              activeBossId={activeBossId}
+              onFightBoss={fightBoss}
+              onReviveWithCoins={handleReviveWithCoins}
+              onReviveWithPack={handleReviveWithPack}
+              getCurrentReviveCost={getCurrentReviveCost}
+              getBossData={getBossData}
+              getBossState={getBossState}
+              getBossPowerReq={getBossPowerReq}
+              getBossHP={getBossHP}
+              getBossAttack={getBossAttack}
+              powerScore={getPowerScore()}
+              totalAttack={getTotalAttack()}
+              totalDefense={getTotalDefense()}
+              totalSpeed={getTotalSpeed()}
+              passiveYield={getPassiveYield()}
+              livePlayerHP={livePlayerHP}
+              livePlayerMaxHP={livePlayerMaxHP}
+              liveBossHP={liveBossHP}
+              liveBossMaxHP={liveBossMaxHP}
+              battleLogs={battleLogs}
+              logContainerRef={logContainerRef}
+              getLogColorStyling={getLogColorStyling}
+              onOpenLoreBook={onOpenLoreBook}
+              onOpenBattleModal={() => setIsBattleModalOpen(true)}
+              showTimestamps={showTimestamps}
+              onToggleTimestamps={toggleTimestamps}
+              persistLogs={persistLogs}
+              onTogglePersistLogs={togglePersistLogs}
+              onClearLogs={handleClearLogs}
+              onBuyCombatHealthTonic={handleBuyCombatHealthTonic}
+            />
+          </div>
         )}
 
         {/* TAB 3: STATS & LEADERBOARD */}
         {activeTab === 'stats' && (
-          <StatsLeaderboard
-            gameState={gameState}
-            setGameState={setGameState}
-            currentUser={currentUser}
-            userProfile={userProfile}
-            cloudLeaderboard={cloudLeaderboard}
-            onOpenAccount={onOpenAccount}
-            onSyncLeaderboard={onSyncLeaderboard}
-            isSyncingLeaderboard={isSyncingLeaderboard}
-            totalAttack={getTotalAttack()}
-            totalDefense={getTotalDefense()}
-            totalSpeed={getTotalSpeed()}
-            powerScore={getPowerScore()}
-          />
+          <div id="tab-subwrapper-stats" className="w-full animate-fadeIn transition-all duration-200">
+            <StatsLeaderboard
+              gameState={gameState}
+              setGameState={setGameState}
+              currentUser={currentUser}
+              userProfile={userProfile}
+              cloudLeaderboard={cloudLeaderboard}
+              onOpenAccount={onOpenAccount}
+              onSyncLeaderboard={onSyncLeaderboard}
+              isSyncingLeaderboard={isSyncingLeaderboard}
+              totalAttack={getTotalAttack()}
+              totalDefense={getTotalDefense()}
+              totalSpeed={getTotalSpeed()}
+              powerScore={getPowerScore()}
+              controlledSeasonMode={controlledStatsSeason}
+              onSeasonChange={onStatsSeasonChange}
+              controlledCategory={controlledStatsCategory}
+              onCategoryChange={onStatsCategoryChange}
+              onOpenLoreBook={onOpenLoreBook}
+              onOpenShareCard={onOpenShareCard ? () => onOpenShareCard('champion') : undefined}
+              onRedeemInviteCode={onRedeemInviteCode}
+            />
+          </div>
         )}
       </div>
 
@@ -906,6 +1097,8 @@ export function GameView({
         livePlayerHP={livePlayerHP}
         livePlayerMaxHP={livePlayerMaxHP}
         maxHpBonus={gameState.maxHpBonus}
+        revivePacks={gameState.revivePacks || 0}
+        onUseHealthPack={handleReviveWithPack}
       />
 
       {/* COMBAT ARENA MODAL OVERLAY */}
@@ -937,6 +1130,9 @@ export function GameView({
         onTogglePersistLogs={togglePersistLogs}
         onFightBoss={fightBoss}
         powerScore={getPowerScore()}
+        onOpenLoreBook={onOpenLoreBook}
+        onBuyCombatHealthTonic={handleBuyCombatHealthTonic}
+        onOpenShareCard={onOpenShareCard}
       />
 
       {/* EXTREME STAT OFFSET WARNING MODAL */}
@@ -953,6 +1149,31 @@ export function GameView({
           newMaxHP={pendingStatWarning.newMaxHP}
           actionType={pendingStatWarning.actionType}
         />
+      )}
+
+      {/* FULL-SCREEN HEALTH MESH VIGNETTE & CROSSED SWORDS BATTLE START INTRO */}
+      {activeTab !== 'stats' && <HealthMeshVignette playerHP={livePlayerHP} maxHP={livePlayerMaxHP} />}
+      <BattleStartIntro active={isFighting} />
+
+      {/* FLOATING INSUFFICIENT COINS TOAST BANNER */}
+      {insufficientCoinsToast && (
+        <div 
+          onClick={() => setInsufficientCoinsToast(null)}
+          className="fixed bottom-6 right-4 sm:right-6 z-[10000] max-w-sm sm:max-w-md bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white font-mono font-black text-xs px-4 py-3 rounded-2xl shadow-[0_10px_35px_rgba(239,68,68,0.5)] border-2 border-red-400 flex items-center gap-3 animate-bounce cursor-pointer hover:scale-105 transition-all select-none"
+        >
+          <span className="text-2xl shrink-0">🪙</span>
+          <div className="flex-1 min-w-0">
+            <div className="uppercase tracking-wider font-black text-xs text-white font-mono leading-tight">Insufficient Coins!</div>
+            <div className="text-[10px] text-red-100 font-bold mt-0.5">{insufficientCoinsToast}</div>
+          </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setInsufficientCoinsToast(null); }}
+            className="ml-1 text-white hover:text-red-200 font-black text-sm p-1 shrink-0"
+            title="Dismiss Toast"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );

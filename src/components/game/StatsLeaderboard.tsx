@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GameState, LeaderboardEntry, UserProfile, SeasonalRewardTier } from '../../types';
 import { User as FirebaseUser } from 'firebase/auth';
 import { trackEvent } from '../../lib/analytics';
+import { triggerParticleBurst } from '../common/ParticleFX';
 
 // Modular Leaderboard Subcomponents
 import { LeaderboardSeasonHeader, SeasonMode } from './leaderboard/LeaderboardSeasonHeader';
@@ -10,6 +11,7 @@ import { HeroAttributeSummary } from './leaderboard/HeroAttributeSummary';
 import { LeaderboardRosterTable } from './leaderboard/LeaderboardRosterTable';
 import { BossSpecialistGrid } from './leaderboard/BossSpecialistGrid';
 import { SeasonalRewardClaimStation } from './leaderboard/SeasonalRewardClaimStation';
+import { SquadRecruitSection } from '../account/SquadRecruitSection';
 import { MONTHLY_REWARDS, YEARLY_REWARDS } from '../../data/seasonalRewards';
 
 export interface StatsLeaderboardProps {
@@ -26,6 +28,13 @@ export interface StatsLeaderboardProps {
   totalSpeed: number;
   powerScore: number;
   onClaimReward?: (reward: SeasonalRewardTier) => void;
+  controlledSeasonMode?: SeasonMode;
+  onSeasonChange?: (mode: SeasonMode) => void;
+  controlledCategory?: LeaderboardCategory;
+  onCategoryChange?: (category: LeaderboardCategory) => void;
+  onOpenLoreBook?: () => void;
+  onOpenShareCard?: (view?: 'champion' | 'boss' | 'squad') => void;
+  onRedeemInviteCode: (code: string) => { success: boolean; message: string };
 }
 
 export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
@@ -41,10 +50,29 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
   totalDefense,
   totalSpeed,
   powerScore,
-  onClaimReward
+  onClaimReward,
+  controlledSeasonMode,
+  onSeasonChange,
+  controlledCategory,
+  onCategoryChange,
+  onOpenLoreBook,
+  onOpenShareCard,
+  onRedeemInviteCode
 }) => {
-  const [seasonMode, setSeasonMode] = useState<SeasonMode>('monthly');
-  const [activeCategory, setActiveCategory] = useState<LeaderboardCategory>('power');
+  const [internalSeasonMode, setInternalSeasonMode] = useState<SeasonMode>('alltime');
+  const [internalActiveCategory, setInternalActiveCategory] = useState<LeaderboardCategory>('power');
+
+  const seasonMode = controlledSeasonMode !== undefined ? controlledSeasonMode : internalSeasonMode;
+  const setSeasonMode = (mode: SeasonMode) => {
+    setInternalSeasonMode(mode);
+    if (onSeasonChange) onSeasonChange(mode);
+  };
+
+  const activeCategory = controlledCategory !== undefined ? controlledCategory : internalActiveCategory;
+  const setActiveCategory = (category: LeaderboardCategory) => {
+    setInternalActiveCategory(category);
+    if (onCategoryChange) onCategoryChange(category);
+  };
 
   // Compute number of unclaimed rewards
   const allRewards = [...MONTHLY_REWARDS, ...YEARLY_REWARDS];
@@ -85,6 +113,7 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
   }).length;
 
   const handleClaimReward = (tier: SeasonalRewardTier) => {
+    triggerParticleBurst('purchase');
     trackEvent('seasonal_reward_claimed', {
       reward_id: tier.id,
       reward_title: tier.title,
@@ -125,7 +154,8 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-[950px] mx-auto">
+    <div className="w-full max-w-full flex-1 flex flex-col bg-linear-to-b from-[#111827] to-[#0a0f1a] border border-[#2a3d5c] rounded-[32px] md:rounded-[48px] p-3.5 sm:p-6 md:p-8 shadow-[0_30px_80px_rgba(0,0,0,0.9),inset_0_0_0_2px_#1f2d4a,inset_0_0_0_3px_#141f33] select-none my-2 md:my-6 relative overflow-visible space-y-6">
+      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}></div>
       {/* 1. Header Banner with Time Horizon & Sync Trigger */}
       <LeaderboardSeasonHeader
         seasonMode={seasonMode}
@@ -135,6 +165,8 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
         isSyncingLeaderboard={isSyncingLeaderboard}
         onOpenAccount={onOpenAccount}
         powerScore={powerScore}
+        onOpenLoreBook={onOpenLoreBook}
+        onOpenShareCard={onOpenShareCard}
       />
 
       {/* 2. Top Stats: Hero Attributes & Live Telemetry Summary */}
@@ -154,23 +186,36 @@ export const StatsLeaderboard: React.FC<StatsLeaderboardProps> = ({
       />
 
       {/* 4. Active View Content */}
-      {activeCategory === 'boss_specialists' ? (
-        <BossSpecialistGrid
-          cloudLeaderboard={cloudLeaderboard}
+      <div className="w-full">
+        {activeCategory === 'boss_specialists' ? (
+          <BossSpecialistGrid
+            cloudLeaderboard={cloudLeaderboard}
+            gameState={gameState}
+          />
+        ) : activeCategory === 'rewards' ? (
+          <SeasonalRewardClaimStation
+            gameState={gameState}
+            seasonMode={seasonMode}
+            onClaimReward={handleClaimReward}
+          />
+        ) : (
+          <LeaderboardRosterTable
+            cloudLeaderboard={cloudLeaderboard}
+            gameState={gameState}
+            activeCategory={activeCategory}
+            currentUser={currentUser}
+          />
+        )}
+      </div>
+
+      {/* 5. Squad Recruitment (Only for logged in users) */}
+      {currentUser && (
+        <SquadRecruitSection
           gameState={gameState}
-        />
-      ) : activeCategory === 'rewards' ? (
-        <SeasonalRewardClaimStation
-          gameState={gameState}
-          seasonMode={seasonMode}
-          onClaimReward={handleClaimReward}
-        />
-      ) : (
-        <LeaderboardRosterTable
-          cloudLeaderboard={cloudLeaderboard}
-          gameState={gameState}
-          activeCategory={activeCategory}
-          currentUser={currentUser}
+          setGameState={setGameState!}
+          userProfile={userProfile || null}
+          onRedeemInviteCode={onRedeemInviteCode}
+          onOpenShareCard={onOpenShareCard as any}
         />
       )}
     </div>

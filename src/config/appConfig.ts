@@ -17,6 +17,18 @@ export interface AppConfig {
     url: string;
     description: string;
   };
+  miniBarnMaster?: {
+    name: string;
+    url: string;
+    description: string;
+  };
+  zenniOptical?: {
+    name: string;
+    referralUrl: string;
+    privacyUrl: string;
+    termsUrl: string;
+    promoCopy: string;
+  };
   governance: {
     jpl: string;
     a11y: string;
@@ -41,6 +53,18 @@ export const APP_CONFIG: AppConfig = {
     name: 'RapportVerse',
     url: 'https://rapprt.space',
     description: 'Visual human relationship mapping, qualitative trust topology, and neurodiversity-affirming connection architecture.'
+  },
+  miniBarnMaster: {
+    name: 'MiniBarnMaster',
+    url: 'https://minibarnmaster.ai.studio',
+    description: 'Pacific Northwest Shed Engineering & Customization Platform.'
+  },
+  zenniOptical: {
+    name: 'Zenni Optical',
+    referralUrl: 'http://rwrd.io/r7jn9f2?c',
+    privacyUrl: 'https://www.zennioptical.com/privacy-policy',
+    termsUrl: 'https://www.zennioptical.com/terms-of-use',
+    promoCopy: 'Spread the love, share the savings! Share a $15 off coupon with friends and earn 300 points ($15 in Rewards) when they place their first purchase.'
   },
   governance: {
     jpl: 'NASA JPL Power of 10',

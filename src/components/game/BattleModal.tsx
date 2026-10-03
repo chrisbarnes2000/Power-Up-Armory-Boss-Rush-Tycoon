@@ -3,6 +3,23 @@ import { CoinIcon } from '../CoinIcon';
 import { GameState, UserProfile, BattleLogEntry } from '../../types';
 import { BOSSES } from '../../data';
 import { PreFightCoinShop } from './PreFightCoinShop';
+import {
+  getBossHP as getBossHPEngine,
+  getBossAttack as getBossAttackEngine,
+  getBossPowerReq as getBossPowerReqEngine,
+  getCritChance,
+  getDodgeChance,
+  hasPrecisionAccuracy,
+  hasDamageReflection,
+  hasTrueDamage
+} from '../../utils/combatEngine';
+
+const formatCompact = (num: number): string => {
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 10_000) return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return Math.floor(num).toLocaleString();
+};
 
 export interface BattleModalProps {
   isOpen: boolean;
@@ -32,6 +49,9 @@ export interface BattleModalProps {
   onTogglePersistLogs?: () => void;
   onFightBoss: (bossId: string) => void;
   powerScore: number;
+  onOpenLoreBook?: (tab?: 'chronicles' | 'bestiary' | 'compendium' | 'legend', mode?: 'canonical' | 'living' | 'writer') => void;
+  onBuyCombatHealthTonic?: () => void;
+  onOpenShareCard?: (view: 'champion' | 'boss' | 'squad', bossData?: { name: string; emoji: string }) => void;
 }
 
 export const BattleModal: React.FC<BattleModalProps> = ({
@@ -61,31 +81,18 @@ export const BattleModal: React.FC<BattleModalProps> = ({
   persistLogs = true,
   onTogglePersistLogs,
   onFightBoss,
-  powerScore
+  powerScore,
+  onOpenLoreBook,
+  onBuyCombatHealthTonic,
+  onOpenShareCard
 }) => {
   const modalLogRef = useRef<HTMLDivElement>(null);
   const [cycledIndex, setCycledIndex] = React.useState(0);
+  const [showMechanicsCodex, setShowMechanicsCodex] = React.useState(false);
 
-  const getBossPowerReq = (bossId: string) => {
-    const boss = BOSSES.find(b => b.id === bossId);
-    if (!boss) return 0;
-    const scale = 1 + (gameState.totalBossesDefeated * 0.02);
-    return Math.floor(boss.powerReq * scale);
-  };
-
-  const getBossHP = (bossId: string) => {
-    const boss = BOSSES.find(b => b.id === bossId);
-    if (!boss) return 0;
-    const scale = 1 + (gameState.totalBossesDefeated * 0.05);
-    return Math.floor(boss.baseHP * scale);
-  };
-
-  const getBossAttack = (bossId: string) => {
-    const boss = BOSSES.find(b => b.id === bossId);
-    if (!boss) return 0;
-    const scale = 1 + (gameState.totalBossesDefeated * 0.03);
-    return Math.floor(boss.baseAttack * scale);
-  };
+  const getBossPowerReq = (bossId: string) => getBossPowerReqEngine(bossId, gameState.totalBossesDefeated);
+  const getBossHP = (bossId: string) => getBossHPEngine(bossId, gameState.totalBossesDefeated);
+  const getBossAttack = (bossId: string) => getBossAttackEngine(bossId, gameState.totalBossesDefeated);
 
   const readyBosses = BOSSES.filter(boss => {
     const bs = gameState.bosses.find(b => b.id === boss.id);
@@ -106,10 +113,12 @@ export const BattleModal: React.FC<BattleModalProps> = ({
   if (!isOpen) return null;
 
   const currentBoss = BOSSES.find(b => b.id === activeBossId);
+  const phoenix = gameState.powerups.find(p => p.id === 'Phoenix Feather');
+  const hasPhoenix = !!(phoenix && phoenix.owned && phoenix.quantity > 0);
 
   return (
-    <div className="fixed inset-0 z-modal bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 pb-20 sm:pb-24 animate-fadeIn">
-      <div className="w-full max-w-2xl bg-[#0c1322] border-2 border-red-500/50 rounded-3xl shadow-[0_0_60px_rgba(239,68,68,0.3)] p-4 sm:p-6 flex flex-col gap-4 text-slate-200 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[500] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 pb-20 sm:pb-24 animate-fadeIn">
+      <div className="w-full max-w-2xl bg-gradient-to-b from-[#0e1628] via-[#0c1322] to-[#070b14] border-2 border-red-500/50 rounded-3xl shadow-[0_0_60px_rgba(239,68,68,0.35),inset_0_1px_1px_rgba(255,255,255,0.1)] p-4 sm:p-6 flex flex-col gap-3.5 text-slate-200 max-h-[92vh] overflow-y-auto relative z-[501]">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -125,14 +134,206 @@ export const BattleModal: React.FC<BattleModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer text-base font-bold"
-            title="Close Arena Modal"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenShareCard && activeBossId && (
+              <button
+                type="button"
+                onClick={() => onOpenShareCard('boss', { name: activeBossId, emoji: currentBoss?.emoji || '👹' })}
+                className="px-2.5 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-500/40 text-red-200 text-xs font-mono font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
+                title="Generate Dynamic Vector Boss Conquest Card"
+              >
+                <span>🏆 Share Card</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer text-base font-bold"
+              title="Close Arena Modal"
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        {/* TACTICAL COMBAT ATTRIBUTES & BANKROLL INTEL BAR */}
+        <div className="bg-[#0b1222]/95 border border-cyan-500/35 rounded-2xl p-2.5 sm:p-3.5 flex flex-col gap-2.5 text-[10px] sm:text-[11px] font-mono shadow-[inset_0_1px_2px_rgba(122,224,255,0.15),0_8px_25px_rgba(0,0,0,0.5)]">
+          {/* Row 1: Blended Live Bankroll Reserves, ATK, DEF, HP & Yield */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-cyan-500/20 pb-2">
+            <div className="flex items-center gap-1.5 text-amber-300 font-bold uppercase tracking-wider shrink-0">
+              <span className="text-xs">💰</span>
+              <span>BANKROLL & HERO STATS:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end">
+              {/* Health */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Health Points: ${livePlayerHP}/${livePlayerMaxHP} HP`}
+                className={`px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 border shadow-inner cursor-pointer transition select-none ${
+                  gameState.isDead || livePlayerHP <= 0 ? 'bg-red-950 text-red-300 border-red-500/40' : 'bg-[#141c30] text-emerald-300 border-emerald-500/30'
+                }`}
+              >
+                <span className="text-xs leading-none shrink-0">{gameState.isDead || livePlayerHP <= 0 ? '💀' : '❤️'}</span>
+                <span className="font-bold text-[9px] text-emerald-400/80">HP</span>
+                <span className="font-extrabold">{livePlayerHP}/{livePlayerMaxHP}</span>
+              </div>
+
+              {/* ATK */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Attack: ${totalAttack} ATK`}
+                className="bg-[#141c30] text-red-300 border border-red-500/30 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-inner cursor-pointer transition select-none"
+              >
+                <span className="text-xs leading-none shrink-0">⚔️</span>
+                <span className="font-bold text-[9px] text-red-400/80">ATK</span>
+                <span className="font-extrabold">{totalAttack}</span>
+              </div>
+
+              {/* DEF */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Defense: ${totalDefense} DEF`}
+                className={`px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-inner cursor-pointer transition select-none border ${
+                  totalDefense < 0 ? 'bg-amber-950 text-amber-300 border-amber-500/50' : 'bg-[#141c30] text-blue-300 border-blue-500/30'
+                }`}
+              >
+                <span className="text-xs leading-none shrink-0">{totalDefense < 0 ? '⚠️' : '🛡️'}</span>
+                <span className="font-bold text-[9px] text-blue-400/80">DEF</span>
+                <span className="font-extrabold">{totalDefense}</span>
+              </div>
+
+              {/* Gold Coins */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Gold Coins: ${Math.floor(gameState.coins).toLocaleString()} Gold`}
+                className="bg-[#141c30] hover:bg-[#1a2642] text-[#f5e56b] border border-[#2a4060] px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-inner cursor-pointer transition select-none"
+              >
+                <CoinIcon className="w-3.5 h-3.5 drop-shadow shrink-0" />
+                <span className="font-extrabold">{formatCompact(gameState.coins)}</span>
+              </div>
+
+              {/* Gems */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Gems: ${Math.floor(gameState.gems || 0).toLocaleString()} Gems`}
+                className="bg-[#141c30] hover:bg-[#1a2642] text-[#cb9df2] border border-[#2a4060] px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-inner cursor-pointer transition select-none"
+              >
+                <span className="text-xs leading-none shrink-0">💎</span>
+                <span className="font-extrabold">{formatCompact(gameState.gems || 0)}</span>
+              </div>
+
+              {/* Power Score */}
+              <div 
+                tabIndex={0}
+                role="button"
+                data-tooltip={`Power Score: ${powerScore} PS`}
+                className="bg-[#141c30] hover:bg-[#1a2642] text-[#7ae0ff] border border-cyan-500/30 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-inner cursor-pointer transition select-none"
+              >
+                <span className="text-xs leading-none shrink-0">✨</span>
+                <span className="font-extrabold">{formatCompact(powerScore)} PS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Tactical Combat Attributes & Technique Modifiers */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                <span>⚡</span>
+                <span>TACTICAL LOADOUT:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowMechanicsCodex(prev => !prev)}
+                className="text-[10px] font-mono text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/30 px-2 py-0.5 rounded cursor-pointer transition flex items-center gap-1 shadow-sm"
+              >
+                <span>📖</span>
+                <span>{showMechanicsCodex ? 'Hide Mechanics' : 'Mechanics Guide'}</span>
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end">
+              <span className="bg-amber-950/60 text-amber-300 border border-amber-500/30 px-2 sm:px-2.5 py-0.5 rounded-full shadow-sm" title="Focus boosts critical strike chance for 2.2x damage">
+                🎯 Focus Crit: <strong>{(getCritChance(gameState) * 100).toFixed(0)}%</strong>
+              </span>
+              <span className="bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 sm:px-2.5 py-0.5 rounded-full shadow-sm" title="Stealth boosts dodge chance against boss strikes">
+                💨 Stealth Dodge: <strong>{(getDodgeChance(gameState) * 100).toFixed(0)}%</strong>
+              </span>
+              <span className={`px-2 sm:px-2.5 py-0.5 rounded-full border shadow-sm ${
+                hasPrecisionAccuracy(gameState)
+                  ? 'bg-blue-950/80 text-blue-200 border-blue-400/50'
+                  : 'bg-slate-900 text-slate-500 border-slate-700/40'
+              }`} title="Laser Lens guarantees 100% precision, nullifying boss dodge">
+                🔫 Precision: <strong>{hasPrecisionAccuracy(gameState) ? 'Active' : 'Locked'}</strong>
+              </span>
+              <span className={`px-2 sm:px-2.5 py-0.5 rounded-full border shadow-sm ${
+                hasDamageReflection(gameState)
+                  ? 'bg-purple-950/80 text-purple-200 border-purple-400/50'
+                  : 'bg-slate-900 text-slate-500 border-slate-700/40'
+              }`} title="Magnetite Shield reflects 25% of boss strike damage">
+                🧲 Reflect: <strong>{hasDamageReflection(gameState) ? '25%' : '0%'}</strong>
+              </span>
+              <span className="bg-rose-950/60 text-rose-300 border border-rose-500/30 px-2 sm:px-2.5 py-0.5 rounded-full shadow-sm" title="16% chance per turn to unleash equipped artifact techniques">
+                ✨ Technique: <strong>16%</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* EXPANDABLE COMBAT MECHANICS CODEX */}
+        {showMechanicsCodex && (
+          <div className="bg-[#0f172a] border border-amber-500/40 rounded-2xl p-4 text-xs space-y-3 animate-fadeIn shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="font-mono text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span>⚔️</span>
+                <span>Tactical Combat Engine & Attribute Guide</span>
+              </span>
+              <button 
+                onClick={() => setShowMechanicsCodex(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed">
+              <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-amber-400 font-bold font-mono block">🎯 Focus & Critical Strikes:</span>
+                <p className="text-slate-300">
+                  Focus rating is accrued from weapons like Focus Blade and Speed Dagger. It increases Critical Strike chance above base 15% (up to 50% max). Crits inflict <strong>2.2x heavy damage</strong>!
+                </p>
+              </div>
+
+              <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-emerald-400 font-bold font-mono block">💨 Stealth & Evasion (Dodge):</span>
+                <p className="text-slate-300">
+                  Stealth rating is granted by Cloak of Shadows and Phantom Dust. It increases Dodge chance above base 15% (up to 40% max), completely negating the boss's attack on that turn.
+                </p>
+              </div>
+
+              <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-blue-400 font-bold font-mono block">🔫 Precision & True Damage:</span>
+                <p className="text-slate-300">
+                  <strong>Laser Lens</strong> guarantees 100% precision, preventing elusive titans from dodging. <strong>Void Orb</strong> inflicts True Celestial Damage bypassing boss armor.
+                </p>
+              </div>
+
+              <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-rose-400 font-bold font-mono block">✨ Active Techniques (16% Rate):</span>
+                <p className="text-slate-300">
+                  Each turn, your hero has a 16% chance to trigger an equipped artifact special (e.g. Rage Execution, Frostbite Freeze, Flame Breath, Phoenix Rebirth, or Void Supernova)!
+                </p>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-400 font-mono italic bg-black/40 p-2 rounded-lg border border-white/5">
+              💡 Boss Progression Rule: Bosses scale in HP and ATK per titan conquered. When titans fall below 40% HP, they trigger specialized enrage or shield mechanics!
+            </div>
+          </div>
+        )}
 
         {/* Duel Stage Visualization */}
         {activeBossId ? (
@@ -142,14 +343,27 @@ export const BattleModal: React.FC<BattleModalProps> = ({
               <span className={`text-3xl sm:text-5xl md:text-7xl filter drop-shadow-[0_3px_10px_rgba(0,0,0,0.6)] transition-all ${gameState.isDead || livePlayerHP <= 0 ? 'grayscale filter' : isFighting ? 'animate-bounce' : ''}`}>
                 {gameState.isDead || livePlayerHP <= 0 ? '🪦' : (userProfile?.avatar || '⚔️')}
               </span>
-              <div className={`font-black text-xs sm:text-lg md:text-xl font-mono flex items-center gap-0.5 sm:gap-1 truncate max-w-full ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-300'}`}>
+              <div className={`font-black text-xs sm:text-lg md:text-xl font-mono flex flex-wrap items-center justify-center gap-1 truncate max-w-full ${gameState.isDead || livePlayerHP <= 0 ? 'text-red-400' : 'text-emerald-300'}`}>
                 <span className="truncate">{gameState.playerName || 'Hero'}</span>
-                {(gameState.isDead || livePlayerHP <= 0) && (
+                {(gameState.isDead || livePlayerHP <= 0) ? (
                   <span className="text-[8px] sm:text-[10px] bg-red-950 text-red-300 border border-red-500/40 px-1 py-0.2 rounded font-extrabold shrink-0">DEAD</span>
-                )}
+                ) : hasPhoenix ? (
+                  <span className="text-[7.5px] sm:text-[9px] bg-amber-950/80 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded-full font-extrabold shrink-0 flex items-center gap-0.5">
+                    🦅 Auto-Revive Ready
+                  </span>
+                ) : null}
               </div>
               <div className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-300 font-mono bg-black/30 border border-white/5 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg truncate max-w-full">
                 ATK {totalAttack} • DEF {totalDefense}
+              </div>
+              {/* Phoenix Feather Status Card */}
+              <div className={`text-[9px] sm:text-[11px] font-bold font-mono px-2 py-1 rounded-xl shadow-sm flex items-center gap-1.5 shrink-0 border ${
+                hasPhoenix 
+                  ? 'bg-amber-950/90 border-amber-500/60 text-amber-300 animate-pulse' 
+                  : 'bg-slate-900/80 border-slate-700/60 text-slate-400'
+              }`}>
+                <span>🔥</span>
+                <span>Phoenix: <strong>{hasPhoenix ? `Ready (Lv ${phoenix.level || 1})` : 'Locked'}</strong></span>
               </div>
               {/* Player HP Bar */}
               <div className={`w-full max-w-[100px] sm:max-w-[210px] bg-black/60 h-2 sm:h-4 md:h-5 rounded-full overflow-hidden border p-0.5 ${
@@ -277,6 +491,12 @@ export const BattleModal: React.FC<BattleModalProps> = ({
           setGameState={setGameState}
           saveState={saveState}
           addLog={addLog}
+          livePlayerHP={livePlayerHP}
+          livePlayerMaxHP={livePlayerMaxHP}
+          onUseHealthPack={handleReviveWithPack}
+          isFighting={isFighting}
+          getCurrentReviveCost={getCurrentReviveCost}
+          onBuyCombatHealthTonic={onBuyCombatHealthTonic}
           compact
         />
 
@@ -300,38 +520,94 @@ export const BattleModal: React.FC<BattleModalProps> = ({
                 </button>
               )}
               <span className="text-[9px] text-slate-400 font-mono bg-white/5 px-1.5 py-0.2 rounded border border-white/10">Newest First</span>
+              {onOpenLoreBook && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenLoreBook('chronicles', 'writer');
+                    }}
+                    className="text-[9px] font-mono font-bold text-amber-300 hover:text-white bg-amber-950/70 hover:bg-amber-900/90 border border-amber-500/40 px-1.5 py-0.2 rounded transition cursor-pointer flex items-center gap-0.5 shadow-sm"
+                    title="Write a custom story entry in the Chronicler's Quill"
+                  >
+                    <span>✍️</span>
+                    <span>Quill</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenLoreBook('chronicles', 'living');
+                    }}
+                    className="text-[9px] font-mono font-bold text-amber-300 hover:text-white bg-amber-950/70 hover:bg-amber-900/90 border border-amber-500/40 px-1.5 py-0.2 rounded transition cursor-pointer flex items-center gap-0.5 shadow-sm"
+                    title="View your Living War Saga battle logs in the Lore Book"
+                  >
+                    <span>⚔️</span>
+                    <span>Saga</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          {battleLogs.map((log, index) => (
-            <div key={index} className={`transition-all flex items-start gap-1.5 ${getLogColorStyling(log)}`}>
-              {showTimestamps && log.timestamp && (
-                <span className="text-[9px] text-slate-500 shrink-0 font-mono select-none pt-0.5 font-normal">
-                  [{log.timestamp}]
-                </span>
-              )}
-              <span className="flex-1">{log.message}</span>
-            </div>
-          ))}
+          {battleLogs.map((log, index) => {
+            const isBattleStart = log.message.includes('BATTLE START');
+            const isVictoryEnd = log.message.includes('VICTORY') || log.message.includes('SUPERNOVA');
+            const isDefeatEnd = !isVictoryEnd && (
+              log.message.includes('DEFEAT') || 
+              log.message.includes('Defeated by') || 
+              (log.className === 'log-defeat' && (log.message.includes('Defeated') || log.message.includes('fallen')))
+            ) && !log.message.includes('Welcome') && !log.message.includes('reset') && !log.message.includes('cannot mine');
+            return (
+              <React.Fragment key={index}>
+                {isBattleStart && index > 0 && (
+                  <div className="my-3 py-1.5 px-3 rounded-xl border border-amber-500/50 bg-amber-950/70 text-amber-300 font-mono text-[10px] sm:text-xs font-black text-center flex items-center justify-center gap-2 shadow-md uppercase tracking-wider">
+                    <span>⚡ ⚔️ ⚡ START OF BATTLE ENCOUNTER ⚡ ⚔️ ⚡</span>
+                  </div>
+                )}
+                {isVictoryEnd && (
+                  <div className="my-3 py-1.5 px-3 rounded-xl border border-emerald-500/50 bg-emerald-950/70 text-emerald-300 font-mono text-[10px] sm:text-xs font-black text-center flex items-center justify-center gap-2 shadow-md uppercase tracking-wider">
+                    <span>🏆 🛡️ 🏆 END OF BATTLE RESOLUTION (VICTORY) 🏆 🛡️ 🏆</span>
+                  </div>
+                )}
+                {isDefeatEnd && (
+                  <div className="my-3 py-1.5 px-3 rounded-xl border border-red-500/50 bg-red-950/70 text-red-400 font-mono text-[10px] sm:text-xs font-black text-center flex items-center justify-center gap-2 shadow-md uppercase tracking-wider">
+                    <span>💀 🪦 💀 END OF BATTLE RESOLUTION (DEFEAT) 💀 🪦 💀</span>
+                  </div>
+                )}
+                <div className={`transition-all flex items-start gap-1.5 py-0.5 ${getLogColorStyling(log)}`}>
+                  {showTimestamps && log.timestamp && (
+                    <span className="text-[9px] text-slate-500 shrink-0 font-mono select-none pt-0.5 font-normal">
+                      [{log.timestamp}]
+                    </span>
+                  )}
+                  <span className="flex-1">{log.message}</span>
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {/* Footer Controls */}
         <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
-          {(gameState.isDead || livePlayerHP < 20) && (
+          {(gameState.isDead || livePlayerHP < livePlayerMaxHP) && (
             <div className="flex items-center gap-2">
-              <button 
-                onClick={handleReviveWithCoins}
-                className="px-3.5 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-yellow-500/20 active:scale-95 flex items-center gap-1.5"
-              >
-                <span>⚡ Revive ({getCurrentReviveCost()}</span>
-                <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
-                <span>)</span>
-              </button>
+              {gameState.isDead && (
+                <button 
+                  onClick={handleReviveWithCoins}
+                  className="px-3.5 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-yellow-500/20 active:scale-95 flex items-center gap-1.5"
+                >
+                  <span>⚡ Revive ({getCurrentReviveCost()}</span>
+                  <CoinIcon className="w-3.5 h-3.5 drop-shadow" />
+                  <span>)</span>
+                </button>
+              )}
               <button 
                 onClick={handleReviveWithPack}
                 disabled={(gameState.revivePacks || 0) <= 0}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black uppercase text-xs tracking-wider cursor-pointer transition shadow-md shadow-emerald-600/20 active:scale-95 flex items-center gap-1.5 animate-pulse"
               >
-                <span>🩹 Pack ({gameState.revivePacks || 0} Left)</span>
+                <span>🩹 Health Pack ({gameState.revivePacks || 0} Left)</span>
               </button>
             </div>
           )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GameState } from '../types';
 import { downloadLoreBookZip } from '../utils/markdownExporter';
 import { trackPageView, trackEvent } from '../lib/analytics';
+import { triggerParticleBurst } from './common/ParticleFX';
 
 // Import newly decomposed modular tab components
 import { ChroniclesTab } from './lore/ChroniclesTab';
@@ -17,7 +18,7 @@ interface LoreBookViewProps {
   onNavigateToGame?: (tab?: 'tycoon' | 'bosses' | 'stats') => void;
   controlledTab?: 'chronicles' | 'legend' | 'compendium' | 'bestiary';
   onTabChange?: (tab: 'chronicles' | 'legend' | 'compendium' | 'bestiary') => void;
-  initialChronicleMode?: 'canonical' | 'living';
+  initialChronicleMode?: 'canonical' | 'living' | 'writer';
 }
 
 const ALL_LORE_PAGES = ['compendium', 'chronicles', 'bestiary', 'legend'];
@@ -25,6 +26,7 @@ const ALL_LORE_PAGES = ['compendium', 'chronicles', 'bestiary', 'legend'];
 export default function LoreBookView({
   gameState,
   setGameState,
+  onNavigateToShop,
   onNavigateToGame,
   controlledTab,
   onTabChange,
@@ -37,17 +39,28 @@ export default function LoreBookView({
   const [exportSuccessMsg, setExportSuccessMsg] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Sync controlled tab
+  // Sync controlled tab & chronicle submode
   useEffect(() => {
     if (controlledTab) {
       setActiveTab(controlledTab);
-      setSubMode('view');
+      if (controlledTab === 'chronicles') {
+        if (initialChronicleMode === 'writer') {
+          setSubMode('weaver');
+        } else {
+          setSubMode('view');
+        }
+      } else {
+        setSubMode('view');
+      }
+    } else if (initialChronicleMode === 'writer') {
+      setActiveTab('chronicles');
+      setSubMode('weaver');
     }
-  }, [controlledTab]);
+  }, [controlledTab, initialChronicleMode]);
 
   // --- LORE BOOK REWARDS & TELEMETRY ENGINE ---
   useEffect(() => {
-    trackEvent('lore_book_opened', { initial_tab: activeTab });
+    trackEvent('lore_book_opened', { initial_tab: typeof activeTab === 'string' ? activeTab : 'compendium' });
 
     setGameState(prev => {
       const rewardsState = prev.loreBookRewards || { firstOpenClaimed: false, pagesCompleted: [], loreMasterClaimed: false };
@@ -69,16 +82,17 @@ export default function LoreBookView({
 
       // 2. Per-Page Completion Bonus (+100 Coins, +5 Gems per page)
       const currentPages = new Set(rewardsState.pagesCompleted || []);
-      if (!currentPages.has(activeTab)) {
-        currentPages.add(activeTab);
+      const tabStr = typeof activeTab === 'string' ? activeTab : 'compendium';
+      if (!currentPages.has(tabStr)) {
+        currentPages.add(tabStr);
         coinsToAdd += 100;
         gemsToAdd += 5;
         isUpdated = true;
         logMsg = logMsg 
-          ? `${logMsg} | 📜 Lore Page Explored (${activeTab.toUpperCase()}): +100 Coins & +5 Gems!` 
-          : `📜 Lore Page Explored (${activeTab.toUpperCase()})! Received +100 Coins & +5 Gems!`;
+          ? `${logMsg} | 📜 Lore Page Explored (${tabStr.toUpperCase()}): +100 Coins & +5 Gems!` 
+          : `📜 Lore Page Explored (${tabStr.toUpperCase()})! Received +100 Coins & +5 Gems!`;
         trackEvent('lore_page_completed', { 
-          page_id: activeTab, 
+          page_id: tabStr, 
           reward_coins: 100, 
           reward_gems: 5, 
           total_pages_completed: currentPages.size 
@@ -107,6 +121,7 @@ export default function LoreBookView({
 
       setSuccessToast(logMsg);
       setTimeout(() => setSuccessToast(null), 5000);
+      triggerParticleBurst('purchase');
 
       const next: GameState = {
         ...prev,
@@ -236,65 +251,97 @@ export default function LoreBookView({
         </div>
       )}
 
-      {/* TOP NAVIGATION TABS */}
-      <div id="lore-nav-tabs" className="flex flex-wrap items-center justify-between gap-2.5 mb-6 relative z-10 w-full border-b border-white/10 pb-4">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 max-w-full">
+      {/* TOP NAVIGATION TABS - 3D TOME BOOK & ANCIENT SCROLLS CODEX */}
+      <div id="lore-nav-tabs" className="flex flex-wrap items-center justify-between gap-3 mb-6 relative z-10 w-full border-b border-amber-500/20 pb-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 max-w-full p-1.5 bg-gradient-to-r from-[#1a1107]/95 via-[#27170a]/95 to-[#1a1107]/95 border border-amber-500/40 rounded-2xl sm:rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.85),inset_0_1px_2px_rgba(251,191,36,0.3)] backdrop-blur-md">
           <button
             id="lore-tab-compendium"
             onClick={() => handleTabChange('compendium')}
-            className={`px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-black uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 select-none shadow-md ${
               activeTab === 'compendium'
-                ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)] border border-orange-400/30'
-                : 'bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10'
+                ? 'bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 text-amber-50 shadow-[0_0_20px_rgba(217,119,6,0.5)] border-2 border-amber-300 ring-2 ring-amber-500/30'
+                : 'bg-[#140d06] text-amber-200/80 hover:text-white border border-amber-500/20 hover:border-amber-400/50'
             }`}
           >
-            <span>⚔️</span>
-            <span>Item Compendium</span>
+            <span className="text-sm">📖</span>
+            <span>3D Tome (Relics)</span>
+            <span className="text-[9px] font-mono font-bold bg-amber-950/80 text-amber-300 px-1.5 py-0.2 rounded-full border border-amber-500/30">
+              {gameState.powerups.filter(p => p.owned && p.quantity > 0).length}/16
+            </span>
           </button>
 
           <button
             id="lore-tab-chronicles"
-            onClick={() => handleTabChange('chronicles')}
-            className={`px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'chronicles'
-                ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)] border border-orange-400/30'
-                : 'bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10'
+            onClick={() => {
+              handleTabChange('chronicles');
+              setSubMode('view');
+            }}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-black uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 select-none shadow-md ${
+              activeTab === 'chronicles' && subMode === 'view'
+                ? 'bg-gradient-to-r from-yellow-700 via-amber-700 to-yellow-800 text-yellow-100 shadow-[0_0_20px_rgba(180,83,9,0.5)] border-2 border-yellow-400 ring-2 ring-yellow-500/30'
+                : 'bg-[#140d06] text-yellow-200/80 hover:text-white border border-yellow-500/20 hover:border-yellow-400/50'
             }`}
           >
-            <span>📜</span>
-            <span>Battle Chronicles</span>
+            <span className="text-sm">📜</span>
+            <span>Ancient Scrolls</span>
+            <span className="text-[9px] font-mono font-bold bg-yellow-950/80 text-yellow-300 px-1.5 py-0.2 rounded-full border border-yellow-500/30">
+              Ch. 1-8
+            </span>
           </button>
 
           <button
-            id="lore-tab-legend"
-            onClick={() => handleTabChange('legend')}
-            className={`px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'legend'
-                ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)] border border-orange-400/30'
-                : 'bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10'
+            id="lore-tab-weaver"
+            onClick={() => {
+              handleTabChange('chronicles');
+              setSubMode('weaver');
+            }}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-black uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 select-none shadow-md ${
+              activeTab === 'chronicles' && subMode === 'weaver'
+                ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-amber-50 shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-amber-300 ring-2 ring-amber-500/30'
+                : 'bg-[#140d06] text-amber-200/80 hover:text-white border border-amber-500/20 hover:border-amber-400/50'
             }`}
           >
-            <span>👑</span>
-            <span>The Ancient Legend</span>
+            <span className="text-sm">✍️</span>
+            <span>Chronicler's Quill</span>
+            <span className="text-[9px] font-mono font-bold bg-amber-950/80 text-amber-300 px-1.5 py-0.2 rounded-full border border-amber-500/30">
+              Editor
+            </span>
           </button>
 
           <button
             id="lore-tab-bestiary"
             onClick={() => handleTabChange('bestiary')}
-            className={`px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-extrabold uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-black uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 select-none shadow-md ${
               activeTab === 'bestiary'
-                ? 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)] border border-orange-400/30'
-                : 'bg-white/5 text-slate-300 border border-white/5 hover:bg-white/10'
+                ? 'bg-gradient-to-r from-red-800 via-rose-700 to-red-900 text-red-50 shadow-[0_0_20px_rgba(225,29,72,0.5)] border-2 border-red-400 ring-2 ring-red-500/30'
+                : 'bg-[#140d06] text-rose-200/80 hover:text-white border border-red-500/20 hover:border-red-400/50'
             }`}
           >
-            <span>👹</span>
+            <span className="text-sm">👾</span>
             <span>Boss Bestiary</span>
+            <span className="text-[9px] font-mono font-bold bg-red-950/80 text-rose-300 px-1.5 py-0.2 rounded-full border border-red-500/30">
+              {Object.keys(gameState.bossKillStats || {}).length}/10 Slain
+            </span>
+          </button>
+
+          <button
+            id="lore-tab-legend"
+            onClick={() => handleTabChange('legend')}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-black uppercase transition-all tracking-wider cursor-pointer flex items-center gap-1.5 select-none shadow-md ${
+              activeTab === 'legend'
+                ? 'bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-indigo-50 shadow-[0_0_20px_rgba(99,102,241,0.5)] border-2 border-indigo-400 ring-2 ring-indigo-500/30'
+                : 'bg-[#140d06] text-indigo-200/80 hover:text-white border border-indigo-500/20 hover:border-indigo-400/50'
+            }`}
+          >
+            <span className="text-sm">🏛️</span>
+            <span>Systems Codex</span>
           </button>
         </div>
 
-        <span className="text-xs font-mono text-slate-400 uppercase tracking-widest self-start sm:self-auto">
-          TOME ARCHIVE VOL. IV
-        </span>
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono text-amber-400/80 bg-amber-950/40 px-3 py-1 rounded-full border border-amber-500/20">
+          <span>✨</span>
+          <span>TOME ARCHIVE VOL. IV</span>
+        </div>
       </div>
 
       {/* CORE ACTIVE TABS ELEMENT MATRIX */}
@@ -304,6 +351,8 @@ export default function LoreBookView({
             gameState={gameState}
             isExportingZip={isExportingZip}
             onDownloadAllZip={handleDownloadAllZip}
+            onNavigateToShop={onNavigateToShop}
+            onNavigateToBosses={() => onNavigateToGame?.('bosses')}
           />
         )}
 
@@ -313,7 +362,7 @@ export default function LoreBookView({
             setGameState={setGameState}
             onOpenWeaver={() => setSubMode('weaver')}
             onDeleteStory={handleDeleteStory}
-            initialMode={initialChronicleMode}
+            initialMode={initialChronicleMode === 'living' ? 'living' : 'canonical'}
           />
         )}
 
@@ -331,7 +380,10 @@ export default function LoreBookView({
         )}
 
         {activeTab === 'bestiary' && (
-          <BossBestiaryTab gameState={gameState} />
+          <BossBestiaryTab 
+            gameState={gameState} 
+            onChallengeBoss={() => onNavigateToGame?.('bosses')}
+          />
         )}
       </div>
 

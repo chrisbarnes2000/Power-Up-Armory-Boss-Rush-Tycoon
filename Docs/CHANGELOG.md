@@ -4,6 +4,41 @@
 
 ---
 
+## [v1.3.3] — 2026-10-02
+
+### 🚀 What's New in v1.3.3
+
+#### 🛍️ Armory Store Tycoon Bankroll & Coin-Gated Checkout
+- **Pinned Bankroll Statbar**: Integrated the live `TycoonBankrollCard` into the Armory Store (`ShopView`), providing continuous visibility into player Gold Coins, Astral Gems, passive gold yield, boss vanquishes, and core combat attributes (HP, ATK, DEF, SPD, PS).
+- **Coin-Gated Checkout Validation**: Storefront checkout is now strictly validated against player gold reserves. Insufficient coins disable checkout with clear deficit feedback (`Need X more coins`). Completing checkout automatically deducts the required gold from the player's bankroll.
+- **Admin In-Person Cash Payment Bypass**: Added an administrator toggle (`Shop Bypass: ON (Cash) / OFF (Gold)`) in User Moderation. When active, gold costs and deductions are waived with a clear `💵 Cash Clearance Bypass` indicator, allowing immediate item key generation for in-person cash payments.
+- **In-Store Health Pack Quick Heal**: Players can now use consumable Health/Revive packs directly from the Armory Store bankroll bar to instantly restore fallen or wounded heroes to 100% health with rebirth particle FX.
+
+#### 👓 Zenni Optical Referral & Rewards Synergy
+- **Ecosystem Affiliate Hub**: Embedded an official Zenni Optical showcase card in the Partners & Affiliates portal (`PartnersView`) featuring the verified referral link (`http://rwrd.io/r7jn9f2?c`).
+- **"Give $15, Get $15" Rewards Program**: Direct access to $15 off first-time eyewear purchases and 300 Zenni Rewards points per referral, with scalable milestones up to $150 (3,000 points).
+- **Everyday Member Loyalty Perks**:
+  - 🚚 Free standard US shipping on all orders over $65²
+  - 💸 Earn 1 point on every dollar spent
+  - 🎂 Special birthday rewards
+- **In-Game Cross-Play Redemption**: Added code redemption support for `ZENNI`, `ZENNI15`, and `ZENNIOPTICAL` at the partner desk, awarding +3,000 Gold and +150 Gems.
+- **Compliance & Universal Documentation**: Authored universal integration guide [`/Docs/PublicRelations/Affiliate_ZenniOptical.md`](./PublicRelations/Affiliate_ZenniOptical.md) linking official Zenni Privacy Policy and Terms of Use.
+
+#### 🛡️ Complete HTTP Security & Vulnerability Hardening
+- **HTTP Security Headers Suite**: Enforced full security headers across all server responses (`vite.config.ts`):
+  - **Content Security Policy (CSP)**: Strict multi-directive policy restricting unauthorized scripts, styles, and frames while preserving AI Studio preview compatibility via `frame-ancestors`.
+  - **HTTP Strict Transport Security (HSTS)**: `max-age=31536000; includeSubDomains; preload`.
+  - **X-Content-Type-Options**: `nosniff`.
+  - **X-Frame-Options**: `SAMEORIGIN` (coordinated with CSP `frame-ancestors`).
+  - **Referrer-Policy**: `strict-origin-when-cross-origin`.
+  - **Permissions-Policy**: Disables camera, microphone, geolocation, payment, and USB APIs.
+  - **COOP / CORP / COEP**: `same-origin-allow-popups` (secures origin while maintaining Google/Firebase Auth popup compatibility), `cross-origin`, and `credentialless`.
+- **RFC 9116 `security.txt`**: Deployed official security disclosure contact coordinates at `/.well-known/security.txt` and `/security.txt`, indexed in `robots.txt` and `index.html`.
+- **Vulnerability Disclosure Policy**: Published official policy and safe harbor guidelines at `/public/security-policy.html`.
+- **Audit Documentation**: Detailed in [`/Docs/Audits/HTTP_SECURITY_AUDIT.md`](./Audits/HTTP_SECURITY_AUDIT.md).
+
+---
+
 ## [v1.3.1] — 2026-09-27
 
 ### 🚀 What's New in v1.3.1

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { POWERUPS } from '../data';
-import { GameState, PurchaseItem, PurchaseRecord } from '../types';
+import { GameState, PurchaseItem, PurchaseRecord, UserProfile } from '../types';
 import { CoinIcon } from './CoinIcon';
 import { trackEvent, trackPageView } from '../lib/analytics';
 
@@ -11,6 +11,16 @@ import { ShopCartDrawer } from './shop/ShopCartDrawer';
 import { ShopCategoryNav, ShopCategoryKey } from './shop/ShopCategoryNav';
 import { ShopItemCard } from './shop/ShopItemCard';
 import { getPackUnits, getItemTotalUnits, optimizeCartForItem } from '../utils/shopUtils';
+import { triggerParticleBurst } from './common/ParticleFX';
+import { TycoonBankrollCard } from './game/TycoonBankrollCard';
+import {
+  getPassiveYield,
+  getTotalAttack,
+  getTotalDefense,
+  getTotalSpeed,
+  getNormalMaxHP,
+  getPowerScore
+} from '../utils/combatEngine';
 
 interface ShopViewProps {
   gameState: GameState;
@@ -19,6 +29,8 @@ interface ShopViewProps {
   controlledCategory?: 'weapons' | 'defense' | 'utility' | 'mystic';
   onCategoryChange?: (category: 'weapons' | 'defense' | 'utility' | 'mystic') => void;
   openCartDrawer?: boolean;
+  userProfile?: UserProfile | null;
+  isAdmin?: boolean;
 }
 
 export default function ShopView({
@@ -27,7 +39,9 @@ export default function ShopView({
   onOpenLoreBook,
   controlledCategory,
   onCategoryChange,
-  openCartDrawer
+  openCartDrawer,
+  userProfile,
+  isAdmin
 }: ShopViewProps) {
   // Category tab state
   const [activeCategory, setActiveCategory] = useState<ShopCategoryKey>(controlledCategory || 'weapons');
@@ -158,6 +172,41 @@ export default function ShopView({
 
   const { total: cartTotal, count: cartCount, itemsList: cartItems } = getCartMetrics();
 
+  // Admin Shop Bypass / Cash-in-person check: when active, gold cost is waived
+  const isCashBypassActive = Boolean(isAdmin || userProfile?.isArmoryStoreEnabled);
+  const hasEnoughCoins = isCashBypassActive || gameState.coins >= cartTotal;
+  const missingCoins = Math.max(0, cartTotal - Math.floor(gameState.coins));
+
+  // Compute live hero combat attributes for TycoonBankrollCard
+  const passiveYield = getPassiveYield(gameState);
+  const totalAttack = getTotalAttack(gameState);
+  const totalDefense = getTotalDefense(gameState);
+  const totalSpeed = getTotalSpeed(gameState);
+  const powerScore = getPowerScore(gameState);
+  const normalMaxHP = getNormalMaxHP(gameState);
+
+  const handleUseHealthPack = () => {
+    if ((gameState.revivePacks || 0) <= 0) return;
+    setGameState(prev => {
+      const next = {
+        ...prev,
+        isDead: false,
+        revivePacks: Math.max(0, (prev.revivePacks || 0) - 1)
+      };
+      try {
+        localStorage.setItem('bossRushTycoon', JSON.stringify(next));
+      } catch (e) {
+        console.warn('Local storage write failed:', e);
+      }
+      return next;
+    });
+    triggerParticleBurst('rebirth');
+    trackEvent('health_pack_used', {
+      source: 'armory_store_bankroll',
+      remaining_packs: Math.max(0, (gameState.revivePacks || 0) - 1)
+    });
+  };
+
   // Reset cart
   const resetCart = () => {
     setCart({});
@@ -167,6 +216,7 @@ export default function ShopView({
   // Generate Unique checkout 16-character Code (Bridge)
   const checkoutCode = () => {
     if (cartCount === 0) return;
+    if (!isCashBypassActive && gameState.coins < cartTotal) return;
     
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const segment = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -180,10 +230,11 @@ export default function ShopView({
       redeemed: false
     };
 
-    // Store in Game State
+    // Store in Game State & deduct in-game coins unless admin cash bypass is active
     setGameState(prev => {
       const next = {
         ...prev,
+        coins: isCashBypassActive ? prev.coins : Math.max(0, prev.coins - cartTotal),
         purchasedCodes: [newRecord, ...prev.purchasedCodes]
       };
       try {
@@ -201,12 +252,15 @@ export default function ShopView({
       console.warn('Firestore purchase sync failed:', e);
     }
 
+    triggerParticleBurst('purchase');
+
     // Track purchase telemetry in Google Analytics & Vemetric
     trackEvent('purchase', {
       transaction_id: code,
       value: cartTotal,
       currency: 'USD',
       items_count: cartCount,
+      payment_type: isCashBypassActive ? 'in_person_cash_bypass' : 'gold_coins',
       items: cartItems.map(item => ({
         item_id: item.id,
         item_name: item.id,
@@ -218,7 +272,8 @@ export default function ShopView({
     trackEvent('armory_checkout_code_generated', {
       code,
       total_value: cartTotal,
-      item_count: cartCount
+      item_count: cartCount,
+      payment_type: isCashBypassActive ? 'in_person_cash_bypass' : 'gold_coins'
     });
 
     setGeneratedCode(code);
@@ -226,7 +281,7 @@ export default function ShopView({
   };
 
   return (
-    <div className="w-full max-w-full flex-1 flex flex-col bg-linear-to-b from-[#111827] to-[#0a0f1a] border border-[#2a3d5c] rounded-[32px] md:rounded-[48px] p-4 md:p-6 shadow-[0_30px_80px_rgba(0,0,0,0.9),inset_0_0_0_2px_#1f2d4a,inset_0_0_0_3px_#141f33] select-none my-2 md:my-6 relative overflow-visible">
+    <div className="w-full max-w-full flex-1 flex flex-col bg-linear-to-b from-[#111827] to-[#0a0f1a] border border-[#2a3d5c] rounded-[32px] md:rounded-[48px] p-4 md:p-6 shadow-[0_30px_80px_rgba(0,0,0,0.9),inset_0_0_0_2px_#1f2d4a,inset_0_0_0_3px_#141f33] select-none my-2 md:my-6 relative overflow-visible pb-24 sm:pb-28">
       
       {/* Background radial elements */}
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #151f35 0%, #0a0e1a 70%)' }}></div>
@@ -311,7 +366,7 @@ export default function ShopView({
 
       {/* FOOTER & CHECKOUT GATE */}
       <footer id="shop-checkout-footer" className="bg-black/90 border-t border-white/10 flex flex-col md:flex-row items-center justify-between p-6 rounded-3xl relative z-10 gap-6">
-        <div className="flex-1 flex gap-8 items-center">
+        <div className="flex-1 flex flex-wrap gap-6 md:gap-8 items-center">
           <div className="flex flex-col">
             <span className="text-xs text-white/40 uppercase font-bold tracking-[0.2em] mb-1">BRIDGE KEY / CODE</span>
             {generatedCode ? (
@@ -338,11 +393,34 @@ export default function ShopView({
           <div className="h-10 w-px bg-white/10 hidden md:block"></div>
 
           <div className="flex flex-col">
-            <span className="text-xs text-white/40 uppercase font-bold tracking-[0.2em] mb-1">Subtotal Value</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-white/40 uppercase font-bold tracking-[0.2em]">Subtotal Value</span>
+              {isCashBypassActive && (
+                <span className="text-[10px] font-mono font-bold bg-amber-950/80 border border-amber-500/40 text-amber-300 px-2 py-0.2 rounded-full flex items-center gap-1" title="In-person cash clearance enabled. Gold coin cost is waived.">
+                  <span>💵</span>
+                  <span>Cash Clearance Bypass</span>
+                </span>
+              )}
+            </div>
             <p className="text-xl font-bold text-orange-500 flex items-center gap-1.5 font-mono">
               <CoinIcon className="w-5 h-5 drop-shadow" />
               <span>${cartTotal}.00</span>
+              <span className="text-xs font-normal text-slate-400 ml-1 font-mono">({cartTotal.toLocaleString()} Coins)</span>
             </p>
+            {!isCashBypassActive && cartCount > 0 && (
+              <div className="text-[11px] font-mono mt-0.5">
+                {gameState.coins >= cartTotal ? (
+                  <span className="text-emerald-400 font-bold">
+                    ✅ Available: {Math.floor(gameState.coins).toLocaleString()} Coins
+                  </span>
+                ) : (
+                  <span className="text-red-400 font-bold flex items-center gap-1">
+                    <span>⚠️ Need {missingCoins.toLocaleString()} more coins</span>
+                    <span className="text-slate-400 font-normal">({Math.floor(gameState.coins).toLocaleString()} owned)</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -357,14 +435,50 @@ export default function ShopView({
           )}
 
           <button 
-            disabled={cartCount === 0}
+            disabled={cartCount === 0 || !hasEnoughCoins}
             onClick={checkoutCode}
-            className={`h-12 px-6 font-extrabold uppercase text-xs rounded-xl transition-all shadow-lg select-none flex items-center justify-center gap-2 cursor-pointer ${cartCount > 0 ? 'bg-white text-black hover:bg-orange-500 hover:text-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-slate-600 border border-white/5 cursor-not-allowed'}`}
+            className={`h-12 px-6 font-extrabold uppercase text-xs rounded-xl transition-all shadow-lg select-none flex items-center justify-center gap-2 ${
+              cartCount === 0
+                ? 'bg-white/5 text-slate-600 border border-white/5 cursor-not-allowed'
+                : !hasEnoughCoins
+                  ? 'bg-red-950/60 border border-red-500/40 text-red-300 cursor-not-allowed opacity-90'
+                  : 'bg-white text-black hover:bg-orange-500 hover:text-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] cursor-pointer'
+            }`}
+            title={!hasEnoughCoins ? `Need ${missingCoins.toLocaleString()} more coins to checkout` : 'Generate 16-character redemption key'}
           >
-            ⚡ Checkout & Generate Key
+            {!hasEnoughCoins ? (
+              <>
+                <span>🔒</span>
+                <span>Need {missingCoins.toLocaleString()} Coins</span>
+              </>
+            ) : (
+              <>
+                <span>⚡</span>
+                <span>{isCashBypassActive ? 'Checkout Key (Cash Bypass)' : 'Checkout & Pay Gold'}</span>
+              </>
+            )}
           </button>
         </div>
       </footer>
+
+      {/* REAL-TIME DYNAMIC STATBAR ON ARMORY STORE */}
+      <TycoonBankrollCard
+        coins={gameState.coins}
+        gems={gameState.gems || 0}
+        passiveYield={passiveYield}
+        totalBossesDefeated={gameState.totalBossesDefeated}
+        attack={totalAttack}
+        defense={totalDefense}
+        speed={totalSpeed}
+        powerScore={powerScore}
+        isDead={!!gameState.isDead}
+        isFighting={false}
+        livePlayerHP={gameState.isDead ? 0 : normalMaxHP}
+        livePlayerMaxHP={normalMaxHP}
+        maxHpBonus={gameState.maxHpBonus || 0}
+        revivePacks={gameState.revivePacks || 0}
+        onUseHealthPack={handleUseHealthPack}
+      />
     </div>
   );
 }

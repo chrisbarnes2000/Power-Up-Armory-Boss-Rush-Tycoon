@@ -120,6 +120,7 @@ export interface UserProfile {
   totalDeaths?: number;
   isAdmin?: boolean;
   isArmoryStoreEnabled?: boolean;
+  isBetaTester?: boolean;
   inviteCode?: string;
   invitedByCode?: string;
   squadRecruitsCount?: number;
@@ -152,6 +153,7 @@ export interface GameBalanceConfig {
   goldMultiplier: number;       // Gold yield multiplier (e.g. 1.0)
   gemMultiplier: number;        // Gem yield multiplier (e.g. 1.0)
   permUpgradeLimitPerFight?: number; // Limit of each perm upgrade between fights (e.g. 3)
+  disableQuickSyncCheck?: boolean; // Admin toggle to disable quick sync check for db
 }
 
 export interface GameState {

@@ -127,7 +127,7 @@ export default function CookieConsentBanner({ onConsentChange }: CookieConsentBa
 
       {/* Detailed Cookie Preferences Settings Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div
             ref={modalRef}
             role="dialog"

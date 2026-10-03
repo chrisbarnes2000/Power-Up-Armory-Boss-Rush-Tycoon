@@ -103,7 +103,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 pb-20 sm:pb-24 animate-fadeIn">
+    <div className="fixed inset-0 z-[500] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 pb-20 sm:pb-24 animate-fadeIn">
       <div className="w-full max-w-lg bg-[#0c1322] border-2 border-cyan-500/50 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.25)] flex flex-col max-h-[88vh] overflow-hidden text-slate-200">
         
         {/* Modal Header */}

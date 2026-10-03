@@ -19,7 +19,6 @@ import { X, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 import { LiveHeroStats } from './account/LiveHeroStats';
 import { AccountQuickBadge } from './account/AccountQuickBadge';
 import { EditProfileForm } from './account/EditProfileForm';
-import { SquadRecruitSection } from './account/SquadRecruitSection';
 import { LocalResetOptions } from './account/LocalResetOptions';
 import { GuestAuthForm } from './account/GuestAuthForm';
 
@@ -32,6 +31,7 @@ interface AccountModalProps {
   userProfile: UserProfile | null;
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   onSyncLeaderboard: (profile?: UserProfile) => Promise<void>;
+  onOpenShareCard?: (view?: 'champion' | 'boss' | 'squad') => void;
 }
 
 export default function AccountModal({
@@ -42,7 +42,8 @@ export default function AccountModal({
   currentUser,
   userProfile,
   setUserProfile,
-  onSyncLeaderboard
+  onSyncLeaderboard,
+  onOpenShareCard
 }: AccountModalProps) {
   // Auth Form states
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
@@ -65,9 +66,23 @@ export default function AccountModal({
   const [confirmLocalWipe, setConfirmLocalWipe] = useState<'zero' | 'standard' | null>(null);
 
   // Local Character & State Purge with 2 Presets
-  const handleLocalWipe = (mode: 'zero' | 'standard' = 'standard') => {
+  const handleLocalWipe = (mode: 'zero' | 'standard' = 'standard', clearChronicles: boolean = false) => {
     const isZero = mode === 'zero';
     const preset = isZero ? DEFAULT_HERO_BASELINE.absoluteZero : DEFAULT_HERO_BASELINE.starter;
+
+    // Purge saved combat logs from localStorage
+    try {
+      localStorage.removeItem('powerupArmory_saved_combat_logs');
+      localStorage.removeItem('powerupArmory_save');
+    } catch (e) {
+      console.warn('Could not clear saved combat logs from localStorage:', e);
+    }
+
+    // Dispatch global event to clear live combat feed in GameView
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('armory_logs_wiped'));
+    }
+
     const resetState: GameState = {
       coins: preset.coins,
       gems: preset.gems,
@@ -79,14 +94,14 @@ export default function AccountModal({
       totalBossesDefeated: 0,
       playerName: currentUser?.displayName || userProfile?.displayName || gameState.playerName || 'Champion',
       battleLog: [{
-        message: `🗑️ Character profile reset (${isZero ? `Absolute Zero: ${preset.powerScore} PS / ${preset.baseDefense} Armor / ${preset.coins} Currency` : `Standard Starter: ${preset.powerScore} PS / ${preset.baseDefense} Armor / ${preset.coins.toLocaleString()} Coins`}).`,
+        message: `🗑️ Character profile reset (${isZero ? `Absolute Zero: ${preset.powerScore} PS / ${preset.baseDefense} Armor / ${preset.coins} Currency` : `Standard Starter: ${preset.powerScore} PS / ${preset.baseDefense} Armor / ${preset.coins.toLocaleString()} Coins`}). Combat log cleared.${clearChronicles ? ' Custom chronicles cleared.' : ''}`,
         className: 'log-defeat'
       }],
       leaderboard: gameState.leaderboard,
       purchasedCodes: [],
       bossKillStats: {},
       bossDeathStats: {},
-      customStories: [],
+      customStories: clearChronicles ? [] : (gameState.customStories || []),
       isDead: false,
       reviveCount: 0,
       revivePacks: preset.revivePacks,
@@ -100,97 +115,10 @@ export default function AccountModal({
     setConfirmLocalWipe(null);
     setProfileMessage(
       isZero
-        ? '⚡ Character wiped to Absolute Zero! (0 PS, 0 DEF/Armor, 0 Coins, 0 Gems)'
-        : '🎮 Starter profile restored! (29 PS, 5 DEF/Armor, 2,000 Coins, 500 Gems)'
+        ? `⚡ Character wiped to Absolute Zero! Combat log cleared.${clearChronicles ? ' Custom chronicles wiped.' : ''}`
+        : `🎮 Starter profile restored! Combat log cleared.${clearChronicles ? ' Custom chronicles wiped.' : ''}`
     );
     setTimeout(() => setProfileMessage(null), 5000);
-  };
-
-  // Squad Invite Code Redemption Handler
-  const handleRedeemInviteCode = (code: string): { success: boolean; message: string } => {
-    const cleanCode = code.trim().toUpperCase();
-    const myCode = 
-      gameState.inviteCode || 
-      userProfile?.inviteCode || 
-      `ARMORY-${(userProfile?.userId || gameState.playerName || 'CHAMP').replace(/[^A-Za-z0-9]/g, '').slice(0, 5).toUpperCase() || 'HERO7'}`;
-
-    if (cleanCode === myCode) {
-      return { success: false, message: 'You cannot redeem your own squad invite code!' };
-    }
-
-    if (gameState.invitedByCode || userProfile?.invitedByCode) {
-      return { success: false, message: 'You have already redeemed a squad invite code!' };
-    }
-
-    const isPartnerCode = ['MINIBARN-MASTER', 'MINIBARN', 'RAPPORT-VERSE', 'RAPPORTVERSE', 'RAPPRT'].includes(cleanCode);
-    const partnerName = isPartnerCode 
-      ? (cleanCode.includes('BARN') ? 'MiniBarnMaster' : 'RapportVerse') 
-      : undefined;
-
-    trackSquadInvite('redeemed', cleanCode, {
-      is_partner_creator: isPartnerCode,
-      ...(partnerName ? { creator_name: partnerName } : {}),
-      reward_coins: 3000,
-      reward_gems: 150
-    });
-
-    // Grant bonus: +3,000 Coins and +150 Gems
-    const updatedState: GameState = {
-      ...gameState,
-      coins: gameState.coins + 3000,
-      gems: gameState.gems + 150,
-      invitedByCode: cleanCode,
-      inviteCode: myCode,
-      squadRecruitsCount: (gameState.squadRecruitsCount || 0) + 1,
-      squadMembers: [...(gameState.squadMembers || []), isPartnerCode ? `Partner Recruit: ${partnerName}` : `Recruited via ${cleanCode}`],
-      battleLog: [
-        {
-          message: isPartnerCode 
-            ? `🤝 ${partnerName} Partner Bonus Activated (${cleanCode})! Received +3,000 Coins & +150 Gems!`
-            : `👥 Squad Invite Redeemed (${cleanCode})! Received +3,000 Coins & +150 Gems bonus!`,
-          className: 'log-reward'
-        },
-        ...gameState.battleLog
-      ]
-    };
-
-    setGameState(updatedState);
-    localStorage.setItem('bossRushTycoon', JSON.stringify(updatedState));
-
-    if (currentUser) {
-      const userRef = doc(db, 'users', currentUser.uid);
-      updateDoc(userRef, {
-        invitedByCode: cleanCode,
-        inviteCode: myCode,
-        squadRecruitsCount: (userProfile?.squadRecruitsCount || 0) + 1,
-        coins: updatedState.coins,
-        updatedAt: new Date().toISOString()
-      }).catch(err => console.warn('Could not sync invite to user profile:', err));
-
-      const progressRef = doc(db, 'user_progress', currentUser.uid);
-      setDoc(progressRef, {
-        userId: currentUser.uid,
-        coins: updatedState.coins,
-        gems: updatedState.gems,
-        invitedByCode: cleanCode,
-        inviteCode: myCode,
-        squadRecruitsCount: updatedState.squadRecruitsCount,
-        updatedAt: new Date().toISOString()
-      }, { merge: true }).catch(err => console.warn('Could not sync invite to user progress:', err));
-
-      setUserProfile(prev => prev ? {
-        ...prev,
-        invitedByCode: cleanCode,
-        inviteCode: myCode,
-        squadRecruitsCount: (prev.squadRecruitsCount || 0) + 1,
-        coins: updatedState.coins
-      } : null);
-    }
-
-    return { 
-      success: true, 
-      message: `🎉 Success! Joined squad (${cleanCode})! Received +3,000 Coins & +150 Gems!` 
-    };
   };
 
   // Check isAdmin flag in auth details or firestore profile
@@ -580,7 +508,7 @@ export default function AccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="bg-[#0f172a] border border-[#2a4060] w-full max-w-xl md:max-w-3xl rounded-3xl p-6 md:p-8 shadow-2xl relative max-h-[92vh] overflow-y-auto space-y-6 md:space-y-8">
         
         {/* Close Button */}
@@ -638,6 +566,18 @@ export default function AccountModal({
             {/* Live Hero Stats Overview (Moved above Contact/Badge Info!) */}
             <LiveHeroStats gameState={gameState} />
 
+            {/* Dynamic Vector SVG Share Card Studio Launcher */}
+            {onOpenShareCard && (
+              <button
+                type="button"
+                onClick={() => onOpenShareCard('champion')}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 via-indigo-600 to-amber-500 hover:from-cyan-500 hover:to-amber-400 text-white font-mono font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span>✨ Open Dynamic SVG Share Card Studio</span>
+                <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded-full border border-white/20">Vector 1200x630</span>
+              </button>
+            )}
+
             {/* Account Quick Stats Badge (Contact details/Credentials) */}
             <AccountQuickBadge
               currentUser={currentUser}
@@ -689,19 +629,12 @@ export default function AccountModal({
           />
         )}
 
-        {/* Squad Recruitment & Invite Section */}
-        <SquadRecruitSection
-          gameState={gameState}
-          setGameState={setGameState}
-          userProfile={userProfile}
-          onRedeemInviteCode={handleRedeemInviteCode}
-        />
-
         {/* Danger Zone Reset Options */}
         <LocalResetOptions
           confirmLocalWipe={confirmLocalWipe}
           setConfirmLocalWipe={setConfirmLocalWipe}
           onLocalWipe={handleLocalWipe}
+          customChroniclesCount={gameState.customStories?.length || 0}
         />
 
       </div>

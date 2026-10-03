@@ -36,6 +36,7 @@ export default function AdminModal({
 }: AdminModalProps) {
   // User Store Statuses state
   const [userStoreStatuses, setUserStoreStatuses] = useState<{[userId: string]: boolean}>({});
+  const [userBetaStatuses, setUserBetaStatuses] = useState<{[userId: string]: boolean}>({});
 
   // Key builder states
   const [selectedItemId, setSelectedItemId] = useState<string>(POWERUPS[0].id);
@@ -49,7 +50,7 @@ export default function AdminModal({
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Reverse Cart ID / Receipt Key Inspector State
-  const [reverseLookupCode, setReverseLookupCode] = useState<string>('OUVL-RG3U-1WW3-MEB2');
+  const [reverseLookupCode, setReverseLookupCode] = useState<string>('');
   const [inspectedRecord, setInspectedRecord] = useState<PurchaseRecord | null>(null);
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
   const [isRegisteringCart, setIsRegisteringCart] = useState<boolean>(false);
@@ -70,7 +71,8 @@ export default function AdminModal({
     wipeBaseStatsToZero: true,        // 0 ATK, 0 DEF/Armor, 0 SPD -> 0 PS (vs standard starter 10/5/10 -> 29 PS)
     wipeRevivePacksToZero: true,      // 0 Revive Nanite Packs (vs standard starter 2 packs)
     purgeReceiptHistory: false,       // Delete all minted receipt keys
-    purgeLeaderboardHistory: false    // Wipe local leaderboard cache
+    purgeLeaderboardHistory: false,   // Wipe local leaderboard cache
+    purgeCustomChronicles: false      // Wipe custom inscribed stories
   });
 
   // User leaderboard / accounts for wipe moderation
@@ -96,16 +98,19 @@ export default function AdminModal({
       snap.forEach(d => list.push(d.data() as LeaderboardEntry));
       setPlayerList(list);
 
-      // Fetch and map store status from 'users' collection
+      // Fetch and map store & beta status from 'users' collection
       const usersSnap = await getDocs(collection(db, 'users'));
-      const statuses: {[userId: string]: boolean} = {};
+      const storeStatuses: {[userId: string]: boolean} = {};
+      const betaStatuses: {[userId: string]: boolean} = {};
       usersSnap.forEach(d => {
         const data = d.data();
         if (data.userId) {
-          statuses[data.userId] = !!data.isArmoryStoreEnabled;
+          storeStatuses[data.userId] = !!data.isArmoryStoreEnabled;
+          betaStatuses[data.userId] = !!data.isBetaTester;
         }
       });
-      setUserStoreStatuses(statuses);
+      setUserStoreStatuses(storeStatuses);
+      setUserBetaStatuses(betaStatuses);
     } catch (e) {
       console.warn('Could not fetch leaderboard or users for admin moderation:', e);
       if (cloudLeaderboard && cloudLeaderboard.length > 0) {
@@ -131,6 +136,25 @@ export default function AdminModal({
       }
     } catch (err) {
       console.error('Error toggling armory store access:', err);
+    }
+  };
+
+  const handleToggleBetaTester = async (userId: string) => {
+    const currentStatus = !!userBetaStatuses[userId];
+    const newStatus = !currentStatus;
+    try {
+      await setDoc(doc(db, 'users', userId), { isBetaTester: newStatus }, { merge: true });
+      setUserBetaStatuses(prev => ({ ...prev, [userId]: newStatus }));
+      
+      // Update local profile if self
+      if (currentUser && currentUser.uid === userId && setUserProfile) {
+        setUserProfile(prev => prev ? { ...prev, isBetaTester: newStatus } : null);
+      }
+      setWipeNotice(`Beta status for ${userId} updated: ${newStatus ? 'PROMOTED to Beta Tester' : 'DEMOTED'}.`);
+      setTimeout(() => setWipeNotice(null), 3500);
+    } catch (err: any) {
+      console.error('Error toggling beta tester access:', err);
+      setWipeNotice(`Error updating beta status: ${err.message}`);
     }
   };
 
@@ -508,6 +532,19 @@ export default function AdminModal({
     const baseSpeed = wipeOptions.wipeBaseStatsToZero ? 0 : 10;
     const powerScore = wipeOptions.wipeBaseStatsToZero ? 0 : 29;
 
+    // Purge saved combat logs from localStorage
+    try {
+      localStorage.removeItem('powerupArmory_saved_combat_logs');
+      localStorage.removeItem('powerupArmory_save');
+    } catch (e) {
+      console.warn('Could not clear saved combat logs from localStorage:', e);
+    }
+
+    // Dispatch global event to clear live combat feed across views
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('armory_logs_wiped'));
+    }
+
     const resetState: GameState = {
       coins,
       gems,
@@ -523,13 +560,14 @@ export default function AdminModal({
       totalBossesDefeated: 0,
       playerName: 'Champion',
       battleLog: [{
-        message: `🗑️ Administrator wiped game state (${wipeOptions.wipeBaseStatsToZero ? 'Absolute Zero 0 PS / 0 Armor' : 'Standard 29 PS / 5 Armor'}). Clean profile initialized.`,
+        message: `🗑️ Administrator wiped game state (${wipeOptions.wipeBaseStatsToZero ? 'Absolute Zero 0 PS / 0 Armor' : 'Standard 29 PS / 5 Armor'}). Combat log cleared.${wipeOptions.purgeCustomChronicles ? ' Custom chronicles cleared.' : ''}`,
         className: 'log-defeat'
       }],
       leaderboard: wipeOptions.purgeLeaderboardHistory ? [] : gameState.leaderboard,
       purchasedCodes: wipeOptions.purgeReceiptHistory ? [] : gameState.purchasedCodes,
       bossKillStats: {},
       bossDeathStats: {},
+      customStories: wipeOptions.purgeCustomChronicles ? [] : (gameState.customStories || []),
       isDead: false,
       reviveCount: 0,
       revivePacks,
@@ -558,7 +596,7 @@ export default function AdminModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-modal">
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[500]">
       <div 
         id="admin-panel-container"
         className="w-full max-w-[880px] bg-linear-to-b from-[#111827] via-[#0d1322] to-[#070b14] border-2 border-red-500/40 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.2)] max-h-[92vh] flex flex-col"
@@ -783,6 +821,8 @@ export default function AdminModal({
               onOpenConfirmWipe={() => setConfirmWipeOpen(true)}
               userStoreStatuses={userStoreStatuses}
               onToggleArmoryStore={handleToggleArmoryStore}
+              userBetaStatuses={userBetaStatuses}
+              onToggleBetaTester={handleToggleBetaTester}
               gameState={gameState}
               setGameState={setGameState}
               saveState={saveState}
@@ -829,13 +869,14 @@ export default function AdminModal({
               <button
                 type="button"
                 onClick={() => {
-                  setWipeOptions({
+                  setWipeOptions(prev => ({
+                    ...prev,
                     wipeCurrenciesToZero: true,
                     wipeBaseStatsToZero: true,
                     wipeRevivePacksToZero: true,
                     purgeReceiptHistory: false,
                     purgeLeaderboardHistory: false
-                  });
+                  }));
                 }}
                 className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
                   wipeOptions.wipeBaseStatsToZero && wipeOptions.wipeCurrenciesToZero
@@ -859,13 +900,14 @@ export default function AdminModal({
               <button
                 type="button"
                 onClick={() => {
-                  setWipeOptions({
+                  setWipeOptions(prev => ({
+                    ...prev,
                     wipeCurrenciesToZero: false,
                     wipeBaseStatsToZero: false,
                     wipeRevivePacksToZero: false,
                     purgeReceiptHistory: false,
                     purgeLeaderboardHistory: false
-                  });
+                  }));
                 }}
                 className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
                   !wipeOptions.wipeBaseStatsToZero && !wipeOptions.wipeCurrenciesToZero
@@ -972,9 +1014,25 @@ export default function AdminModal({
                   className="mt-0.5 accent-red-500 rounded cursor-pointer"
                 />
                 <div>
-                  <span className="font-bold text-slate-300">Purge Local Leaderboard & Story Chronicles</span>
+                  <span className="font-bold text-slate-300">Purge Local Leaderboard Cache</span>
                   <p className="text-[11px] text-slate-400 font-sans mt-0.5">
-                    Clears local cached score history and custom chronicle entries.
+                    Clears local cached score history.
+                  </p>
+                </div>
+              </label>
+
+              {/* Toggle 6: Purge Custom Chronicles */}
+              <label className="flex items-start gap-2.5 text-xs font-mono text-slate-200 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={wipeOptions.purgeCustomChronicles}
+                  onChange={(e) => setWipeOptions(prev => ({ ...prev, purgeCustomChronicles: e.target.checked }))}
+                  className="mt-0.5 accent-red-500 rounded cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-amber-300">Purge Inscribed Custom Chronicles ({gameState.customStories?.length || 0} Stories)</span>
+                  <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+                    Permanently clears all custom authored lore tales from the Chronicler's Tome.
                   </p>
                 </div>
               </label>

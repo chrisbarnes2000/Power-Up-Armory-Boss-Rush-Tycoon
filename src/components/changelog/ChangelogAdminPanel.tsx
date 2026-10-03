@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, RefreshCw, Rocket, ShieldCheck } from 'lucide-react';
+import { Settings, RefreshCw, Rocket, ShieldCheck, FlaskConical } from 'lucide-react';
 import { BroadcastStatusResponse } from './types';
 
 interface ChangelogAdminPanelProps {
@@ -42,29 +42,50 @@ interface ChangelogAdminPanelProps {
   onToggleFeatureFlag: (flag: 'featureCommsCheck' | 'featurePlaybookScenarios', currentValue?: boolean) => void;
   onPublishBatchRelease: () => void;
   onManualBroadcast: () => void;
+  isBeta?: boolean;
+  onToggleBeta?: (enabled: boolean) => void;
 }
 
 export const ChangelogAdminPanel: React.FC<ChangelogAdminPanelProps> = ({
   onForceRefreshRC,
   isRefreshingRC,
   broadcastSuccess,
-  broadcastError
+  broadcastError,
+  isBeta,
+  onToggleBeta
 }) => {
   return (
-    <div className="shrink-0 flex items-center gap-4 px-6 py-2 bg-indigo-950/20 border-b border-indigo-500/20">
+    <div className="shrink-0 flex items-center gap-4 px-6 py-2 bg-indigo-950/20 border-b border-indigo-500/20 flex-wrap">
       <div className="flex items-center gap-2 text-indigo-400">
         <ShieldCheck className="w-4 h-4" />
         <span className="text-[10px] font-bold uppercase tracking-wider">Admin Nexus</span>
       </div>
       
-      <div className="flex gap-2 ml-auto">
+      <div className="flex items-center gap-2 ml-auto flex-wrap">
+        {onToggleBeta && (
+          <button 
+            type="button"
+            onClick={() => onToggleBeta(!isBeta)}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-mono font-bold transition cursor-pointer border ${
+              isBeta
+                ? 'bg-amber-950/80 hover:bg-amber-900 border-amber-500/40 text-amber-300'
+                : 'bg-indigo-900/60 hover:bg-indigo-800 border-indigo-500/30 text-indigo-200'
+            }`}
+            title="Promote or Demote this session to Beta Tester privileges"
+          >
+            <FlaskConical className="w-3 h-3 text-amber-400" />
+            <span>{isBeta ? '🧪 Beta Active (Demote)' : '⚡ Promote to Beta'}</span>
+          </button>
+        )}
+
         <button 
+          type="button"
           onClick={onForceRefreshRC}
           disabled={isRefreshingRC}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition disabled:opacity-50 cursor-pointer"
         >
           <RefreshCw className={`w-3 h-3 ${isRefreshingRC ? 'animate-spin' : ''}`} />
-          Refresh Config
+          <span>Refresh Config</span>
         </button>
       </div>
 

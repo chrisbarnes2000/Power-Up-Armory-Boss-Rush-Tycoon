@@ -17,6 +17,8 @@ interface AdminUserModerationProps {
   onOpenConfirmWipe: () => void;
   userStoreStatuses?: { [userId: string]: boolean };
   onToggleArmoryStore?: (userId: string) => Promise<void>;
+  userBetaStatuses?: { [userId: string]: boolean };
+  onToggleBetaTester?: (userId: string) => Promise<void>;
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   saveState: (state: GameState) => void;
@@ -42,6 +44,8 @@ export default function AdminUserModeration({
   onOpenConfirmWipe,
   userStoreStatuses = {},
   onToggleArmoryStore,
+  userBetaStatuses = {},
+  onToggleBetaTester,
   gameState,
   setGameState,
   saveState,
@@ -310,12 +314,25 @@ export default function AdminUserModeration({
                       onClick={() => onToggleArmoryStore?.(player.userId)}
                       className={`px-2.5 py-1.5 border rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
                         userStoreStatuses[player.userId]
-                          ? 'bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300 hover:text-emerald-200'
+                          ? 'bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300 hover:text-emerald-200 shadow-sm'
                           : 'bg-slate-900/60 hover:bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-slate-300'
                       }`}
-                      title={userStoreStatuses[player.userId] ? 'Armory Store is ENABLED for this user. Click to disable.' : 'Armory Store is DISABLED for this user. Click to enable.'}
+                      title={userStoreStatuses[player.userId] ? 'Admin Shop Bypass is ON: In-person cash payment clearance active. Gold coin cost is waived. Click to switch to normal gold.' : 'Admin Shop Bypass is OFF: User must pay with in-game Gold Coins. Click to enable cash bypass.'}
                     >
-                      🛒 {userStoreStatuses[player.userId] ? 'Store: ON' : 'Store: OFF'}
+                      🛒 {userStoreStatuses[player.userId] ? 'Shop Bypass: ON (Cash)' : 'Shop: OFF (Gold)'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onToggleBetaTester?.(player.userId)}
+                      className={`px-2.5 py-1.5 border rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
+                        userBetaStatuses[player.userId]
+                          ? 'bg-amber-950/60 hover:bg-amber-900/60 border-amber-500/40 text-amber-300 hover:text-amber-200 shadow-sm'
+                          : 'bg-indigo-950/40 hover:bg-indigo-900/50 border-indigo-500/30 text-indigo-300 hover:text-indigo-200'
+                      }`}
+                      title={userBetaStatuses[player.userId] ? 'Beta Tester status is ACTIVE. Click to revoke.' : 'User is not a Beta Tester. Click to promote.'}
+                    >
+                      🧪 {userBetaStatuses[player.userId] ? 'Beta: ON' : 'Promote Beta'}
                     </button>
                     
                     <button

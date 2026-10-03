@@ -4,14 +4,24 @@ import { APP_CONFIG } from '../config/appConfig';
 import { buildOutboundPartnerUrl, trackOutboundPartnerClick } from '../lib/analytics';
 
 interface FooterProps {
-  onNavigate: (view: 'Shop' | 'Game' | 'Stats' | 'Lore') => void;
+  onNavigate: (view: 'Shop' | 'Game' | 'Stats' | 'Lore' | 'Partners') => void;
   onOpenTour?: () => void;
   onOpenAccount?: () => void;
   onOpenInstall?: () => void;
   onOpenChangelog?: () => void;
+  isAdmin?: boolean;
+  currentUser?: any;
 }
 
-export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenInstall, onOpenChangelog }: FooterProps) {
+export default function Footer({ 
+  onNavigate, 
+  onOpenTour, 
+  onOpenAccount, 
+  onOpenInstall, 
+  onOpenChangelog,
+  isAdmin = false,
+  currentUser = null
+}: FooterProps) {
   const currentYear = new Date().getFullYear();
 
   // Outbound UTM-tagged partner links
@@ -21,14 +31,14 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenIn
     utm_content: 'footer_partnership_card'
   });
 
-  const miniBarnMasterUrl = buildOutboundPartnerUrl('https://minibarnmaster.com', {
+  const miniBarnMasterUrl = buildOutboundPartnerUrl(APP_CONFIG.miniBarnMaster?.url || 'https://minibarnmaster.ai.studio', {
     utm_medium: 'creator_spotlight',
     utm_campaign: 'barn_crossplay',
     utm_content: 'footer_creator_alliance'
   });
 
   return (
-    <footer id="app-global-footer" className="relative z-30 w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
+    <footer id="app-global-footer" className="relative z-20 w-full max-w-full bg-[#080d1a] border-t border-[#1a2942] mt-16 text-slate-400 py-10 px-4 sm:px-8 transition-colors box-border">
       <div className="max-w-[1720px] mx-auto flex flex-col gap-8">
         {/* Main 4-Column Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -138,6 +148,15 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenIn
                 >
                   <span>📜</span>
                   <span>Compendium & Chronicles Lore Book</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('Partners')}
+                  className="hover:text-cyan-300 text-amber-400/90 font-bold transition text-left cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>🤝</span>
+                  <span>Affiliates & Partner Portal</span>
                 </button>
               </li>
               {onOpenTour && (
@@ -303,7 +322,9 @@ export default function Footer({ onNavigate, onOpenTour, onOpenAccount, onOpenIn
                 className="mt-2 text-xs bg-indigo-950/50 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 py-1.5 px-3 rounded-lg flex items-center justify-between cursor-pointer transition"
               >
                 <span>Firebase Authentication</span>
-                <span className="text-[10px] font-mono text-emerald-400">Cloud Sync</span>
+                <span className={`text-[10px] font-mono border px-2 py-0.5 rounded-full ${isAdmin ? 'text-red-400 border-red-500/30 bg-red-950/40' : currentUser ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/40' : 'text-amber-400 border-amber-500/30 bg-amber-950/40'}`}>
+                  {isAdmin ? 'Admin Bypassed' : currentUser ? 'Synced' : 'Cloud Ready'}
+                </span>
               </button>
             )}
           </div>

@@ -207,7 +207,7 @@ export const GlobalTouchTooltip: React.FC = () => {
       id="global-touch-tooltip"
       role="tooltip"
       aria-hidden={!tooltip.visible}
-      className={`fixed z-[80] pointer-events-none transition-all duration-150 ease-out transform -translate-x-1/2 ${
+      className={`fixed z-[10000] pointer-events-none transition-all duration-150 ease-out transform -translate-x-1/2 ${
         tooltip.position === 'top' ? '-translate-y-full' : 'translate-y-0'
       }`}
       style={{
